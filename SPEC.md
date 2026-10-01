@@ -107,9 +107,11 @@ Light and dark appearance is stored separately under `sudoku.theme`. With nothin
 
 ## Screen
 
-The page fills the browser window. The board is the largest square that fits beside or above the controls.
+The page fills the browser window. From a window width of 720 pixels, the board is the largest square that fits beside the controls, which are a fixed column on the right.
 
-From a window width of 720 pixels, the board is on the left and the controls are a fixed column on the right. Below that, the board is on top and the controls use the lower part of the screen, scrolling inside that panel when they do not fit.
+Below that, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. Notes, erase, undo, redo, hint, check, and the conflict toggle fill the space to its right. From 720 pixels wide, the keypad is the largest square that fits in the control column, with those same tools underneath it. If the controls still do not fit, they scroll in the lower panel.
+
+Pencil marks are the largest size that still places all nine digits inside a cell.
 
 Box borders are heavier than the lines between cells inside a box. Both stay visible as the board gets smaller. The selected cell is highlighted, peers in its row, column, and box are tinted, and other cells holding the same digit are tinted more strongly. Conflicts, when shown, use their own tint and take precedence over those three.
 

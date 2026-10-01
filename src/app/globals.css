@@ -181,8 +181,9 @@
   }
 }
 
-/* The desk fills the viewport. The board is the largest square that still
-   leaves the controls on screen, snapped to whole pixels so rules stay crisp. */
+/* The desk fills the viewport. Beside the controls, the board is the largest
+   square that still fits. On a phone it uses the full width instead, snapped
+   to whole pixels so the rules stay crisp. */
 .board-slot {
   container-type: size;
   display: flex;
@@ -194,14 +195,12 @@
 }
 
 .board-frame {
-  width: min(100cqi, 100cqb);
-  height: min(100cqi, 100cqb);
   width: round(down, min(100cqi, 100cqb), 9px);
   height: round(down, min(100cqi, 100cqb), 9px);
 }
 
 .cell-face {
-  container-type: inline-size;
+  container-type: size;
 }
 
 .cell-digit {
@@ -209,8 +208,39 @@
   line-height: 1;
 }
 
+/* Nine pencil marks, as large as the cell allows. The em square is a bit
+   larger than each ninth because the digit ink does not fill the whole em. */
 .cell-notes {
-  font-size: clamp(0.38rem, 17cqi, 0.72rem);
+  container-type: size;
+  line-height: 1;
+}
+
+.cell-notes > span {
+  font-size: calc(min(100cqi, 100cqb) / 2.4);
+  line-height: 1;
+}
+
+@media (max-width: 719px) {
+  .board-slot {
+    container-type: inline-size;
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .board-frame {
+    width: round(down, 100cqi, 9px);
+    height: round(down, 100cqi, 9px);
+  }
+}
+
+/* The keypad is the largest square that fits the space left for it. */
+.digit-slot {
+  container-type: size;
+}
+
+.digit-pad {
+  width: min(100cqi, 100cqb);
+  height: min(100cqi, 100cqb);
 }
 
 @media (max-height: 700px) {

@@ -107,7 +107,7 @@ export function Board({ game, conflicts, onSelect }: BoardProps) {
             {value !== 0 ? (
               <span className="cell-digit">{value}</span>
             ) : game.notes[r][c] !== 0 ? (
-              <span className="cell-notes grid h-full w-full grid-cols-3 grid-rows-3 p-[8%] font-medium text-cell-note">
+              <span className="cell-notes grid h-full w-full grid-cols-3 grid-rows-3 font-medium text-cell-note">
                 {Array.from({ length: 9 }, (_, digit) => {
                   const n = digit + 1;
                   const on = (game.notes[r][c] & (1 << n)) !== 0;

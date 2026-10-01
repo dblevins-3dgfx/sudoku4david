@@ -93,19 +93,19 @@ export function Game() {
     game.grid.some((row, r) => row.some((value, c) => !game.locked[r][c] && value !== game.solution[r][c]));
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-[1100px] flex-1 flex-col gap-3 px-3 py-3 sm:px-5">
+    <div className="mx-auto flex min-h-0 w-full max-w-[1100px] flex-1 flex-col gap-1.5 px-1.5 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] min-[720px]:gap-3 min-[720px]:px-5 min-[720px]:py-3">
       <header className="flex shrink-0 items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[0.65rem] font-medium tracking-[0.22em] text-muted-foreground uppercase">
             One solution
           </p>
-          <h1 className="font-heading text-3xl leading-none tracking-tight sm:text-4xl">Sudoku</h1>
-          <p className="desk-lede mt-1 truncate text-sm text-muted-foreground">
+          <h1 className="font-heading text-2xl leading-none tracking-tight min-[720px]:text-4xl">Sudoku</h1>
+          <p className="desk-lede mt-1 hidden truncate text-sm text-muted-foreground min-[720px]:block">
             Fill each row, column, and 3×3 box with 1–9. Nothing repeats.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <p className="min-w-[4.25rem] text-right font-heading text-3xl tabular-nums leading-none" aria-label="Elapsed time">
+          <p className="min-w-[3.5rem] text-right font-heading text-2xl tabular-nums leading-none min-[720px]:min-w-[4.25rem] min-[720px]:text-3xl" aria-label="Elapsed time">
             {formatTime(game?.elapsedMs ?? 0)}
           </p>
           <Button
@@ -136,10 +136,10 @@ export function Game() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden min-[720px]:flex-row min-[720px]:items-stretch">
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-busy={busy}>
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden min-[720px]:flex-row min-[720px]:items-stretch min-[720px]:gap-3">
+        <section className="flex min-h-0 min-w-0 flex-col max-[719px]:shrink-0 min-[720px]:flex-1" aria-busy={busy}>
           {game?.notesMode && !busy && !game.paused && !game.won ? (
-            <p className="mb-1 shrink-0 text-center text-[0.7rem] font-medium tracking-[0.18em] text-muted-foreground uppercase">
+            <p className="mb-1 hidden shrink-0 text-center text-[0.7rem] font-medium tracking-[0.18em] text-muted-foreground uppercase min-[720px]:block">
               Notes
             </p>
           ) : null}
@@ -208,8 +208,8 @@ export function Game() {
           </p>
         </section>
 
-        <aside className="flex max-h-[46%] min-h-0 w-full flex-col gap-1 overflow-y-auto min-[720px]:max-h-none min-[720px]:w-[18.75rem] min-[720px]:shrink-0 min-[720px]:self-stretch">
-          <div className="shrink-0 rounded-xl border border-border bg-card px-3 py-2">
+        <aside className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto min-[720px]:w-[18.75rem] min-[720px]:shrink-0 min-[720px]:flex-none min-[720px]:self-stretch">
+          <div className="shrink-0 rounded-xl border border-border bg-card px-2.5 py-1 min-[720px]:px-3 min-[720px]:py-2">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-sm" aria-live="polite">
                 {notice ?? status}
@@ -218,13 +218,13 @@ export function Game() {
                 {game ? `${filled}/81` : "—"}
               </p>
             </div>
-            <div className="mt-2 h-1 overflow-hidden bg-muted" aria-hidden="true">
+            <div className="mt-1.5 h-1 overflow-hidden bg-muted min-[720px]:mt-2" aria-hidden="true">
               <div
                 className="h-full bg-primary transition-[width] duration-300"
                 style={{ width: `${(filled / 81) * 100}%` }}
               />
             </div>
-            <p className="mt-2 text-xs tracking-wide text-muted-foreground uppercase">
+            <p className="mt-1 text-xs tracking-wide text-muted-foreground uppercase min-[720px]:mt-2">
               {game ? `${game.won ? "Solved" : game.started ? "Playing" : "Ready"} · ${game.difficulty}` : "Dealing"}
             </p>
           </div>
@@ -235,7 +235,9 @@ export function Game() {
             </p>
           ) : null}
 
-          <div className="grid min-h-[6.25rem] flex-1 grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
+          <div className="play-tools flex min-h-[9rem] w-full flex-1 items-stretch gap-1 max-[719px]:flex-row min-[720px]:flex-col">
+          <div className="digit-slot flex min-h-0 items-start justify-start max-[719px]:aspect-square max-[719px]:h-full max-[719px]:max-w-[calc(100%-9.25rem)] min-[720px]:w-full min-[720px]:flex-1 min-[720px]:items-center min-[720px]:justify-center">
+            <div className="digit-pad grid grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
             {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
               const placed = counts[digit] ?? 0;
               const remaining = Math.max(0, 9 - placed);
@@ -249,7 +251,7 @@ export function Game() {
                   key={digit}
                   type="button"
                   variant={pressed ? "default" : "outline"}
-                  className="relative h-full min-h-8 text-lg font-semibold tabular-nums"
+                  className="relative h-full w-full min-h-0 min-w-0 text-base font-semibold tabular-nums min-[720px]:text-lg"
                   aria-label={
                     remaining === 0
                       ? `Enter ${digit}, all nine placed`
@@ -262,7 +264,7 @@ export function Game() {
                   {digit}
                   <span
                     className={cn(
-                      "absolute top-1 right-1.5 text-[0.65rem] font-medium tabular-nums opacity-70",
+                      "absolute top-0.5 right-1 text-[0.6rem] font-medium tabular-nums opacity-70 min-[720px]:top-1 min-[720px]:right-1.5 min-[720px]:text-[0.65rem]",
                       placed > 9 && "text-destructive opacity-100",
                     )}
                   >
@@ -271,13 +273,14 @@ export function Game() {
                 </Button>
               );
             })}
+            </div>
           </div>
 
-          <div className="grid shrink-0 grid-cols-2 gap-1">
+          <div className="grid h-full min-h-0 min-w-0 flex-1 grid-cols-2 grid-rows-4 gap-1 max-[719px]:min-w-[9.25rem] min-[720px]:h-auto min-[720px]:shrink-0 min-[720px]:grid-rows-none">
             <Button
               type="button"
               variant={game?.notesMode ? "default" : "outline"}
-              className="h-8"
+              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
               aria-pressed={game?.notesMode ?? false}
               disabled={!game || game.paused || game.won || busy}
               onClick={toggleNotes}
@@ -288,7 +291,7 @@ export function Game() {
             <Button
               type="button"
               variant="outline"
-              className="h-8"
+              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
               disabled={lockedPlay}
               onClick={eraseCell}
             >
@@ -298,7 +301,7 @@ export function Game() {
             <Button
               type="button"
               variant="outline"
-              className="h-8"
+              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
               disabled={!game || game.paused || busy || game.history.length === 0}
               onClick={undoMove}
             >
@@ -308,7 +311,7 @@ export function Game() {
             <Button
               type="button"
               variant="outline"
-              className="h-8"
+              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
               disabled={!game || game.paused || busy || game.future.length === 0}
               onClick={redoMove}
             >
@@ -318,26 +321,27 @@ export function Game() {
             <Button
               type="button"
               variant="outline"
-              className="h-8"
+              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
               disabled={!canHint || busy}
               onClick={giveHint}
             >
               <Lightbulb />
               {game && game.hintsUsed > 0 ? `Hint · ${game.hintsUsed}` : "Hint"}
             </Button>
-            <Button type="button" variant="outline" className="h-8" disabled={!game || busy || game.paused} onClick={check}>
+            <Button type="button" variant="outline" className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm" disabled={!game || busy || game.paused} onClick={check}>
               Check
             </Button>
             <Button
               type="button"
               variant={showMistakes ? "secondary" : "outline"}
-              className="col-span-2 h-8"
+              className="col-span-2 h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
               aria-pressed={showMistakes}
               disabled={!game || busy}
               onClick={toggleMistakesShown}
             >
               {showMistakes ? "Conflicts shown" : "Conflicts hidden"}
             </Button>
+          </div>
           </div>
 
           <div role="group" aria-label="Difficulty for the next puzzle" className="grid shrink-0 grid-cols-3 gap-1">
@@ -346,7 +350,7 @@ export function Game() {
                 key={level.id}
                 type="button"
                 variant={chosen === level.id ? "default" : "outline"}
-                className="h-8"
+                className="h-7 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
                 aria-pressed={chosen === level.id}
                 disabled={busy}
                 onClick={() => setChosen(level.id)}
@@ -363,14 +367,14 @@ export function Game() {
             <Button
               type="button"
               variant="outline"
-              className="h-8"
+              className="h-7 px-1.5 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
               disabled={!game || !game.started || busy}
               onClick={requestRestart}
             >
               <RotateCcw />
               Clear entries
             </Button>
-            <Button type="button" className="h-8" disabled={busy} onClick={() => requestNew(chosen)}>
+            <Button type="button" className="h-7 px-1.5 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm" disabled={busy} onClick={() => requestNew(chosen)}>
               {game && chosen !== game.difficulty ? `New ${chosen}` : "New puzzle"}
             </Button>
           </div>
