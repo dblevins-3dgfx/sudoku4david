@@ -235,20 +235,6 @@ export function Game() {
             </p>
           ) : null}
 
-          {pending ? (
-            <div className="rounded-xl border border-primary/30 bg-accent px-4 py-4">
-              <p className="text-sm leading-6">{pendingCopy(pending)}</p>
-              <div className="mt-3 flex gap-2">
-                <Button type="button" className="h-10" onClick={confirmPending}>
-                  {pending.kind === "restart" ? "Clear entries" : "Deal"}
-                </Button>
-                <Button type="button" variant="outline" className="h-10" onClick={cancelPending}>
-                  Keep playing
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
           <div className="grid min-h-[6.25rem] flex-1 grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
             {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
               const placed = counts[digit] ?? 0;
@@ -390,6 +376,29 @@ export function Game() {
           </div>
         </aside>
       </div>
+
+      {pending ? (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-background/75 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pending-title"
+        >
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card px-5 py-5 shadow-lg">
+            <p id="pending-title" className="text-base leading-6">
+              {pendingCopy(pending)}
+            </p>
+            <div className="mt-4 flex gap-2">
+              <Button type="button" className="h-11 flex-1" onClick={confirmPending}>
+                {pending.kind === "restart" ? "Clear entries" : "Deal"}
+              </Button>
+              <Button type="button" variant="outline" className="h-11 flex-1" onClick={cancelPending}>
+                Keep playing
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
