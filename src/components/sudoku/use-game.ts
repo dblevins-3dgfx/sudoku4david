@@ -1,0 +1,326 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createGame,
+  erase,
+  hint,
+  inputDigit,
+  moveSelection,
+  redo,
+  restart,
+  selectCell,
+  toggleMistakes,
+  toggleNotesMode,
+  togglePause,
+  undo,
+  type GameState,
+} from "@/lib/game";
+import { loadGame, saveGame, THEME_STORAGE_KEY } from "@/lib/storage";
+import {
+  conflictCount,
+  conflictGrid,
+  countFilled,
+  digitCounts,
+  type Difficulty,
+  type Digit,
+} from "@/lib/sudoku";
+
+export type Pending =
+  | { kind: "new"; difficulty: Difficulty }
+  | { kind: "restart" };
+
+export function useGame() {
+  const [game, setGame] = useState<GameState | null>(null);
+  const [booting, setBooting] = useState(true);
+  const [dealing, setDealing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [chosen, setChosen] = useState<Difficulty>("medium");
+
+  const gameRef = useRef<GameState | null>(null);
+  const dealingRef = useRef(false);
+  const pendingRef = useRef<Pending | null>(null);
+
+  useEffect(() => {
+    gameRef.current = game;
+  }, [game]);
+
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+
+  const apply = useCallback((fn: (current: GameState) => GameState) => {
+    setNotice(null);
+    setGame((current) => {
+      if (!current) return current;
+      const next = fn(current);
+      if (next !== current) queueMicrotask(() => saveGame(next));
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const id = window.setTimeout(() => {
+      if (cancelled) return;
+      const stored = loadGame();
+      if (stored) {
+        setGame(stored);
+        setChosen(stored.difficulty);
+        setBooting(false);
+        return;
+      }
+      try {
+        const next = createGame("medium");
+        setGame(next);
+        setChosen("medium");
+        saveGame(next);
+        setError(null);
+      } catch {
+        setError("Couldn't compose a puzzle. Try once more.");
+      } finally {
+        setBooting(false);
+      }
+    }, 40);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!game?.timerOn) return;
+    let last = Date.now();
+    const id = window.setInterval(() => {
+      const now = Date.now();
+      const delta = Math.min(Math.max(now - last, 0), 2000);
+      last = now;
+      if (delta === 0) return;
+      setGame((current) =>
+        current && current.timerOn ? { ...current, elapsedMs: current.elapsedMs + delta } : current,
+      );
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [game?.timerOn]);
+
+  useEffect(() => {
+    if (!game?.timerOn) return;
+    const id = window.setInterval(() => {
+      if (gameRef.current) saveGame(gameRef.current);
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [game?.timerOn]);
+
+  useEffect(() => {
+    const persist = () => {
+      if (gameRef.current) saveGame(gameRef.current);
+    };
+    window.addEventListener("beforeunload", persist);
+    document.addEventListener("visibilitychange", persist);
+    return () => {
+      window.removeEventListener("beforeunload", persist);
+      document.removeEventListener("visibilitychange", persist);
+    };
+  }, []);
+
+  const focusCell = (r: number, c: number) => {
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLButtonElement>(`[data-coord="${r}-${c}"]`)?.focus();
+    });
+  };
+
+  const deal = useCallback((difficulty: Difficulty) => {
+    if (dealingRef.current) return;
+    dealingRef.current = true;
+    setDealing(true);
+    setPending(null);
+    setNotice(null);
+    setError(null);
+    window.setTimeout(() => {
+      try {
+        const next = createGame(difficulty);
+        setGame(next);
+        setChosen(difficulty);
+        saveGame(next);
+        setError(null);
+      } catch {
+        setError("Couldn't compose a puzzle. Try once more.");
+      } finally {
+        dealingRef.current = false;
+        setDealing(false);
+      }
+    }, 40);
+  }, []);
+
+  const requestNew = useCallback(
+    (difficulty: Difficulty) => {
+      const current = gameRef.current;
+      if (!current || current.won || !current.started) {
+        deal(difficulty);
+        return;
+      }
+      setPending({ kind: "new", difficulty });
+    },
+    [deal],
+  );
+
+  const requestRestart = useCallback(() => {
+    const current = gameRef.current;
+    if (!current || !current.started) return;
+    if (current.won) {
+      apply(restart);
+      return;
+    }
+    setPending({ kind: "restart" });
+  }, [apply]);
+
+  const confirmPending = useCallback(() => {
+    const current = pendingRef.current;
+    if (!current) return;
+    if (current.kind === "new") deal(current.difficulty);
+    else {
+      setPending(null);
+      apply(restart);
+    }
+  }, [apply, deal]);
+
+  const cancelPending = useCallback(() => setPending(null), []);
+
+  const toggleTheme = useCallback(() => {
+    const dark = document.documentElement.classList.toggle("dark");
+    localStorage.setItem(THEME_STORAGE_KEY, dark ? "dark" : "light");
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const current = gameRef.current;
+      if (!current || dealingRef.current) return;
+      const meta = event.metaKey || event.ctrlKey;
+      if (meta && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        apply(event.shiftKey ? redo : undo);
+        return;
+      }
+      if (meta || event.altKey) return;
+
+      if (event.key === "Escape") {
+        if (pendingRef.current) setPending(null);
+        else if (current.paused) apply(togglePause);
+        return;
+      }
+
+      if (current.paused) {
+        if (event.key.toLowerCase() === "p") apply(togglePause);
+        return;
+      }
+
+      if (current.won && event.key.toLowerCase() !== "p") return;
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        const r = (current.selected.r + 8) % 9;
+        apply((state) => moveSelection(state, -1, 0));
+        focusCell(r, current.selected.c);
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        const r = (current.selected.r + 1) % 9;
+        apply((state) => moveSelection(state, 1, 0));
+        focusCell(r, current.selected.c);
+      } else if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        const c = (current.selected.c + 8) % 9;
+        apply((state) => moveSelection(state, 0, -1));
+        focusCell(current.selected.r, c);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        const c = (current.selected.c + 1) % 9;
+        apply((state) => moveSelection(state, 0, 1));
+        focusCell(current.selected.r, c);
+      } else if (/^[1-9]$/.test(event.key)) {
+        apply((state) => inputDigit(state, Number(event.key) as Digit));
+      } else if (event.key === "Backspace" || event.key === "Delete" || event.key === "0") {
+        event.preventDefault();
+        apply(erase);
+      } else if (event.key.toLowerCase() === "n") {
+        apply(toggleNotesMode);
+      } else if (event.key.toLowerCase() === "p") {
+        apply(togglePause);
+      } else if (event.key.toLowerCase() === "u") {
+        apply(undo);
+      } else if (event.key.toLowerCase() === "y") {
+        apply(redo);
+      } else if (event.key.toLowerCase() === "h") {
+        apply(hint);
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [apply]);
+
+  const check = useCallback(() => {
+    const current = gameRef.current;
+    if (!current) return;
+    const conflicts = conflictCount(current.grid);
+    const left = 81 - countFilled(current.grid);
+    if (current.won) {
+      setNotice("This grid is already solved.");
+      return;
+    }
+    if (conflicts > 0) {
+      if (!current.showMistakes) {
+        setGame((state) => {
+          if (!state) return state;
+          const next = { ...state, showMistakes: true };
+          queueMicrotask(() => saveGame(next));
+          return next;
+        });
+      }
+      setNotice(conflicts === 1 ? "One digit is repeated." : `${conflicts} cells repeat a digit.`);
+      return;
+    }
+    if (left === 0) {
+      setNotice("The grid is full, but it isn't the solution.");
+      return;
+    }
+    setNotice(
+      left === 1 ? "No repeats yet. One cell is still open." : `No repeats yet. ${left} cells are still open.`,
+    );
+  }, []);
+
+  const conflicts = game ? conflictGrid(game.grid) : [];
+  const counts = game ? digitCounts(game.grid) : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  const filled = game ? countFilled(game.grid) : 0;
+
+  return {
+    game,
+    booting,
+    dealing,
+    error,
+    notice,
+    pending,
+    chosen,
+    conflicts,
+    counts,
+    filled,
+    setChosen,
+    deal,
+    requestNew,
+    requestRestart,
+    confirmPending,
+    cancelPending,
+    toggleTheme,
+    select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),
+    input: (digit: Digit) => apply((state) => inputDigit(state, digit)),
+    eraseCell: () => apply(erase),
+    undoMove: () => apply(undo),
+    redoMove: () => apply(redo),
+    toggleNotes: () => apply(toggleNotesMode),
+    toggleMistakesShown: () => apply(toggleMistakes),
+    pause: () => apply(togglePause),
+    giveHint: () => apply(hint),
+    check,
+  };
+}
