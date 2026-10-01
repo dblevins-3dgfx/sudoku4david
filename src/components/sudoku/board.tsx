@@ -25,6 +25,7 @@ function cellLabel(
   locked: boolean,
   notes: number,
   conflict: boolean,
+  selectedValue: number,
 ): string {
   const position = `Row ${r + 1}, column ${c + 1}`;
   if (value !== 0) {
@@ -32,7 +33,9 @@ function cellLabel(
     return `${position}, ${kind} ${value}${conflict ? ", conflicts with another cell" : ""}`;
   }
   const notesList = noteDigits(notes);
-  if (notesList.length > 0) return `${position}, empty, notes ${notesList.join(", ")}`;
+  const marked =
+    selectedValue !== 0 && notesList.includes(selectedValue) ? `, note ${selectedValue} highlighted` : "";
+  if (notesList.length > 0) return `${position}, empty, notes ${notesList.join(", ")}${marked}`;
   return `${position}, empty`;
 }
 
@@ -88,7 +91,7 @@ export function Board({ game, conflicts, onSelect }: BoardProps) {
             aria-selected={selected}
             aria-rowindex={r + 1}
             aria-colindex={c + 1}
-            aria-label={cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict)}
+            aria-label={cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict, selectedValue)}
             tabIndex={selected ? 0 : -1}
             onClick={() => onSelect(r, c)}
             className={cn(
@@ -108,8 +111,15 @@ export function Board({ game, conflicts, onSelect }: BoardProps) {
                 {Array.from({ length: 9 }, (_, digit) => {
                   const n = digit + 1;
                   const on = (game.notes[r][c] & (1 << n)) !== 0;
+                  const marked = on && selectedValue !== 0 && n === selectedValue;
                   return (
-                    <span key={n} className="flex items-center justify-center">
+                    <span
+                      key={n}
+                      className={cn(
+                        "flex items-center justify-center rounded-[2px]",
+                        marked && "bg-cell-note-hit font-semibold text-cell-note-hit-ink",
+                      )}
+                    >
                       {on ? n : ""}
                     </span>
                   );

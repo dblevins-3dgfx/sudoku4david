@@ -6,7 +6,7 @@ A paper-and-ink Sudoku you can play in the browser. Each puzzle is generated on 
 
 - Choose **Easy**, **Medium**, or **Hard**, then deal a new puzzle.
 - Select a cell and enter **1–9** from the keypad or the keyboard.
-- **Notes** toggles pencil marks. Placing a digit clears that note from the row, column, and box.
+- **Notes** toggles pencil marks. Placing a digit clears that note from the row, column, and box. Selecting a filled cell highlights that digit wherever it appears in the notes.
 - Conflicts light up as you go. Hide them, or press **Check** for a status line.
 - **Hint** fills the selected empty or wrong cell and locks it.
 - **Undo**, **Redo**, and **Clear entries** are there when a line of thinking doesn't hold.

@@ -111,7 +111,9 @@ The page fills the browser window. The board is the largest square that fits bes
 
 From a window width of 720 pixels, the board is on the left and the controls are a fixed column on the right. Below that, the board is on top and the controls use the lower part of the screen, scrolling inside that panel when they do not fit.
 
-Box borders are heavier than the lines between cells inside a box. Both stay visible as the board gets smaller. The selected cell is highlighted, peers in its row, column, and box are tinted, and other cells holding the same digit are tinted more strongly.
+Box borders are heavier than the lines between cells inside a box. Both stay visible as the board gets smaller. The selected cell is highlighted, peers in its row, column, and box are tinted, and other cells holding the same digit are tinted more strongly. Conflicts, when shown, use their own tint and take precedence over those three.
+
+When the selected cell holds a digit, every pencil mark of that same digit is highlighted inside its cell. That mark is added on top of the cell tint. Selecting an empty cell does not highlight notes.
 
 The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81.
 
