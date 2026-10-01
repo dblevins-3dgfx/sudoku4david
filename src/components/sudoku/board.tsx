@@ -36,6 +36,16 @@ function cellLabel(
   return `${position}, empty`;
 }
 
+function lineClass(r: number, c: number): string {
+  const boxRight = c % 3 === 2 && c !== 8;
+  const boxBottom = r % 3 === 2 && r !== 8;
+  return cn(
+    "bg-clip-padding",
+    c === 8 ? "border-r-0" : boxRight ? "border-r-4 border-r-board-line" : "border-r-2 border-r-board-line-soft",
+    r === 8 ? "border-b-0" : boxBottom ? "border-b-4 border-b-board-line" : "border-b-2 border-b-board-line-soft",
+  );
+}
+
 export function Board({ game, conflicts, onSelect }: BoardProps) {
   const selectedValue = game.grid[game.selected.r][game.selected.c];
 
@@ -43,100 +53,84 @@ export function Board({ game, conflicts, onSelect }: BoardProps) {
     <div
       role="grid"
       aria-label="Sudoku grid"
-      className="bg-board-line p-[3px] shadow-[0_24px_50px_-28px_oklch(0.28_0.04_55/0.55)]"
+      className="grid h-full w-full grid-cols-9 grid-rows-9 border-4 border-board-line bg-board shadow-[0_18px_40px_-24px_oklch(0.28_0.04_55/0.55)]"
     >
-      <div className="grid grid-cols-3 gap-[3px] bg-board-line">
-        {Array.from({ length: 9 }, (_, box) => {
-          const br = ((box / 3) | 0) * 3;
-          const bc = (box % 3) * 3;
-          return (
-            <div key={box} className="grid grid-cols-3 gap-px bg-board-line-soft">
-              {Array.from({ length: 9 }, (_, index) => {
-                const r = br + ((index / 3) | 0);
-                const c = bc + (index % 3);
-                const value = game.grid[r][c];
-                const selected = game.selected.r === r && game.selected.c === c;
-                const conflict = game.showMistakes && conflicts[r][c];
-                const peer = !selected && sameGroup(r, c, game.selected.r, game.selected.c);
-                const same =
-                  !selected &&
-                  value !== 0 &&
-                  selectedValue !== 0 &&
-                  value === selectedValue;
-                const tone = conflict
-                  ? "bg-cell-conflict"
-                  : selected
-                    ? "bg-cell-selected"
-                    : same
-                      ? "bg-cell-same"
-                      : peer
-                        ? "bg-cell-peer"
-                        : "bg-board";
-                const ink = conflict
-                  ? "text-cell-bad"
-                  : game.locked[r][c]
-                    ? "text-cell-given"
-                    : "text-cell-user";
+      {Array.from({ length: 81 }, (_, index) => {
+        const r = (index / 9) | 0;
+        const c = index % 9;
+        const value = game.grid[r][c];
+        const selected = game.selected.r === r && game.selected.c === c;
+        const conflict = game.showMistakes && conflicts[r][c];
+        const peer = !selected && sameGroup(r, c, game.selected.r, game.selected.c);
+        const same =
+          !selected && value !== 0 && selectedValue !== 0 && value === selectedValue;
+        const tone = conflict
+          ? "bg-cell-conflict"
+          : selected
+            ? "bg-cell-selected"
+            : same
+              ? "bg-cell-same"
+              : peer
+                ? "bg-cell-peer"
+                : "bg-board";
+        const ink = conflict
+          ? "text-cell-bad"
+          : game.locked[r][c]
+            ? "text-cell-given"
+            : "text-cell-user";
 
-                return (
-                  <button
-                    key={index}
-                    type="button"
-                    role="gridcell"
-                    data-coord={`${r}-${c}`}
-                    aria-selected={selected}
-                    aria-rowindex={r + 1}
-                    aria-colindex={c + 1}
-                    aria-label={cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict)}
-                    tabIndex={selected ? 0 : -1}
-                    onClick={() => onSelect(r, c)}
-                    className={cn(
-                      "relative flex aspect-square cursor-pointer items-center justify-center text-[clamp(1.15rem,4.1vw,1.8rem)] leading-none tabular-nums transition-colors outline-none",
-                      "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
-                      tone,
-                      value !== 0 && ink,
-                      game.locked[r][c] ? "font-semibold" : "font-medium",
-                      selected && "z-10 ring-2 ring-primary ring-inset",
-                    )}
-                  >
-                    {value !== 0 ? (
-                      value
-                    ) : game.notes[r][c] !== 0 ? (
-                      <span className="grid h-full w-full grid-cols-3 grid-rows-3 p-[9%] text-[clamp(0.45rem,1.35vw,0.68rem)] font-medium text-cell-note">
-                        {Array.from({ length: 9 }, (_, digit) => {
-                          const n = digit + 1;
-                          const on = (game.notes[r][c] & (1 << n)) !== 0;
-                          return (
-                            <span key={n} className="flex items-center justify-center">
-                              {on ? n : ""}
-                            </span>
-                          );
-                        })}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
+        return (
+          <button
+            key={index}
+            type="button"
+            role="gridcell"
+            data-coord={`${r}-${c}`}
+            aria-selected={selected}
+            aria-rowindex={r + 1}
+            aria-colindex={c + 1}
+            aria-label={cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict)}
+            tabIndex={selected ? 0 : -1}
+            onClick={() => onSelect(r, c)}
+            className={cn(
+              "cell-face relative flex min-h-0 min-w-0 cursor-pointer items-center justify-center tabular-nums transition-colors outline-none",
+              "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+              lineClass(r, c),
+              tone,
+              value !== 0 && ink,
+              game.locked[r][c] ? "font-semibold" : "font-medium",
+              selected && "ring-2 ring-primary ring-inset",
+            )}
+          >
+            {value !== 0 ? (
+              <span className="cell-digit">{value}</span>
+            ) : game.notes[r][c] !== 0 ? (
+              <span className="cell-notes grid h-full w-full grid-cols-3 grid-rows-3 p-[8%] font-medium text-cell-note">
+                {Array.from({ length: 9 }, (_, digit) => {
+                  const n = digit + 1;
+                  const on = (game.notes[r][c] & (1 << n)) !== 0;
+                  return (
+                    <span key={n} className="flex items-center justify-center">
+                      {on ? n : ""}
+                    </span>
+                  );
+                })}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 export function BoardSkeleton() {
   return (
-    <div className="animate-pulse bg-board-line p-[3px]" aria-hidden="true">
-      <div className="grid grid-cols-3 gap-[3px] bg-board-line">
-        {Array.from({ length: 9 }, (_, box) => (
-          <div key={box} className="grid grid-cols-3 gap-px bg-board-line-soft">
-            {Array.from({ length: 9 }, (_, cell) => (
-              <div key={cell} className="aspect-square bg-board" />
-            ))}
-          </div>
-        ))}
-      </div>
+    <div className="grid h-full w-full animate-pulse grid-cols-9 grid-rows-9 border-4 border-board-line bg-board" aria-hidden="true">
+      {Array.from({ length: 81 }, (_, index) => {
+        const r = (index / 9) | 0;
+        const c = index % 9;
+        return <div key={index} className={cn("min-h-0 min-w-0 bg-board", lineClass(r, c))} />;
+      })}
     </div>
   );
 }

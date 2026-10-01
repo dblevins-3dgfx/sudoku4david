@@ -174,3 +174,43 @@
       radial-gradient(ellipse 40% 30% at 100% 0%, oklch(0.3 0.04 250 / 0.28), transparent 50%);
   }
 }
+
+/* The desk fills the viewport. The board is the largest square that still
+   leaves the controls on screen, snapped to whole pixels so rules stay crisp. */
+.board-slot {
+  container-type: size;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.board-frame {
+  width: min(100cqi, 100cqb);
+  height: min(100cqi, 100cqb);
+  width: round(down, min(100cqi, 100cqb), 9px);
+  height: round(down, min(100cqi, 100cqb), 9px);
+}
+
+.cell-face {
+  container-type: inline-size;
+}
+
+.cell-digit {
+  font-size: clamp(0.8rem, 50cqi, 2.15rem);
+  line-height: 1;
+}
+
+.cell-notes {
+  font-size: clamp(0.38rem, 17cqi, 0.72rem);
+}
+
+@media (max-height: 700px) {
+  .desk-lede,
+  .desk-hint,
+  .desk-detail {
+    display: none;
+  }
+}
