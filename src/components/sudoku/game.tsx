@@ -162,11 +162,11 @@ export function Game() {
             </div>
           ) : (
             <div className="relative">
-              <div inert={game.paused || game.won ? true : undefined}>
+              <div className="isolate" inert={game.paused || game.won ? true : undefined}>
                 <Board game={game} conflicts={conflicts} onSelect={select} />
               </div>
               {game.paused ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-card p-6 text-center">
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-card p-6 text-center">
                   <div>
                     <p className="font-heading text-4xl tracking-tight">Paused</p>
                     <p className="mt-2 text-sm text-muted-foreground">The grid is covered.</p>
@@ -178,7 +178,7 @@ export function Game() {
                 </div>
               ) : null}
               {game.won ? (
-                <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-background via-background/85 to-background/25 p-4 sm:items-center">
+                <div className="absolute inset-0 z-20 flex items-end justify-center bg-gradient-to-t from-background via-background/85 to-background/25 p-4 sm:items-center">
                   <div className="w-full max-w-sm rounded-xl border border-border bg-card px-5 py-5 text-center shadow-lg">
                     <p className="font-heading text-4xl tracking-tight">Solved</p>
                     <p className="mt-2 text-sm text-muted-foreground">
