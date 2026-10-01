@@ -71,13 +71,14 @@ export function Game() {
     0,
   );
   const open = 81 - filled;
+  const showMistakes = game?.showMistakes ?? true;
   const status = !game
     ? "Preparing a grid"
     : game.won
       ? "Solved"
       : game.paused
         ? "Paused"
-        : game.showMistakes && conflictTotal > 0
+        : showMistakes && conflictTotal > 0
           ? conflictTotal === 1
             ? "1 conflict"
             : `${conflictTotal} conflicts`
@@ -339,13 +340,13 @@ export function Game() {
             </Button>
             <Button
               type="button"
-              variant={game?.showMistakes ? "secondary" : "outline"}
+              variant={showMistakes ? "secondary" : "outline"}
               className="col-span-2 h-10"
-              aria-pressed={game?.showMistakes ?? true}
+              aria-pressed={showMistakes}
               disabled={!game || busy}
               onClick={toggleMistakesShown}
             >
-              {game?.showMistakes ? "Conflicts shown" : "Conflicts hidden"}
+              {showMistakes ? "Conflicts shown" : "Conflicts hidden"}
             </Button>
           </div>
 
