@@ -208,7 +208,7 @@ export function Game() {
           </p>
         </section>
 
-        <aside className="flex min-h-0 max-h-[46%] shrink-0 flex-col gap-2 overflow-y-auto min-[720px]:h-auto min-[720px]:max-h-none min-[720px]:w-[18.75rem] min-[720px]:self-stretch">
+        <aside className="flex max-h-[46%] min-h-0 w-full flex-col gap-1 overflow-y-auto min-[720px]:max-h-none min-[720px]:w-[18.75rem] min-[720px]:shrink-0 min-[720px]:self-stretch">
           <div className="shrink-0 rounded-xl border border-border bg-card px-3 py-2">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-sm" aria-live="polite">
@@ -249,7 +249,7 @@ export function Game() {
             </div>
           ) : null}
 
-          <div className="grid shrink-0 grid-cols-3 gap-1.5" aria-label="Digits">
+          <div className="grid min-h-[6.25rem] flex-1 grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
             {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
               const placed = counts[digit] ?? 0;
               const remaining = Math.max(0, 9 - placed);
@@ -263,7 +263,7 @@ export function Game() {
                   key={digit}
                   type="button"
                   variant={pressed ? "default" : "outline"}
-                  className="relative h-11 text-lg font-semibold tabular-nums"
+                  className="relative h-full min-h-8 text-lg font-semibold tabular-nums"
                   aria-label={
                     remaining === 0
                       ? `Enter ${digit}, all nine placed`
@@ -287,11 +287,11 @@ export function Game() {
             })}
           </div>
 
-          <div className="grid shrink-0 grid-cols-2 gap-1.5">
+          <div className="grid shrink-0 grid-cols-2 gap-1">
             <Button
               type="button"
               variant={game?.notesMode ? "default" : "outline"}
-              className="h-9"
+              className="h-8"
               aria-pressed={game?.notesMode ?? false}
               disabled={!game || game.paused || game.won || busy}
               onClick={toggleNotes}
@@ -302,7 +302,7 @@ export function Game() {
             <Button
               type="button"
               variant="outline"
-              className="h-9"
+              className="h-8"
               disabled={lockedPlay}
               onClick={eraseCell}
             >
@@ -312,7 +312,7 @@ export function Game() {
             <Button
               type="button"
               variant="outline"
-              className="h-9"
+              className="h-8"
               disabled={!game || game.paused || busy || game.history.length === 0}
               onClick={undoMove}
             >
@@ -322,7 +322,7 @@ export function Game() {
             <Button
               type="button"
               variant="outline"
-              className="h-9"
+              className="h-8"
               disabled={!game || game.paused || busy || game.future.length === 0}
               onClick={redoMove}
             >
@@ -332,20 +332,20 @@ export function Game() {
             <Button
               type="button"
               variant="outline"
-              className="h-9"
+              className="h-8"
               disabled={!canHint || busy}
               onClick={giveHint}
             >
               <Lightbulb />
               {game && game.hintsUsed > 0 ? `Hint · ${game.hintsUsed}` : "Hint"}
             </Button>
-            <Button type="button" variant="outline" className="h-9" disabled={!game || busy || game.paused} onClick={check}>
+            <Button type="button" variant="outline" className="h-8" disabled={!game || busy || game.paused} onClick={check}>
               Check
             </Button>
             <Button
               type="button"
               variant={showMistakes ? "secondary" : "outline"}
-              className="col-span-2 h-9"
+              className="col-span-2 h-8"
               aria-pressed={showMistakes}
               disabled={!game || busy}
               onClick={toggleMistakesShown}
@@ -354,13 +354,13 @@ export function Game() {
             </Button>
           </div>
 
-          <div role="group" aria-label="Difficulty for the next puzzle" className="grid shrink-0 grid-cols-3 gap-1.5">
+          <div role="group" aria-label="Difficulty for the next puzzle" className="grid shrink-0 grid-cols-3 gap-1">
             {DIFFICULTIES.map((level) => (
               <Button
                 key={level.id}
                 type="button"
                 variant={chosen === level.id ? "default" : "outline"}
-                className="h-9"
+                className="h-8"
                 aria-pressed={chosen === level.id}
                 disabled={busy}
                 onClick={() => setChosen(level.id)}
@@ -373,18 +373,18 @@ export function Game() {
             {DIFFICULTIES.find((level) => level.id === chosen)?.detail}. A new puzzle keeps a single solution.
           </p>
 
-          <div className="grid shrink-0 grid-cols-2 gap-1.5">
+          <div className="grid shrink-0 grid-cols-2 gap-1">
             <Button
               type="button"
               variant="outline"
-              className="h-9"
+              className="h-8"
               disabled={!game || !game.started || busy}
               onClick={requestRestart}
             >
               <RotateCcw />
               Clear entries
             </Button>
-            <Button type="button" className="h-9" disabled={busy} onClick={() => requestNew(chosen)}>
+            <Button type="button" className="h-8" disabled={busy} onClick={() => requestNew(chosen)}>
               {game && chosen !== game.difficulty ? `New ${chosen}` : "New puzzle"}
             </Button>
           </div>
