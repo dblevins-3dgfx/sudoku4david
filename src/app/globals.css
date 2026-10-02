@@ -241,6 +241,11 @@
   container-type: size;
 }
 
+.digit-pad,
+.digit-pad button {
+  touch-action: manipulation;
+}
+
 .digit-pad {
   width: min(100cqi, 100cqb);
   height: min(100cqi, 100cqb);

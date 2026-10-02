@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { nextTap, type Tap } from "@/lib/entry";
 import {
   createGame,
   createGameFromPuzzle,
@@ -11,13 +12,19 @@ import {
   redo,
   restart,
   selectCell,
-  toggleMistakes,
   toggleNotesMode,
   togglePause,
   undo,
   type GameState,
 } from "@/lib/game";
 import { fetchMtSudokuPuzzle } from "@/lib/mtsudoku";
+import {
+  DEFAULT_PREFERENCES,
+  loadPreferences,
+  savePreferences,
+  type EntryMethod,
+  type Preferences,
+} from "@/lib/prefs";
 import { loadGame, saveGame, THEME_STORAGE_KEY } from "@/lib/storage";
 import {
   conflictCount,
@@ -38,10 +45,15 @@ export function useGame() {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [chosen, setChosen] = useState<Difficulty>("medium");
+  const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES);
+  const [prefsOpen, setPrefsOpen] = useState(false);
 
   const gameRef = useRef<GameState | null>(null);
   const dealingRef = useRef(false);
   const pendingRef = useRef<Pending | null>(null);
+  const prefsRef = useRef<Preferences>(DEFAULT_PREFERENCES);
+  const prefsOpenRef = useRef(false);
+  const tapRef = useRef<Tap | null>(null);
   const dealSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
@@ -53,6 +65,33 @@ export function useGame() {
   useEffect(() => {
     pendingRef.current = pending;
   }, [pending]);
+
+  useEffect(() => {
+    prefsRef.current = prefs;
+  }, [prefs]);
+
+  useEffect(() => {
+    prefsOpenRef.current = prefsOpen;
+  }, [prefsOpen]);
+
+  const commitPrefs = useCallback((next: Preferences) => {
+    prefsRef.current = next;
+    setPrefs(next);
+    savePreferences(next);
+  }, []);
+
+  const applyShowConflicts = useCallback(
+    (show: boolean) => {
+      commitPrefs({ ...prefsRef.current, showConflicts: show });
+      setGame((state) => {
+        if (!state || state.showMistakes === show) return state;
+        const next = { ...state, showMistakes: show };
+        queueMicrotask(() => saveGame(next));
+        return next;
+      });
+    },
+    [commitPrefs],
+  );
 
   const apply = useCallback((fn: (current: GameState) => GameState) => {
     setNotice(null);
@@ -122,6 +161,7 @@ export function useGame() {
     abortRef.current = controller;
     setDealing(true);
     setPending(null);
+    setPrefsOpen(false);
     setNotice(null);
     setError(null);
     void (async () => {
@@ -143,6 +183,9 @@ export function useGame() {
           }
         }
         if (!current()) return;
+        if (next.showMistakes !== prefsRef.current.showConflicts) {
+          next = { ...next, showMistakes: prefsRef.current.showConflicts };
+        }
         setGame(next);
         setChosen(next.difficulty);
         saveGame(next);
@@ -163,9 +206,17 @@ export function useGame() {
     const id = window.setTimeout(() => {
       if (cancelled) return;
       const stored = loadGame();
+      const loaded = loadPreferences(stored?.showMistakes ?? true);
+      prefsRef.current = loaded;
+      setPrefs(loaded);
       if (stored) {
-        setGame(stored);
-        setChosen(stored.difficulty);
+        const next =
+          stored.showMistakes === loaded.showConflicts
+            ? stored
+            : { ...stored, showMistakes: loaded.showConflicts };
+        if (next !== stored) saveGame(next);
+        setGame(next);
+        setChosen(next.difficulty);
         setBooting(false);
         return;
       }
@@ -178,6 +229,7 @@ export function useGame() {
   }, [deal]);
 
   const requestNew = useCallback(() => {
+    setPrefsOpen(false);
     setPending({ kind: "new" });
   }, []);
 
@@ -185,9 +237,11 @@ export function useGame() {
     const current = gameRef.current;
     if (!current || !current.started) return;
     if (current.won) {
+      setPrefsOpen(false);
       apply(restart);
       return;
     }
+    setPrefsOpen(false);
     setPending({ kind: "restart" });
   }, [apply]);
 
@@ -199,11 +253,38 @@ export function useGame() {
   }, [apply]);
 
   const enterDigit = useCallback((digit: Digit) => {
+    const current = gameRef.current;
+    if (!current) return;
+    if ((digitCounts(current.grid)[digit] ?? 0) >= 9) return;
+
+    let asNote = current.notesMode;
+    if (prefsRef.current.entry === "tap") {
+      const cell = `${current.selected.r}-${current.selected.c}`;
+      const result = nextTap(tapRef.current, digit, cell, Date.now());
+      tapRef.current = result.tap;
+      asNote = result.action === "note";
+    }
+
     apply((state) => {
       if ((digitCounts(state.grid)[digit] ?? 0) >= 9) return state;
-      return inputDigit(state, digit);
+      return inputDigit(state, digit, asNote);
     });
   }, [apply]);
+
+  const openPrefs = useCallback(() => {
+    if (dealingRef.current || pendingRef.current || !gameRef.current) return;
+    setPrefsOpen(true);
+  }, []);
+
+  const closePrefs = useCallback(() => setPrefsOpen(false), []);
+
+  const setEntry = useCallback(
+    (entry: EntryMethod) => {
+      tapRef.current = null;
+      commitPrefs({ ...prefsRef.current, entry });
+    },
+    [commitPrefs],
+  );
 
   const cancelPending = useCallback(() => setPending(null), []);
 
@@ -226,11 +307,12 @@ export function useGame() {
 
       if (event.key === "Escape") {
         if (pendingRef.current) setPending(null);
+        else if (prefsOpenRef.current) setPrefsOpen(false);
         else if (current.paused) apply(togglePause);
         return;
       }
 
-      if (pendingRef.current) return;
+      if (pendingRef.current || prefsOpenRef.current) return;
 
       if (current.paused) {
         if (event.key.toLowerCase() === "p") apply(togglePause);
@@ -265,7 +347,7 @@ export function useGame() {
         event.preventDefault();
         apply(erase);
       } else if (event.key.toLowerCase() === "n") {
-        apply(toggleNotesMode);
+        if (prefsRef.current.entry === "button") apply(toggleNotesMode);
       } else if (event.key.toLowerCase() === "p") {
         apply(togglePause);
       } else if (event.key.toLowerCase() === "u") {
@@ -291,14 +373,7 @@ export function useGame() {
       return;
     }
     if (conflicts > 0) {
-      if (!current.showMistakes) {
-        setGame((state) => {
-          if (!state) return state;
-          const next = { ...state, showMistakes: true };
-          queueMicrotask(() => saveGame(next));
-          return next;
-        });
-      }
+      if (!current.showMistakes || !prefsRef.current.showConflicts) applyShowConflicts(true);
       setNotice(conflicts === 1 ? "One digit is repeated." : `${conflicts} cells repeat a digit.`);
       return;
     }
@@ -309,7 +384,7 @@ export function useGame() {
     setNotice(
       left === 1 ? "No repeats yet. One cell is still open." : `No repeats yet. ${left} cells are still open.`,
     );
-  }, []);
+  }, [applyShowConflicts]);
 
   const conflicts = game ? conflictGrid(game.grid) : [];
   const counts = game ? digitCounts(game.grid) : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -323,6 +398,8 @@ export function useGame() {
     notice,
     pending,
     chosen,
+    prefs,
+    prefsOpen,
     conflicts,
     counts,
     filled,
@@ -333,13 +410,16 @@ export function useGame() {
     confirmPending,
     cancelPending,
     toggleTheme,
+    openPrefs,
+    closePrefs,
+    setEntry,
+    setShowConflicts: applyShowConflicts,
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),
     input: enterDigit,
     eraseCell: () => apply(erase),
     undoMove: () => apply(undo),
     redoMove: () => apply(redo),
     toggleNotes: () => apply(toggleNotesMode),
-    toggleMistakesShown: () => apply(toggleMistakes),
     pause: () => apply(togglePause),
     giveHint: () => apply(hint),
     check,

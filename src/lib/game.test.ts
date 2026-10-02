@@ -147,6 +147,20 @@ describe("play", () => {
     assert.equal(game.notes[marked.r][marked.c] & (1 << 3), 1 << 3);
   });
 
+  it("marks a cell without leaving notes mode on", () => {
+    let game = createGame("easy", mulberry32(8));
+    const empty = game.grid.flatMap((row, r) =>
+      row.flatMap((value, c) => (value === 0 ? [{ r, c }] : [])),
+    )[0]!;
+    game = inputDigit({ ...game, selected: empty, notesMode: false }, 4, true);
+    assert.equal(game.notesMode, false);
+    assert.equal(game.notes[empty.r][empty.c] & (1 << 4), 1 << 4);
+    game = inputDigit(game, 5, false);
+    assert.equal(game.notesMode, false);
+    assert.equal(game.grid[empty.r][empty.c], 5);
+    assert.equal(game.notes[empty.r][empty.c], 0);
+  });
+
   it("erases an entry and round-trips through storage", { timeout: 20_000 }, () => {
     let game = createGame("easy", mulberry32(2));
     const empty = game.grid.flatMap((row, r) =>

@@ -45,10 +45,12 @@ The six difficulties are not on the board while a puzzle is in play. New puzzle 
 
 The player selects a cell by tapping or clicking it. Arrow keys move the selection and wrap around the board.
 
-On an unlocked cell, a digit does one of two things:
+Preferences choose how a digit is entered. The default is the notes button.
 
-- Notes off. The digit is written in the cell. Pressing the digit that is already there clears the cell, unless nine of that digit are already on the board. Writing a digit removes that cell's notes, and removes that digit from the notes in the same row, column, and box. When that placement leaves nine of the digit on the board, the digit is removed from every pencil mark. Undo puts those marks back.
-- Notes on. The digit is toggled as a pencil mark in an empty cell. Marks on a filled cell are ignored. Marks do not have to be legal. A digit that already has nine copies on the board is ignored, so it cannot be added to a mark.
+- Notes button. The pencil switches the keypad between marks and numbers. With notes off, the digit is written in the cell. Pressing the digit that is already there clears the cell, unless nine of that digit are already on the board. With notes on, the digit is toggled as a pencil mark in an empty cell. Marks on a filled cell are ignored.
+- One tap, two taps. The pencil is hidden. The first tap or keypress of a digit marks an empty cell. A second tap or keypress of that same digit on the same cell, within a short moment, writes the digit. On a filled cell the first press does nothing, and the second writes the digit, or clears the cell when it already holds that digit and fewer than nine copies are on the board. Each of those presses is its own undo step, so one undo after a fill returns the mark.
+
+Writing a digit removes that cell's notes, and removes that digit from the notes in the same row, column, and box. When that placement leaves nine of the digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. Marks do not have to be legal. A digit that already has nine copies on the board is ignored, so it cannot be added to a mark.
 
 Erase clears the selected cell's digit and its notes. It does nothing on a locked cell, or on a cell that is already empty and unmarked.
 
@@ -58,12 +60,12 @@ The digit keypad shows how many of that digit are still missing from a full nine
 
 A conflict is a filled cell whose digit also appears in the same row, column, or box. Empty cells are not conflicts.
 
-Conflicts are shown by default. The player can hide them. While they are shown, conflicting cells are marked on the board, and the status line reports “1 conflict” or “N conflicts”.
+Conflicts are shown by default. Preferences can hide them. While they are shown, conflicting cells are marked on the board, and the status line reports “1 conflict” or “N conflicts”.
 
 Check reports:
 
 - Already solved: “This grid is already solved.”
-- Repeats: “One digit is repeated.” or “N cells repeat a digit.” Check says this whether conflicts were already shown or hidden. If they were hidden, Check turns them on. The status line then reports “1 conflict” or “N conflicts” for those same cells.
+- Repeats: “One digit is repeated.” or “N cells repeat a digit.” Check says this whether conflicts were already shown or hidden. If they were hidden, Check turns them on and stores that choice. The status line then reports “1 conflict” or “N conflicts” for those same cells.
 - No repeats, grid full, but not the solution: “The grid is full, but it isn't the solution.”
 - No repeats, cells still open: “No repeats yet. One cell is still open.” or “No repeats yet. N cells are still open.”
 
@@ -113,13 +115,15 @@ The clock is written about every five seconds while it is running, and again whe
 
 Light and dark appearance is stored separately under `sudoku.theme`. With nothing stored, the page follows the device setting.
 
+How digits are entered, and whether conflicts are shown, are stored under `sudoku.prefs.v1`. The default entry method is the notes button, and conflicts are shown. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing either preference applies immediately and does not reset the puzzle. Hiding or showing conflicts is not an undo step.
+
 ## Screen
 
 The page fills the browser window. From a window width of 720 pixels, the board is the largest square that fits beside the controls, which are a fixed column on the right.
 
-The clock, pause, the color theme, and new puzzle sit in the header. New puzzle is an icon. It opens the difficulty dialog.
+The clock, pause, the color theme, preferences, and new puzzle sit in the header. Preferences and new puzzle are icons. Preferences opens a dialog for the entry method and for showing or hiding conflicts. New puzzle opens the difficulty dialog. Escape closes either dialog.
 
-Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. Notes, erase, undo, redo, hint, check, conflicts, and clear entries are icons filling the space to its right. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. Difficulty is chosen in the new-puzzle dialog, not in this column.
+Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, erase, undo, redo, hint, check, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other six remain. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and conflicts are chosen in dialogs, not in this column.
 
 Pencil marks are the largest size that still places all nine digits inside a cell. They are set in a handwritten face so they stay distinct from the printed digits.
 
@@ -136,14 +140,14 @@ These keys apply when a puzzle is on screen and a new grid is not being dealt. C
 | Key | Action |
 | --- | --- |
 | Arrows | Move the selection, wrapping around |
-| 1–9 | Enter that digit, or toggle it as a note. A digit with nine copies already on the board is ignored |
+| 1–9 | With the notes button, enter that digit or toggle it as a note. With one tap, two taps, the first press marks the cell and a second press of the same digit on the same cell writes it. A digit with nine copies already on the board is ignored |
 | 0, Backspace, Delete | Erase the selected cell |
-| N | Toggle notes |
+| N | Toggle notes when the notes button is selected. Does nothing in one tap, two taps |
 | P | Pause or resume |
 | H | Hint |
 | U, or Command/Ctrl+Z | Undo |
 | Y, or Command/Ctrl+Shift+Z | Redo |
-| Escape | Dismiss the confirm dialog, or resume when paused |
+| Escape | Dismiss the open dialog, or resume when paused |
 
 After a win, only P is handled among the single-key shortcuts. P does not pause a solved grid. The undo chord still undoes. While paused, only P, Escape, and the undo chord are recognized. The undo chord does not change the board until the grid is resumed.
 

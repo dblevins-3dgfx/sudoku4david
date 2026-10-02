@@ -173,10 +173,6 @@ export function toggleNotesMode(state: GameState): GameState {
   return { ...state, notesMode: !state.notesMode };
 }
 
-export function toggleMistakes(state: GameState): GameState {
-  return { ...state, showMistakes: !state.showMistakes };
-}
-
 export function togglePause(state: GameState): GameState {
   if (state.won) return state;
   if (state.paused) {
@@ -194,12 +190,12 @@ function begin(state: GameState, won: boolean): Pick<GameState, "started" | "tim
   };
 }
 
-export function inputDigit(state: GameState, digit: Digit): GameState {
+export function inputDigit(state: GameState, digit: Digit, asNote = state.notesMode): GameState {
   if (state.paused || state.won) return state;
   const { r, c } = state.selected;
   if (state.locked[r][c]) return state;
 
-  if (state.notesMode) {
+  if (asNote) {
     if (state.grid[r][c] !== 0) return state;
     const nextNotes = cloneNotes(state.notes);
     nextNotes[r][c] ^= 1 << digit;

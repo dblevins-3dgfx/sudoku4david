@@ -2,8 +2,6 @@
 
 import {
   Eraser,
-  Eye,
-  EyeOff,
   Lightbulb,
   Moon,
   Pause,
@@ -13,6 +11,7 @@ import {
   Redo2,
   RotateCcw,
   SearchCheck,
+  Settings,
   Sun,
   Undo2,
 } from "lucide-react";
@@ -46,6 +45,8 @@ export function Game() {
     notice,
     pending,
     chosen,
+    prefs,
+    prefsOpen,
     conflicts,
     counts,
     filled,
@@ -55,13 +56,16 @@ export function Game() {
     confirmPending,
     cancelPending,
     toggleTheme,
+    openPrefs,
+    closePrefs,
+    setEntry,
+    setShowConflicts,
     select,
     input,
     eraseCell,
     undoMove,
     redoMove,
     toggleNotes,
-    toggleMistakesShown,
     pause,
     giveHint,
     check,
@@ -143,6 +147,19 @@ export function Game() {
             variant="outline"
             size="icon"
             className="size-9"
+            onClick={openPrefs}
+            disabled={!game || busy || pending !== null}
+            aria-label="Preferences"
+            title="Preferences"
+            aria-pressed={prefsOpen}
+          >
+            <Settings />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-9"
             onClick={requestNew}
             disabled={busy}
             aria-label="New puzzle"
@@ -155,7 +172,7 @@ export function Game() {
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden min-[720px]:flex-row min-[720px]:items-stretch min-[720px]:gap-3">
         <section className="flex min-h-0 min-w-0 flex-col max-[719px]:shrink-0 min-[720px]:flex-1" aria-busy={busy}>
-          {game?.notesMode && !busy && !game.paused && !game.won ? (
+          {game?.notesMode && prefs.entry === "button" && !busy && !game.paused && !game.won ? (
             <p className="mb-1 hidden shrink-0 text-center text-[0.7rem] font-medium tracking-[0.18em] text-muted-foreground uppercase min-[720px]:block">
               Notes
             </p>
@@ -221,7 +238,9 @@ export function Game() {
           )}
 
           <p className="desk-hint mt-2 hidden shrink-0 text-center text-xs text-muted-foreground min-[720px]:block">
-            Arrows move · 1–9 fill · N notes · Delete erase · P pause · ⌘Z undo
+            {prefs.entry === "tap"
+              ? "Arrows move · 1–9 note, again to fill · Delete erase · P pause · ⌘Z undo"
+              : "Arrows move · 1–9 fill · N notes · Delete erase · P pause · ⌘Z undo"}
           </p>
         </section>
 
@@ -269,13 +288,14 @@ export function Game() {
               const placed = counts[digit] ?? 0;
               const remaining = Math.max(0, 9 - placed);
               const exhausted = remaining === 0;
+              const marked = selectedValue === 0 && (noteMask & (1 << digit)) !== 0;
               const pressed =
                 !exhausted &&
-                (game
-                  ? game.notesMode
-                    ? selectedValue === 0 && (noteMask & (1 << digit)) !== 0
-                    : selectedValue === digit
-                  : false);
+                (prefs.entry === "tap"
+                  ? selectedValue === digit || marked
+                  : game?.notesMode
+                    ? marked
+                    : selectedValue === digit);
               return (
                 <Button
                   key={digit}
@@ -310,20 +330,27 @@ export function Game() {
             </div>
           </div>
 
-          <div className="grid h-full min-h-0 w-full min-w-0 grid-cols-2 grid-rows-4 gap-1 max-[719px]:min-w-[5.5rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:grid-cols-8 min-[720px]:grid-rows-none">
-            <Button
-              type="button"
-              size="icon"
-              variant={game?.notesMode ? "default" : "outline"}
-              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-              aria-label="Notes"
-              title="Notes"
-              aria-pressed={game?.notesMode ?? false}
-              disabled={!game || game.paused || game.won || busy}
-              onClick={toggleNotes}
-            >
-              <Pencil />
-            </Button>
+          <div
+            className={cn(
+              "grid h-full min-h-0 w-full min-w-0 auto-rows-fr grid-cols-2 gap-1 max-[719px]:min-w-[5.5rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:auto-rows-auto min-[720px]:grid-rows-1",
+              prefs.entry === "button" ? "min-[720px]:grid-cols-7" : "min-[720px]:grid-cols-6",
+            )}
+          >
+            {prefs.entry === "button" ? (
+              <Button
+                type="button"
+                size="icon"
+                variant={game?.notesMode ? "default" : "outline"}
+                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+                aria-label="Notes"
+                title="Notes"
+                aria-pressed={game?.notesMode ?? false}
+                disabled={!game || game.paused || game.won || busy}
+                onClick={toggleNotes}
+              >
+                <Pencil />
+              </Button>
+            ) : null}
             <Button
               type="button"
               size="icon"
@@ -390,19 +417,6 @@ export function Game() {
             <Button
               type="button"
               size="icon"
-              variant={showMistakes ? "secondary" : "outline"}
-              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-              aria-label={showMistakes ? "Conflicts shown" : "Conflicts hidden"}
-              title={showMistakes ? "Conflicts shown" : "Conflicts hidden"}
-              aria-pressed={showMistakes}
-              disabled={!game || busy}
-              onClick={toggleMistakesShown}
-            >
-              {showMistakes ? <Eye /> : <EyeOff />}
-            </Button>
-            <Button
-              type="button"
-              size="icon"
               variant="outline"
               className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
               aria-label="Clear entries"
@@ -416,6 +430,74 @@ export function Game() {
           </div>
         </aside>
       </div>
+
+      {prefsOpen ? (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-background/75 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="prefs-title"
+        >
+          <div className="w-full max-w-sm rounded-xl border border-border bg-card px-5 py-5 shadow-lg">
+            <h2 id="prefs-title" className="font-heading text-2xl tracking-tight">
+              Preferences
+            </h2>
+            <div role="group" aria-label="How digits are entered" className="mt-4 grid gap-2">
+              <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Digits</p>
+              <Button
+                type="button"
+                variant={prefs.entry === "button" ? "default" : "outline"}
+                className="h-auto w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left whitespace-normal"
+                aria-pressed={prefs.entry === "button"}
+                onClick={() => setEntry("button")}
+              >
+                <span className="font-medium">Notes button</span>
+                <span className="text-xs font-normal opacity-80">
+                  The pencil switches the keypad between marks and numbers.
+                </span>
+              </Button>
+              <Button
+                type="button"
+                variant={prefs.entry === "tap" ? "default" : "outline"}
+                className="h-auto w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left whitespace-normal"
+                aria-pressed={prefs.entry === "tap"}
+                onClick={() => setEntry("tap")}
+              >
+                <span className="font-medium">One tap, two taps</span>
+                <span className="text-xs font-normal opacity-80">
+                  One tap marks the cell. A second tap writes the digit.
+                </span>
+              </Button>
+            </div>
+            <div role="group" aria-label="Conflicts" className="mt-4">
+              <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Conflicts</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={prefs.showConflicts ? "default" : "outline"}
+                  className="h-11"
+                  aria-pressed={prefs.showConflicts}
+                  onClick={() => setShowConflicts(true)}
+                >
+                  Shown
+                </Button>
+                <Button
+                  type="button"
+                  variant={prefs.showConflicts ? "outline" : "default"}
+                  className="h-11"
+                  aria-pressed={!prefs.showConflicts}
+                  onClick={() => setShowConflicts(false)}
+                >
+                  Hidden
+                </Button>
+              </div>
+            </div>
+            <Button type="button" variant="outline" className="mt-4 h-11 w-full" onClick={closePrefs}>
+              Done
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {pending ? (
         <div
