@@ -52,7 +52,7 @@ On an unlocked cell, a digit does one of two things:
 
 Erase clears the selected cell's digit and its notes. It does nothing on a locked cell, or on a cell that is already empty and unmarked.
 
-The digit keypad shows how many of that digit are still missing from a full nine. A count above nine is shown as an error, which happens when the player has repeated a digit.
+The digit keypad shows how many of that digit are still missing from a full nine. A count above nine is shown as an error, which happens when the player has repeated a digit. When none are missing, that key is gray and does not place another copy. Erase still clears the selected cell.
 
 ## Conflicts
 

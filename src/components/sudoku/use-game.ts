@@ -198,6 +198,13 @@ export function useGame() {
     apply(restart);
   }, [apply]);
 
+  const enterDigit = useCallback((digit: Digit) => {
+    apply((state) => {
+      if ((digitCounts(state.grid)[digit] ?? 0) >= 9) return state;
+      return inputDigit(state, digit);
+    });
+  }, [apply]);
+
   const cancelPending = useCallback(() => setPending(null), []);
 
   const toggleTheme = useCallback(() => {
@@ -253,7 +260,7 @@ export function useGame() {
         apply((state) => moveSelection(state, 0, 1));
         focusCell(current.selected.r, c);
       } else if (/^[1-9]$/.test(event.key)) {
-        apply((state) => inputDigit(state, Number(event.key) as Digit));
+        enterDigit(Number(event.key) as Digit);
       } else if (event.key === "Backspace" || event.key === "Delete" || event.key === "0") {
         event.preventDefault();
         apply(erase);
@@ -272,7 +279,7 @@ export function useGame() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [apply]);
+  }, [apply, enterDigit]);
 
   const check = useCallback(() => {
     const current = gameRef.current;
@@ -327,7 +334,7 @@ export function useGame() {
     cancelPending,
     toggleTheme,
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),
-    input: (digit: Digit) => apply((state) => inputDigit(state, digit)),
+    input: enterDigit,
     eraseCell: () => apply(erase),
     undoMove: () => apply(undo),
     redoMove: () => apply(redo),

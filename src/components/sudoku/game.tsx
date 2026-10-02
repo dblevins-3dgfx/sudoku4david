@@ -268,24 +268,31 @@ export function Game() {
             {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
               const placed = counts[digit] ?? 0;
               const remaining = Math.max(0, 9 - placed);
-              const pressed = game
-                ? game.notesMode
-                  ? selectedValue === 0 && (noteMask & (1 << digit)) !== 0
-                  : selectedValue === digit
-                : false;
+              const exhausted = remaining === 0;
+              const pressed =
+                !exhausted &&
+                (game
+                  ? game.notesMode
+                    ? selectedValue === 0 && (noteMask & (1 << digit)) !== 0
+                    : selectedValue === digit
+                  : false);
               return (
                 <Button
                   key={digit}
                   type="button"
                   variant={pressed ? "default" : "outline"}
-                  className="relative h-full w-full min-h-0 min-w-0 text-base font-semibold tabular-nums min-[720px]:text-lg"
+                  className={cn(
+                    "relative h-full w-full min-h-0 min-w-0 text-base font-semibold tabular-nums min-[720px]:text-lg",
+                    exhausted &&
+                      "disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
+                  )}
                   aria-label={
-                    remaining === 0
+                    exhausted
                       ? `Enter ${digit}, all nine placed`
                       : `Enter ${digit}, ${remaining} still missing`
                   }
                   aria-pressed={pressed}
-                  disabled={lockedPlay}
+                  disabled={lockedPlay || exhausted}
                   onClick={() => input(digit)}
                 >
                   {digit}
