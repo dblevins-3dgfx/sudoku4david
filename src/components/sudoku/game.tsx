@@ -350,7 +350,7 @@ export function Game() {
                 key={level.id}
                 type="button"
                 variant={chosen === level.id ? "default" : "outline"}
-                className="h-7 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
+                className="h-7 min-w-0 px-0.5 text-xs min-[720px]:h-8 min-[720px]:px-1 min-[720px]:text-sm"
                 aria-pressed={chosen === level.id}
                 disabled={busy}
                 onClick={() => setChosen(level.id)}

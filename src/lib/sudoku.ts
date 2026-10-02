@@ -1,7 +1,7 @@
 export type Digit = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type Cell = 0 | Digit;
 export type Grid = Cell[][];
-export type Difficulty = "easy" | "medium" | "hard";
+export type Difficulty = "easy" | "medium" | "hard" | "expert" | "master" | "extreme";
 
 export const DIFFICULTIES: readonly {
   id: Difficulty;
@@ -11,12 +11,18 @@ export const DIFFICULTIES: readonly {
   { id: "easy", label: "Easy", detail: "More numbers already inked in" },
   { id: "medium", label: "Medium", detail: "A fair number of empty cells" },
   { id: "hard", label: "Hard", detail: "Sparse clues, still one solution" },
+  { id: "expert", label: "Expert", detail: "Fewer givens than a hard puzzle" },
+  { id: "master", label: "Master", detail: "A thin scattering of clues" },
+  { id: "extreme", label: "Extreme", detail: "The hardest tier Mt. Sudoku deals" },
 ];
 
 export const CLUE_RANGES: Record<Difficulty, readonly [number, number]> = {
   easy: [40, 46],
   medium: [32, 36],
   hard: [26, 30],
+  expert: [23, 25],
+  master: [22, 25],
+  extreme: [22, 26],
 };
 
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;

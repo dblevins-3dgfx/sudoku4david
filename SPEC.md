@@ -18,7 +18,7 @@ A new puzzle is requested from Mt. Sudoku at the chosen difficulty:
 
 `https://api.mtsudoku.com/v1/generate?mode=classic&difficulty=easy`
 
-`difficulty` is `easy`, `medium`, or `hard`. The response is an 81-character puzzle and an 81-character solution. Empty cells are `0`.
+`difficulty` is `easy`, `medium`, `hard`, `expert`, `master`, or `extreme`. The response is an 81-character puzzle and an 81-character solution. Empty cells are `0`.
 
 The board is played when the returned difficulty matches the request, the solution is complete and legal, every given matches that solution, and the givens have exactly one solution. Anything else is treated as Mt. Sudoku not answering.
 
@@ -31,12 +31,15 @@ Clue counts for the built-in generator, inclusive:
 | Easy | 40–46 |
 | Medium | 32–36 |
 | Hard | 26–30 |
+| Expert | 23–25 |
+| Master | 22–25 |
+| Extreme | 22–26 |
 
-The target count inside that range is chosen at random. Generation tries up to four times to land inside the range. If every try misses the range but still produces a unique puzzle, that last puzzle is used. If the built-in generator also fails, the player sees “Couldn't compose a puzzle. Try once more.”
+The target count inside that range is chosen at random. Generation tries up to four times to land inside the range. If every try misses the range but still produces a unique puzzle, that last puzzle is used. Expert, Master, and Extreme sit close together: removal stops when another clue would leave a second solution. If the built-in generator also fails, the player sees “Couldn't compose a puzzle. Try once more.”
 
 The first visit, with nothing saved, asks Mt. Sudoku for a medium puzzle. The selected cell starts on the first empty cell in reading order.
 
-Choosing Easy, Medium, or Hard does not replace the current grid. It chooses the difficulty of the next deal, from Mt. Sudoku or from the built-in generator if Mt. Sudoku does not answer. The button reads “New puzzle” when that matches the grid in play, and “New easy”, “New medium”, or “New hard” when it does not.
+Choosing Easy, Medium, Hard, Expert, Master, or Extreme does not replace the current grid. It chooses the difficulty of the next deal, from Mt. Sudoku or from the built-in generator if Mt. Sudoku does not answer. The button reads “New puzzle” when that matches the grid in play, and “New easy”, “New medium”, “New hard”, “New expert”, “New master”, or “New extreme” when it does not.
 
 ## Entering digits
 

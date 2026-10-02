@@ -48,7 +48,14 @@ function isLocked(value: unknown): value is boolean[][] {
 }
 
 function isDifficulty(value: unknown): value is Difficulty {
-  return value === "easy" || value === "medium" || value === "hard";
+  return (
+    value === "easy" ||
+    value === "medium" ||
+    value === "hard" ||
+    value === "expert" ||
+    value === "master" ||
+    value === "extreme"
+  );
 }
 
 function isSnapshot(value: unknown): value is Snapshot {
