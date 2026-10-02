@@ -108,7 +108,7 @@ When the grid matches the solution, the clock stops and a solved panel covers th
 
 ## What is remembered
 
-The game is stored in the browser under `sudoku.desk.v1`. A saved game is restored on the next visit. A saved record that is not a valid puzzle is ignored, and the next visit asks Mt. Sudoku for a medium puzzle.
+The game is stored in the browser under `sudoku.desk.v1`. A saved game is restored on the next visit, including whether it came from Mt. Sudoku or was generated here. A saved record with no source is treated as generated. A saved record that is not a valid puzzle is ignored, and the next visit asks Mt. Sudoku for a medium puzzle.
 
 The record must have a completed, conflict-free solution. Every given must match the solution and be locked. Every locked cell in the working grid must match the solution. History and redo kept in storage are capped at 30 steps each.
 
@@ -128,7 +128,7 @@ Box borders are heavier than the lines between cells inside a box. Both stay vis
 
 When the selected cell holds a digit, every pencil mark of that same digit is highlighted inside its cell. That mark is added on top of the cell tint. Selecting an empty cell does not highlight notes.
 
-The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81.
+The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81. Under that, the phase line names the phase, the difficulty, and the source: “Mt. Sudoku” or “Generated”.
 
 ## Keyboard
 

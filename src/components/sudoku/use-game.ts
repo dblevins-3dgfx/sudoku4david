@@ -133,7 +133,7 @@ export function useGame() {
         let dealtHere = false;
         try {
           const board = await fetchMtSudokuPuzzle(difficulty, controller.signal);
-          next = createGameFromPuzzle(board.difficulty, board.puzzle, board.solution);
+          next = createGameFromPuzzle(board.difficulty, board.puzzle, board.solution, "mtsudoku");
         } catch {
           if (!current() || controller.signal.aborted) return;
           try {

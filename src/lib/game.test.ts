@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   createGame,
+  createGameFromPuzzle,
   erase,
   hint,
   inputDigit,
@@ -91,6 +92,11 @@ describe("play", () => {
     assert.ok(restored);
     assert.deepEqual(restored.grid, game.grid);
     assert.equal(restored.difficulty, game.difficulty);
+    assert.equal(restored.source, "generated");
     assert.deepEqual(restored.solution, game.solution);
+
+    const remote = createGameFromPuzzle("expert", game.puzzle, game.solution, "mtsudoku");
+    const remoteRestored = deserializeGame(JSON.parse(JSON.stringify(remote)) as unknown);
+    assert.equal(remoteRestored?.source, "mtsudoku");
   });
 });

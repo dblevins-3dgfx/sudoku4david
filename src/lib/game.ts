@@ -20,8 +20,15 @@ export type Snapshot = {
   hintsUsed: number;
 };
 
+export type GameSource = "mtsudoku" | "generated";
+
+export function sourceLabel(source: GameSource): string {
+  return source === "mtsudoku" ? "Mt. Sudoku" : "Generated";
+}
+
 export type GameState = {
   difficulty: Difficulty;
+  source: GameSource;
   puzzle: Grid;
   solution: Grid;
   grid: Grid;
@@ -97,10 +104,12 @@ export function createGameFromPuzzle(
   difficulty: Difficulty,
   puzzle: Grid,
   solution: Grid,
+  source: GameSource,
 ): GameState {
   const grid = cloneGrid(puzzle);
   return {
     difficulty,
+    source,
     puzzle: cloneGrid(puzzle),
     solution: cloneGrid(solution),
     grid,
@@ -125,7 +134,7 @@ export function createGame(
   rng: () => number = Math.random,
 ): GameState {
   const { puzzle, solution } = createPuzzle(difficulty, rng);
-  return createGameFromPuzzle(difficulty, puzzle, solution);
+  return createGameFromPuzzle(difficulty, puzzle, solution, "generated");
 }
 
 export function selectCell(state: GameState, r: number, c: number): GameState {

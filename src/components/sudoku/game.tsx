@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { sourceLabel } from "@/lib/game";
 import { DIFFICULTIES, formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
 import { useGame, type Pending } from "./use-game";
@@ -224,8 +225,18 @@ export function Game() {
                 style={{ width: `${(filled / 81) * 100}%` }}
               />
             </div>
-            <p className="mt-1 text-xs tracking-wide text-muted-foreground uppercase min-[720px]:mt-2">
-              {game ? `${game.won ? "Solved" : game.started ? "Playing" : "Ready"} · ${game.difficulty}` : "Dealing"}
+            <p className="mt-1 text-xs tracking-wide text-muted-foreground min-[720px]:mt-2">
+              {game ? (
+                <>
+                  <span className="uppercase">
+                    {game.won ? "Solved" : game.started ? "Playing" : "Ready"} · {game.difficulty}
+                  </span>
+                  {" · "}
+                  {sourceLabel(game.source)}
+                </>
+              ) : (
+                "Dealing"
+              )}
             </p>
           </div>
 

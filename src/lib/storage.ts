@@ -119,6 +119,7 @@ export function deserializeGame(raw: unknown): GameState | null {
 
   return {
     difficulty: data.difficulty,
+    source: data.source === "mtsudoku" ? "mtsudoku" : "generated",
     puzzle: data.puzzle.map((row) => row.slice()) as Grid,
     solution: data.solution.map((row) => row.slice()) as Grid,
     grid: data.grid.map((row) => row.slice()) as Grid,
