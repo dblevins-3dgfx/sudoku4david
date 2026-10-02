@@ -47,7 +47,7 @@ The player selects a cell by tapping or clicking it. Arrow keys move the selecti
 
 On an unlocked cell, a digit does one of two things:
 
-- Notes off. The digit is written in the cell. Pressing the digit that is already there clears the cell. Writing a digit removes that cell's notes, and removes that digit from the notes in the same row, column, and box.
+- Notes off. The digit is written in the cell. Pressing the digit that is already there clears the cell. Writing a digit removes that cell's notes, and removes that digit from the notes in the same row, column, and box. When that placement leaves nine of the digit on the board, the digit is removed from every pencil mark. Undo puts those marks back.
 - Notes on. The digit is toggled as a pencil mark in an empty cell. Marks on a filled cell are ignored. Marks do not have to be legal.
 
 Erase clears the selected cell's digit and its notes. It does nothing on a locked cell, or on a cell that is already empty and unmarked.
@@ -71,7 +71,7 @@ Check reports:
 
 Hint fills one unlocked cell that is empty or wrong.
 
-It uses the selected cell when that cell qualifies. Otherwise it uses the first qualifying cell in reading order. The filled digit is the solution digit. The cell becomes locked, its notes are cleared, and that digit is cleared from notes in the same row, column, and box. The hint counts toward the hint total, and the selection moves to that cell.
+It uses the selected cell when that cell qualifies. Otherwise it uses the first qualifying cell in reading order. The filled digit is the solution digit. The cell becomes locked, its notes are cleared, and that digit is cleared from notes in the same row, column, and box. If the hint leaves nine of that digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. The hint counts toward the hint total, and the selection moves to that cell.
 
 Hint does nothing when the puzzle is already solved, while the grid is paused, or when every unlocked cell already matches the solution.
 

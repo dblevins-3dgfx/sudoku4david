@@ -78,6 +78,75 @@ describe("play", () => {
     assert.equal(game.history.length, 0);
   });
 
+  it("clears a locked digit from every note and restores them on undo", () => {
+    let game = createGame("easy", mulberry32(8));
+    const digit = 7 as Digit;
+    const empties = game.grid.flatMap((row, r) =>
+      row.flatMap((value, c) => (value === 0 ? [{ r, c }] : [])),
+    );
+    const place = empties[0]!;
+    const peers = new Set<string>();
+    for (let i = 0; i < 9; i++) {
+      peers.add(`${place.r}-${i}`);
+      peers.add(`${i}-${place.c}`);
+    }
+    const br = Math.floor(place.r / 3) * 3;
+    const bc = Math.floor(place.c / 3) * 3;
+    for (let r = br; r < br + 3; r++) {
+      for (let c = bc; c < bc + 3; c++) peers.add(`${r}-${c}`);
+    }
+    const marked = empties.find((cell) => !peers.has(`${cell.r}-${cell.c}`));
+    assert.ok(marked);
+    const markedPeers = new Set<string>();
+    for (let i = 0; i < 9; i++) {
+      markedPeers.add(`${marked.r}-${i}`);
+      markedPeers.add(`${i}-${marked.c}`);
+    }
+    const mr = Math.floor(marked.r / 3) * 3;
+    const mc = Math.floor(marked.c / 3) * 3;
+    for (let r = mr; r < mr + 3; r++) {
+      for (let c = mc; c < mc + 3; c++) markedPeers.add(`${r}-${c}`);
+    }
+    game = inputDigit({ ...toggleNotesMode({ ...game, selected: marked }), notesMode: true }, digit);
+    game = inputDigit(game, 3);
+    assert.equal(game.notes[marked.r][marked.c] & (1 << digit), 1 << digit);
+    assert.equal(game.notes[marked.r][marked.c] & (1 << 3), 1 << 3);
+
+    game = toggleNotesMode(game);
+    const spots = empties.filter(
+      (cell) =>
+        (cell.r !== marked.r || cell.c !== marked.c) &&
+        (cell.r !== place.r || cell.c !== place.c) &&
+        !markedPeers.has(`${cell.r}-${cell.c}`),
+    );
+    let placed = game.grid.flat().filter((value) => value === digit).length;
+    for (const cell of spots) {
+      if (placed >= 8) break;
+      if (game.grid[cell.r][cell.c] !== 0) continue;
+      game = inputDigit({ ...game, selected: cell }, digit);
+      if (game.grid[cell.r][cell.c] === digit) placed++;
+    }
+    assert.equal(placed, 8);
+    assert.equal(game.notes[marked.r][marked.c] & (1 << digit), 1 << digit);
+
+    game = inputDigit({ ...game, selected: place }, digit);
+    assert.equal(game.grid[place.r][place.c], digit);
+    assert.equal(game.grid.flat().filter((value) => value === digit).length, 9);
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) assert.equal(game.notes[r][c] & (1 << digit), 0);
+    }
+    assert.equal(game.notes[marked.r][marked.c] & (1 << 3), 1 << 3);
+
+    game = undo(game);
+    assert.equal(game.grid[place.r][place.c], 0);
+    assert.equal(game.notes[marked.r][marked.c] & (1 << digit), 1 << digit);
+    assert.equal(game.notes[marked.r][marked.c] & (1 << 3), 1 << 3);
+
+    game = redo(game);
+    assert.equal(game.notes[marked.r][marked.c] & (1 << digit), 0);
+    assert.equal(game.notes[marked.r][marked.c] & (1 << 3), 1 << 3);
+  });
+
   it("erases an entry and round-trips through storage", { timeout: 20_000 }, () => {
     let game = createGame("easy", mulberry32(2));
     const empty = game.grid.flatMap((row, r) =>

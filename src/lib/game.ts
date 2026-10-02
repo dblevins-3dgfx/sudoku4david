@@ -89,6 +89,25 @@ function clearDigitNotes(notes: Notes, r: number, c: number, digit: Digit) {
   }
 }
 
+function countDigit(grid: Grid, digit: number): number {
+  let count = 0;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) if (grid[r][c] === digit) count++;
+  }
+  return count;
+}
+
+function clearDigitEverywhere(notes: Notes, digit: Digit) {
+  const mask = ~(1 << digit);
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) notes[r][c] &= mask;
+  }
+}
+
+function settleLockedDigit(grid: Grid, notes: Notes, digit: Digit) {
+  if (countDigit(grid, digit) >= 9) clearDigitEverywhere(notes, digit);
+}
+
 function notesAreEmpty(notes: Notes): boolean {
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) if (notes[r][c] !== 0) return false;
@@ -201,6 +220,7 @@ export function inputDigit(state: GameState, digit: Digit): GameState {
     nextGrid[r][c] = digit;
     nextNotes[r][c] = 0;
     clearDigitNotes(nextNotes, r, c, digit);
+    settleLockedDigit(nextGrid, nextNotes, digit);
   }
 
   const won = gridsEqual(nextGrid, state.solution);
@@ -259,6 +279,7 @@ export function hint(state: GameState): GameState {
   nextLocked[target.r][target.c] = true;
   nextNotes[target.r][target.c] = 0;
   clearDigitNotes(nextNotes, target.r, target.c, digit);
+  settleLockedDigit(nextGrid, nextNotes, digit);
   const won = gridsEqual(nextGrid, state.solution);
   return {
     ...state,
