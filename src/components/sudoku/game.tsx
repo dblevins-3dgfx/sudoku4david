@@ -2,13 +2,17 @@
 
 import {
   Eraser,
+  Eye,
+  EyeOff,
   Lightbulb,
   Moon,
   Pause,
   Pencil,
   Play,
+  Plus,
   Redo2,
   RotateCcw,
+  SearchCheck,
   Sun,
   Undo2,
 } from "lucide-react";
@@ -94,7 +98,7 @@ export function Game() {
     game.grid.some((row, r) => row.some((value, c) => !game.locked[r][c] && value !== game.solution[r][c]));
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-[1100px] flex-1 flex-col gap-1.5 px-1.5 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] min-[720px]:gap-3 min-[720px]:px-5 min-[720px]:py-3">
+    <div className="desk-page mx-auto flex min-h-0 w-full max-w-[1100px] flex-1 flex-col gap-1.5 px-1.5 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] min-[720px]:gap-3 min-[720px]:px-5 min-[720px]:py-3">
       <header className="flex shrink-0 items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[0.65rem] font-medium tracking-[0.22em] text-muted-foreground uppercase">
@@ -133,6 +137,18 @@ export function Game() {
               <Sun className="absolute inset-0 hidden size-4 dark:block" />
               <Moon className="absolute inset-0 size-4 dark:hidden" />
             </span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-9"
+            onClick={requestNew}
+            disabled={busy}
+            aria-label="New puzzle"
+            title="New puzzle"
+          >
+            <Plus />
           </Button>
         </div>
       </header>
@@ -210,7 +226,7 @@ export function Game() {
         </section>
 
         <aside className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto min-[720px]:w-[18.75rem] min-[720px]:shrink-0 min-[720px]:flex-none min-[720px]:self-stretch min-[720px]:[scrollbar-gutter:stable]">
-          <div className="shrink-0 rounded-xl border border-border bg-card px-2.5 py-1 min-[720px]:px-3 min-[720px]:py-2">
+          <div className="desk-status shrink-0 rounded-xl border border-border bg-card px-2.5 py-1 min-[720px]:px-3 min-[720px]:py-2">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-sm" aria-live="polite">
                 {notice ?? status}
@@ -246,8 +262,8 @@ export function Game() {
             </p>
           ) : null}
 
-          <div className="play-tools flex min-h-[9rem] w-full min-w-0 flex-1 items-stretch gap-1 max-[719px]:flex-row min-[720px]:flex-col">
-          <div className="digit-slot flex items-start justify-start max-[719px]:aspect-square max-[719px]:h-full max-[719px]:min-h-0 max-[719px]:max-w-[calc(100%-9.25rem)] min-[720px]:aspect-square min-[720px]:w-full min-[720px]:flex-none min-[720px]:items-center min-[720px]:justify-center">
+          <div className="play-tools flex w-full min-w-0 items-stretch gap-1 max-[719px]:min-h-[9rem] max-[719px]:flex-1 max-[719px]:flex-row min-[720px]:flex-none min-[720px]:flex-col">
+          <div className="digit-slot flex items-start justify-start max-[719px]:aspect-square max-[719px]:h-full max-[719px]:min-h-0 max-[719px]:max-w-[calc(100%-5.5rem)] min-[720px]:aspect-square min-[720px]:w-full min-[720px]:flex-none min-[720px]:items-center min-[720px]:justify-center">
             <div className="digit-pad grid grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
             {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
               const placed = counts[digit] ?? 0;
@@ -287,88 +303,109 @@ export function Game() {
             </div>
           </div>
 
-          <div className="grid h-full min-h-0 min-w-0 grid-cols-2 grid-rows-4 gap-1 max-[719px]:min-w-[9.25rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:grid-rows-none">
+          <div className="grid h-full min-h-0 w-full min-w-0 grid-cols-2 grid-rows-4 gap-1 max-[719px]:min-w-[5.5rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:grid-cols-8 min-[720px]:grid-rows-none">
             <Button
               type="button"
+              size="icon"
               variant={game?.notesMode ? "default" : "outline"}
-              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
+              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+              aria-label="Notes"
+              title="Notes"
               aria-pressed={game?.notesMode ?? false}
               disabled={!game || game.paused || game.won || busy}
               onClick={toggleNotes}
             >
               <Pencil />
-              Notes
             </Button>
             <Button
               type="button"
+              size="icon"
               variant="outline"
-              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
+              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+              aria-label="Erase"
+              title="Erase"
               disabled={lockedPlay}
               onClick={eraseCell}
             >
               <Eraser />
-              Erase
             </Button>
             <Button
               type="button"
+              size="icon"
               variant="outline"
-              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
+              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+              aria-label="Undo"
+              title="Undo"
               disabled={!game || game.paused || busy || game.history.length === 0}
               onClick={undoMove}
             >
               <Undo2 />
-              Undo
             </Button>
             <Button
               type="button"
+              size="icon"
               variant="outline"
-              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
+              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+              aria-label="Redo"
+              title="Redo"
               disabled={!game || game.paused || busy || game.future.length === 0}
               onClick={redoMove}
             >
               <Redo2 />
-              Redo
             </Button>
             <Button
               type="button"
+              size="icon"
               variant="outline"
-              className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
+              className="relative w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+              aria-label={game && game.hintsUsed > 0 ? `Hint, ${game.hintsUsed} used` : "Hint"}
+              title={game && game.hintsUsed > 0 ? `Hint, ${game.hintsUsed} used` : "Hint"}
               disabled={!canHint || busy}
               onClick={giveHint}
             >
               <Lightbulb />
-              {game && game.hintsUsed > 0 ? `Hint · ${game.hintsUsed}` : "Hint"}
-            </Button>
-            <Button type="button" variant="outline" className="h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm" disabled={!game || busy || game.paused} onClick={check}>
-              Check
+              {game && game.hintsUsed > 0 ? (
+                <span className="absolute top-0.5 right-0.5 text-[0.55rem] leading-none tabular-nums">{game.hintsUsed}</span>
+              ) : null}
             </Button>
             <Button
               type="button"
+              size="icon"
+              variant="outline"
+              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+              aria-label="Check"
+              title="Check"
+              disabled={!game || busy || game.paused}
+              onClick={check}
+            >
+              <SearchCheck />
+            </Button>
+            <Button
+              type="button"
+              size="icon"
               variant={showMistakes ? "secondary" : "outline"}
-              className="col-span-2 h-full min-h-0 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
+              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+              aria-label={showMistakes ? "Conflicts shown" : "Conflicts hidden"}
+              title={showMistakes ? "Conflicts shown" : "Conflicts hidden"}
               aria-pressed={showMistakes}
               disabled={!game || busy}
               onClick={toggleMistakesShown}
             >
-              {showMistakes ? "Conflicts shown" : "Conflicts hidden"}
+              {showMistakes ? <Eye /> : <EyeOff />}
             </Button>
-          </div>
-          </div>
-
-          <div className="grid shrink-0 grid-cols-2 gap-1">
             <Button
               type="button"
+              size="icon"
               variant="outline"
-              className="h-7 px-1.5 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
+              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+              aria-label="Clear entries"
+              title="Clear entries"
               disabled={!game || !game.started || busy}
               onClick={requestRestart}
             >
               <RotateCcw />
-              Clear entries
             </Button>
-            <Button type="button" className="h-7 px-1.5 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm" disabled={busy} onClick={requestNew}>
-              New puzzle
-            </Button>
+          </div>
           </div>
         </aside>
       </div>

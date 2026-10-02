@@ -117,7 +117,9 @@ Light and dark appearance is stored separately under `sudoku.theme`. With nothin
 
 The page fills the browser window. From a window width of 720 pixels, the board is the largest square that fits beside the controls, which are a fixed column on the right.
 
-Below that, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. Notes, erase, undo, redo, hint, check, and the conflict toggle fill the space to its right. From 720 pixels wide, the keypad is a square the width of the control column, with those same tools underneath it. It keeps that size when the window gets shorter. If the controls still do not fit, they scroll in the lower panel. Difficulty is chosen in the new-puzzle dialog, not in this column.
+The clock, pause, the color theme, and new puzzle sit in the header. New puzzle is an icon. It opens the difficulty dialog.
+
+Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. Notes, erase, undo, redo, hint, check, conflicts, and clear entries are icons filling the space to its right. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. Difficulty is chosen in the new-puzzle dialog, not in this column.
 
 Pencil marks are the largest size that still places all nine digits inside a cell. They are set in a handwritten face so they stay distinct from the printed digits.
 

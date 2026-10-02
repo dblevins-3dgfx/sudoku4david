@@ -4,7 +4,7 @@ A paper-and-ink Sudoku you can play in the browser. A new puzzle comes from [Mt.
 
 ## Play
 
-- Press **New puzzle** and choose **Easy**, **Medium**, **Hard**, **Expert**, **Master**, or **Extreme**. Mt. Sudoku deals that difficulty. The phase line reads **Mt. Sudoku** or **Generated**.
+- Press the new-puzzle icon beside the clock and choose **Easy**, **Medium**, **Hard**, **Expert**, **Master**, or **Extreme**. Mt. Sudoku deals that difficulty. The phase line reads **Mt. Sudoku** or **Generated**.
 - Select a cell and enter **1–9** from the keypad or the keyboard.
 - **Notes** toggles pencil marks. Placing a digit clears that note from the row, column, and box. Selecting a filled cell highlights that digit wherever it appears in the notes.
 - Conflicts light up as you go. Hide them, or press **Check** for a status line.
