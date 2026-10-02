@@ -28,9 +28,7 @@ import {
   type Digit,
 } from "@/lib/sudoku";
 
-export type Pending =
-  | { kind: "new"; difficulty: Difficulty }
-  | { kind: "restart" };
+export type Pending = { kind: "new" } | { kind: "restart" };
 
 export function useGame() {
   const [game, setGame] = useState<GameState | null>(null);
@@ -179,17 +177,9 @@ export function useGame() {
     };
   }, [deal]);
 
-  const requestNew = useCallback(
-    (difficulty: Difficulty) => {
-      const current = gameRef.current;
-      if (!current || current.won || !current.started) {
-        deal(difficulty);
-        return;
-      }
-      setPending({ kind: "new", difficulty });
-    },
-    [deal],
-  );
+  const requestNew = useCallback(() => {
+    setPending({ kind: "new" });
+  }, []);
 
   const requestRestart = useCallback(() => {
     const current = gameRef.current;
@@ -203,13 +193,10 @@ export function useGame() {
 
   const confirmPending = useCallback(() => {
     const current = pendingRef.current;
-    if (!current) return;
-    if (current.kind === "new") deal(current.difficulty);
-    else {
-      setPending(null);
-      apply(restart);
-    }
-  }, [apply, deal]);
+    if (!current || current.kind !== "restart") return;
+    setPending(null);
+    apply(restart);
+  }, [apply]);
 
   const cancelPending = useCallback(() => setPending(null), []);
 
@@ -235,6 +222,8 @@ export function useGame() {
         else if (current.paused) apply(togglePause);
         return;
       }
+
+      if (pendingRef.current) return;
 
       if (current.paused) {
         if (event.key.toLowerCase() === "p") apply(togglePause);

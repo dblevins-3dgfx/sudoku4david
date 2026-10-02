@@ -236,7 +236,7 @@
   }
 }
 
-/* The keypad is the largest square that fits the space left for it. */
+/* The pad fills its slot. On a wide window that slot is a square the width of the column, so it keeps its size when the window gets shorter. */
 .digit-slot {
   container-type: size;
 }

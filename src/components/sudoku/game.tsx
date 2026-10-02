@@ -19,11 +19,12 @@ import { DIFFICULTIES, formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
 import { useGame, type Pending } from "./use-game";
 
-function pendingCopy(pending: Pending): string {
+function pendingCopy(pending: Pending, started: boolean): string {
   if (pending.kind === "restart") {
     return "Clear every number you wrote? The given digits stay.";
   }
-  return `Deal a new ${pending.difficulty} puzzle? This grid will be replaced.`;
+  if (started) return "Deal a new puzzle? This grid will be replaced.";
+  return "Choose a difficulty.";
 }
 
 function winDetail(hintsUsed: number, elapsedMs: number, difficulty: string): string {
@@ -44,7 +45,6 @@ export function Game() {
     conflicts,
     counts,
     filled,
-    setChosen,
     deal,
     requestNew,
     requestRestart,
@@ -193,7 +193,7 @@ export function Game() {
                           <RotateCcw />
                           Same puzzle
                         </Button>
-                        <Button type="button" className="h-9" onClick={() => requestNew(chosen)}>
+                        <Button type="button" className="h-9" onClick={requestNew}>
                           New puzzle
                         </Button>
                       </div>
@@ -209,7 +209,7 @@ export function Game() {
           </p>
         </section>
 
-        <aside className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto min-[720px]:w-[18.75rem] min-[720px]:shrink-0 min-[720px]:flex-none min-[720px]:self-stretch">
+        <aside className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto min-[720px]:w-[18.75rem] min-[720px]:shrink-0 min-[720px]:flex-none min-[720px]:self-stretch min-[720px]:[scrollbar-gutter:stable]">
           <div className="shrink-0 rounded-xl border border-border bg-card px-2.5 py-1 min-[720px]:px-3 min-[720px]:py-2">
             <div className="flex items-baseline justify-between gap-3">
               <p className="text-sm" aria-live="polite">
@@ -246,8 +246,8 @@ export function Game() {
             </p>
           ) : null}
 
-          <div className="play-tools flex min-h-[9rem] w-full min-w-0 flex-1 items-stretch gap-1 overflow-hidden max-[719px]:flex-row min-[720px]:min-h-0 min-[720px]:flex-col">
-          <div className="digit-slot flex min-h-0 items-start justify-start max-[719px]:aspect-square max-[719px]:h-full max-[719px]:max-w-[calc(100%-9.25rem)] min-[720px]:w-full min-[720px]:flex-1 min-[720px]:items-center min-[720px]:justify-center">
+          <div className="play-tools flex min-h-[9rem] w-full min-w-0 flex-1 items-stretch gap-1 max-[719px]:flex-row min-[720px]:flex-col">
+          <div className="digit-slot flex items-start justify-start max-[719px]:aspect-square max-[719px]:h-full max-[719px]:min-h-0 max-[719px]:max-w-[calc(100%-9.25rem)] min-[720px]:aspect-square min-[720px]:w-full min-[720px]:flex-none min-[720px]:items-center min-[720px]:justify-center">
             <div className="digit-pad grid grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
             {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
               const placed = counts[digit] ?? 0;
@@ -355,25 +355,6 @@ export function Game() {
           </div>
           </div>
 
-          <div role="group" aria-label="Difficulty for the next puzzle" className="grid shrink-0 grid-cols-3 gap-1">
-            {DIFFICULTIES.map((level) => (
-              <Button
-                key={level.id}
-                type="button"
-                variant={chosen === level.id ? "default" : "outline"}
-                className="h-7 min-w-0 px-0.5 text-xs min-[720px]:h-8 min-[720px]:px-1 min-[720px]:text-sm"
-                aria-pressed={chosen === level.id}
-                disabled={busy}
-                onClick={() => setChosen(level.id)}
-              >
-                {level.label}
-              </Button>
-            ))}
-          </div>
-          <p className="desk-detail shrink-0 text-xs leading-5 text-muted-foreground">
-            {DIFFICULTIES.find((level) => level.id === chosen)?.detail}. A new puzzle keeps a single solution.
-          </p>
-
           <div className="grid shrink-0 grid-cols-2 gap-1">
             <Button
               type="button"
@@ -385,8 +366,8 @@ export function Game() {
               <RotateCcw />
               Clear entries
             </Button>
-            <Button type="button" className="h-7 px-1.5 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm" disabled={busy} onClick={() => requestNew(chosen)}>
-              {game && chosen !== game.difficulty ? `New ${chosen}` : "New puzzle"}
+            <Button type="button" className="h-7 px-1.5 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm" disabled={busy} onClick={requestNew}>
+              New puzzle
             </Button>
           </div>
         </aside>
@@ -401,13 +382,36 @@ export function Game() {
         >
           <div className="w-full max-w-sm rounded-xl border border-border bg-card px-5 py-5 shadow-lg">
             <p id="pending-title" className="text-base leading-6">
-              {pendingCopy(pending)}
+              {pendingCopy(pending, Boolean(game?.started && !game.won))}
             </p>
-            <div className="mt-4 flex gap-2">
-              <Button type="button" className="h-11 flex-1" onClick={confirmPending}>
-                {pending.kind === "restart" ? "Clear entries" : "Deal"}
-              </Button>
-              <Button type="button" variant="outline" className="h-11 flex-1" onClick={cancelPending}>
+            {pending.kind === "new" ? (
+              <div role="group" aria-label="Difficulty" className="mt-4 grid grid-cols-2 gap-2">
+                {DIFFICULTIES.map((level) => (
+                  <Button
+                    key={level.id}
+                    type="button"
+                    variant={game?.difficulty === level.id ? "default" : "outline"}
+                    className="h-11"
+                    aria-pressed={game?.difficulty === level.id}
+                    onClick={() => deal(level.id)}
+                  >
+                    {level.label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+            <div className={pending.kind === "new" ? "mt-3" : "mt-4 flex gap-2"}>
+              {pending.kind === "restart" ? (
+                <Button type="button" className="h-11 flex-1" onClick={confirmPending}>
+                  Clear entries
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                className={pending.kind === "new" ? "h-11 w-full" : "h-11 flex-1"}
+                onClick={cancelPending}
+              >
                 Keep playing
               </Button>
             </div>

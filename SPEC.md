@@ -39,7 +39,7 @@ The target count inside that range is chosen at random. Generation tries up to f
 
 The first visit, with nothing saved, asks Mt. Sudoku for a medium puzzle. The selected cell starts on the first empty cell in reading order.
 
-Choosing Easy, Medium, Hard, Expert, Master, or Extreme does not replace the current grid. It chooses the difficulty of the next deal, from Mt. Sudoku or from the built-in generator if Mt. Sudoku does not answer. The button reads “New puzzle” when that matches the grid in play, and “New easy”, “New medium”, “New hard”, “New expert”, “New master”, or “New extreme” when it does not.
+The six difficulties are not on the board while a puzzle is in play. New puzzle opens them. The choice deals from Mt. Sudoku, or from the built-in generator if Mt. Sudoku does not answer.
 
 ## Entering digits
 
@@ -89,12 +89,9 @@ Clear entries restores the original givens, clears notes, hints, the timer, and 
 
 ## A new puzzle
 
-New puzzle deals a grid at the chosen difficulty.
+New puzzle opens a dialog in the center of the screen, including on a phone. The dialog offers Easy, Medium, Hard, Expert, Master, and Extreme. Choosing one deals that difficulty. The current puzzle’s difficulty is shown pressed.
 
-- If the player has not started, or the puzzle is already solved, it deals immediately.
-- Otherwise it asks “Deal a new {difficulty} puzzle? This grid will be replaced.” The player confirms with “Deal” or dismisses with “Keep playing”.
-
-The question is a dialog in the center of the screen, including on a phone, where the controls sit in a short scrolling panel. Escape dismisses it.
+If play has started and the puzzle is not solved, the dialog says “Deal a new puzzle? This grid will be replaced.” Otherwise it says “Choose a difficulty.” “Keep playing” dismisses it, and so does Escape.
 
 ## Timer and pause
 
@@ -104,7 +101,7 @@ Pause covers the grid and stops the clock. Resume uncovers the grid and continue
 
 ## Winning
 
-When the grid matches the solution, the clock stops and a solved panel covers the board. It shows the elapsed time, the difficulty, and the hint count (“no hints”, “1 hint”, or “N hints”). From there the player can replay the same givens or deal another puzzle at the chosen difficulty.
+When the grid matches the solution, the clock stops and a solved panel covers the board. It shows the elapsed time, the difficulty, and the hint count (“no hints”, “1 hint”, or “N hints”). From there the player can replay the same givens or open the new-puzzle dialog and choose a difficulty.
 
 ## What is remembered
 
@@ -120,7 +117,7 @@ Light and dark appearance is stored separately under `sudoku.theme`. With nothin
 
 The page fills the browser window. From a window width of 720 pixels, the board is the largest square that fits beside the controls, which are a fixed column on the right.
 
-Below that, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. Notes, erase, undo, redo, hint, check, and the conflict toggle fill the space to its right. From 720 pixels wide, the keypad is the largest square that fits in the control column, with those same tools underneath it. The tools keep their height, and the keypad shrinks when the window is short, so the difficulty buttons stay below them. If the controls still do not fit, they scroll in the lower panel.
+Below that, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. Notes, erase, undo, redo, hint, check, and the conflict toggle fill the space to its right. From 720 pixels wide, the keypad is a square the width of the control column, with those same tools underneath it. It keeps that size when the window gets shorter. If the controls still do not fit, they scroll in the lower panel. Difficulty is chosen in the new-puzzle dialog, not in this column.
 
 Pencil marks are the largest size that still places all nine digits inside a cell. They are set in a handwritten face so they stay distinct from the printed digits.
 
@@ -132,7 +129,7 @@ The status line reports the phase and the open-cell or conflict count, with a pr
 
 ## Keyboard
 
-These keys apply when a puzzle is on screen and a new grid is not being dealt. Command and Ctrl, other than the undo chord, are ignored.
+These keys apply when a puzzle is on screen, a new grid is not being dealt, and no dialog is open. Command and Ctrl, other than the undo chord, are ignored.
 
 | Key | Action |
 | --- | --- |
