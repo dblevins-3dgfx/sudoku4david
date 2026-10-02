@@ -47,12 +47,12 @@ The player selects a cell by tapping or clicking it. Arrow keys move the selecti
 
 On an unlocked cell, a digit does one of two things:
 
-- Notes off. The digit is written in the cell. Pressing the digit that is already there clears the cell. Writing a digit removes that cell's notes, and removes that digit from the notes in the same row, column, and box. When that placement leaves nine of the digit on the board, the digit is removed from every pencil mark. Undo puts those marks back.
-- Notes on. The digit is toggled as a pencil mark in an empty cell. Marks on a filled cell are ignored. Marks do not have to be legal.
+- Notes off. The digit is written in the cell. Pressing the digit that is already there clears the cell, unless nine of that digit are already on the board. Writing a digit removes that cell's notes, and removes that digit from the notes in the same row, column, and box. When that placement leaves nine of the digit on the board, the digit is removed from every pencil mark. Undo puts those marks back.
+- Notes on. The digit is toggled as a pencil mark in an empty cell. Marks on a filled cell are ignored. Marks do not have to be legal. A digit that already has nine copies on the board is ignored, so it cannot be added to a mark.
 
 Erase clears the selected cell's digit and its notes. It does nothing on a locked cell, or on a cell that is already empty and unmarked.
 
-The digit keypad shows how many of that digit are still missing from a full nine. A count above nine is shown as an error, which happens when the player has repeated a digit. When none are missing, that key is gray and does not place another copy. Erase still clears the selected cell.
+The digit keypad shows how many of that digit are still missing from a full nine. The badge stops at 0. If more than nine copies are on the board, that 0 is shown as an error. When none are missing, the key is gray. The keypad and the number keys both ignore that digit, including in notes mode, until the count drops. Erase still clears the selected cell.
 
 ## Conflicts
 
@@ -63,9 +63,9 @@ Conflicts are shown by default. The player can hide them. While they are shown, 
 Check reports:
 
 - Already solved: “This grid is already solved.”
-- Repeats, and conflicts were hidden: conflicts are turned on, then the same conflict count as the status line.
+- Repeats: “One digit is repeated.” or “N cells repeat a digit.” Check says this whether conflicts were already shown or hidden. If they were hidden, Check turns them on. The status line then reports “1 conflict” or “N conflicts” for those same cells.
 - No repeats, grid full, but not the solution: “The grid is full, but it isn't the solution.”
-- No repeats, cells still open: “No repeats yet.” plus how many cells remain.
+- No repeats, cells still open: “No repeats yet. One cell is still open.” or “No repeats yet. N cells are still open.”
 
 ## Hints
 
@@ -131,12 +131,12 @@ The status line reports the phase and the open-cell or conflict count, with a pr
 
 ## Keyboard
 
-These keys apply when a puzzle is on screen, a new grid is not being dealt, and no dialog is open. Command and Ctrl, other than the undo chord, are ignored.
+These keys apply when a puzzle is on screen and a new grid is not being dealt. Command and Ctrl, other than the undo chord, are ignored. While a dialog is open, only Escape and the undo chord apply. Escape dismisses the dialog. The undo chord still changes the board behind it.
 
 | Key | Action |
 | --- | --- |
 | Arrows | Move the selection, wrapping around |
-| 1–9 | Enter that digit, or toggle it as a note |
+| 1–9 | Enter that digit, or toggle it as a note. A digit with nine copies already on the board is ignored |
 | 0, Backspace, Delete | Erase the selected cell |
 | N | Toggle notes |
 | P | Pause or resume |
@@ -145,7 +145,7 @@ These keys apply when a puzzle is on screen, a new grid is not being dealt, and 
 | Y, or Command/Ctrl+Shift+Z | Redo |
 | Escape | Dismiss the confirm dialog, or resume when paused |
 
-After a win, only P is handled among the single-key shortcuts. While paused, only P, Escape, and the undo chord are handled.
+After a win, only P is handled among the single-key shortcuts. P does not pause a solved grid. The undo chord still undoes. While paused, only P, Escape, and the undo chord are recognized. The undo chord does not change the board until the grid is resumed.
 
 ## What this version does not do
 
