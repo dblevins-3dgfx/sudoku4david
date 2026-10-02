@@ -93,16 +93,16 @@ function lockedFromPuzzle(puzzle: Grid): boolean[][] {
   return puzzle.map((row) => row.map((value) => value !== 0));
 }
 
-export function createGame(
+export function createGameFromPuzzle(
   difficulty: Difficulty,
-  rng: () => number = Math.random,
+  puzzle: Grid,
+  solution: Grid,
 ): GameState {
-  const { puzzle, solution } = createPuzzle(difficulty, rng);
   const grid = cloneGrid(puzzle);
   return {
     difficulty,
-    puzzle,
-    solution,
+    puzzle: cloneGrid(puzzle),
+    solution: cloneGrid(solution),
     grid,
     notes: emptyNotes(),
     locked: lockedFromPuzzle(puzzle),
@@ -118,6 +118,14 @@ export function createGame(
     history: [],
     future: [],
   };
+}
+
+export function createGame(
+  difficulty: Difficulty,
+  rng: () => number = Math.random,
+): GameState {
+  const { puzzle, solution } = createPuzzle(difficulty, rng);
+  return createGameFromPuzzle(difficulty, puzzle, solution);
 }
 
 export function selectCell(state: GameState, r: number, c: number): GameState {

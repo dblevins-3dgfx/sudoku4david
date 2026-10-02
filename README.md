@@ -1,10 +1,10 @@
 # Sudoku
 
-A paper-and-ink Sudoku you can play in the browser. Each puzzle is generated on the spot and has exactly one solution.
+A paper-and-ink Sudoku you can play in the browser. A new puzzle comes from [Mt. Sudoku](https://mtsudoku.com/en/api) at the difficulty you choose, and has exactly one solution. If Mt. Sudoku does not answer, the generator in this page deals the same difficulty.
 
 ## Play
 
-- Choose **Easy**, **Medium**, or **Hard**, then deal a new puzzle.
+- Choose **Easy**, **Medium**, or **Hard**, then deal a new puzzle. Mt. Sudoku deals that difficulty.
 - Select a cell and enter **1–9** from the keypad or the keyboard.
 - **Notes** toggles pencil marks. Placing a digit clears that note from the row, column, and box. Selecting a filled cell highlights that digit wherever it appears in the notes.
 - Conflicts light up as you go. Hide them, or press **Check** for a status line.

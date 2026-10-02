@@ -152,7 +152,7 @@ export function Game() {
                 </div>
               </div>
               <p className="mt-2 shrink-0 text-center text-sm text-muted-foreground" role={error ? "alert" : "status"}>
-                {error ?? "Composing a fair puzzle…"}
+                {error ?? `Asking Mt. Sudoku for a ${chosen} puzzle…`}
               </p>
               {error ? (
                 <div className="mt-2 flex shrink-0 justify-center">

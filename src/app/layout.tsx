@@ -21,7 +21,7 @@ const caveat = Caveat({
 export const metadata: Metadata = {
   title: "Sudoku",
   description:
-    "A paper-and-ink Sudoku. Fill the grid, keep notes, undo a step, and take a hint. Every puzzle has one solution.",
+    "A paper-and-ink Sudoku. Fill the grid, keep notes, undo a step, and take a hint. New puzzles come from Mt. Sudoku at the difficulty you choose.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
