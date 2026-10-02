@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist } from "next/font/google";
+import { Caveat, Fraunces, Geist } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
@@ -13,6 +13,11 @@ const fraunces = Fraunces({
   subsets: ["latin"],
 });
 
+const caveat = Caveat({
+  variable: "--font-caveat",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Sudoku",
   description:
@@ -23,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${fraunces.variable} ${caveat.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="flex h-dvh flex-col overflow-hidden">

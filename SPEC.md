@@ -111,7 +111,7 @@ The page fills the browser window. From a window width of 720 pixels, the board 
 
 Below that, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. Notes, erase, undo, redo, hint, check, and the conflict toggle fill the space to its right. From 720 pixels wide, the keypad is the largest square that fits in the control column, with those same tools underneath it. If the controls still do not fit, they scroll in the lower panel.
 
-Pencil marks are the largest size that still places all nine digits inside a cell.
+Pencil marks are the largest size that still places all nine digits inside a cell. They are set in a handwritten face so they stay distinct from the printed digits.
 
 Box borders are heavier than the lines between cells inside a box. Both stay visible as the board gets smaller. The selected cell is highlighted, peers in its row, column, and box are tinted, and other cells holding the same digit are tinted more strongly. Conflicts, when shown, use their own tint and take precedence over those three.
 
