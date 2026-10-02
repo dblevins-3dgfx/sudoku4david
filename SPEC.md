@@ -120,7 +120,7 @@ Light and dark appearance is stored separately under `sudoku.theme`. With nothin
 
 The page fills the browser window. From a window width of 720 pixels, the board is the largest square that fits beside the controls, which are a fixed column on the right.
 
-Below that, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. Notes, erase, undo, redo, hint, check, and the conflict toggle fill the space to its right. From 720 pixels wide, the keypad is the largest square that fits in the control column, with those same tools underneath it. If the controls still do not fit, they scroll in the lower panel.
+Below that, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. Notes, erase, undo, redo, hint, check, and the conflict toggle fill the space to its right. From 720 pixels wide, the keypad is the largest square that fits in the control column, with those same tools underneath it. The tools keep their height, and the keypad shrinks when the window is short, so the difficulty buttons stay below them. If the controls still do not fit, they scroll in the lower panel.
 
 Pencil marks are the largest size that still places all nine digits inside a cell. They are set in a handwritten face so they stay distinct from the printed digits.
 

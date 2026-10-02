@@ -246,7 +246,7 @@ export function Game() {
             </p>
           ) : null}
 
-          <div className="play-tools flex min-h-[9rem] w-full flex-1 items-stretch gap-1 max-[719px]:flex-row min-[720px]:flex-col">
+          <div className="play-tools flex min-h-[9rem] w-full min-w-0 flex-1 items-stretch gap-1 overflow-hidden max-[719px]:flex-row min-[720px]:min-h-0 min-[720px]:flex-col">
           <div className="digit-slot flex min-h-0 items-start justify-start max-[719px]:aspect-square max-[719px]:h-full max-[719px]:max-w-[calc(100%-9.25rem)] min-[720px]:w-full min-[720px]:flex-1 min-[720px]:items-center min-[720px]:justify-center">
             <div className="digit-pad grid grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
             {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
@@ -287,7 +287,7 @@ export function Game() {
             </div>
           </div>
 
-          <div className="grid h-full min-h-0 min-w-0 flex-1 grid-cols-2 grid-rows-4 gap-1 max-[719px]:min-w-[9.25rem] min-[720px]:h-auto min-[720px]:shrink-0 min-[720px]:grid-rows-none">
+          <div className="grid h-full min-h-0 min-w-0 grid-cols-2 grid-rows-4 gap-1 max-[719px]:min-w-[9.25rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:grid-rows-none">
             <Button
               type="button"
               variant={game?.notesMode ? "default" : "outline"}
