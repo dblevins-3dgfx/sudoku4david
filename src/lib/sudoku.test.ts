@@ -13,7 +13,7 @@ import {
 } from "./sudoku";
 
 describe("sudoku generator", () => {
-  for (const difficulty of ["easy", "medium", "hard"] as const) {
+  for (const difficulty of ["easy", "medium", "hard", "expert", "master", "extreme"] as const) {
     it(`deals a unique ${difficulty} puzzle`, { timeout: 30_000 }, () => {
       const { puzzle, solution } = createPuzzle(difficulty, mulberry32(difficulty.length * 17 + 3));
       const clues = countClues(puzzle);

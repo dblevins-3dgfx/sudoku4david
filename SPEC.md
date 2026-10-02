@@ -2,7 +2,7 @@
 
 This document describes the game as it is implemented. It is the baseline for later changes. A change to play, generation, or the screen should update this specification in the same branch.
 
-The product is a browser Sudoku. Each puzzle is generated in the browser and has one solution. Progress stays in that browser.
+The product is a browser Sudoku. A new puzzle comes from Mt. Sudoku at the difficulty the player chooses. Each puzzle has one solution. Progress stays in that browser.
 
 ## Board
 
@@ -14,21 +14,32 @@ Given digits are printed with the puzzle. They are locked. The player cannot cha
 
 ## Generating a puzzle
 
-A puzzle is a completed grid with some digits removed. Removal keeps exactly one solution. If a removal would leave zero solutions or more than one, that removal is undone.
+A new puzzle is requested from Mt. Sudoku at the chosen difficulty:
 
-Clue counts, inclusive:
+`https://api.mtsudoku.com/v1/generate?mode=classic&difficulty=easy`
+
+`difficulty` is `easy`, `medium`, `hard`, `expert`, `master`, or `extreme`. The response is an 81-character puzzle and an 81-character solution. Empty cells are `0`.
+
+The board is played when the returned difficulty matches the request, the solution is complete and legal, every given matches that solution, and the givens have exactly one solution. Anything else is treated as Mt. Sudoku not answering.
+
+If Mt. Sudoku does not answer, the built-in generator deals a puzzle at the same difficulty, and the player sees “Mt. Sudoku didn't answer, so this puzzle was dealt here.” The built-in generator builds a completed grid and removes digits while keeping exactly one solution. If a removal would leave zero solutions or more than one, that removal is undone.
+
+Clue counts for the built-in generator, inclusive:
 
 | Difficulty | Clues left |
 | --- | --- |
 | Easy | 40–46 |
 | Medium | 32–36 |
 | Hard | 26–30 |
+| Expert | 23–25 |
+| Master | 22–25 |
+| Extreme | 22–26 |
 
-The target count inside that range is chosen at random. Generation tries up to four times to land inside the range. If every try misses the range but still produces a unique puzzle, that last puzzle is used. If none can be composed, the player sees “Couldn't compose a puzzle. Try once more.”
+The target count inside that range is chosen at random. Generation tries up to four times to land inside the range. If every try misses the range but still produces a unique puzzle, that last puzzle is used. Expert, Master, and Extreme sit close together: removal stops when another clue would leave a second solution. If the built-in generator also fails, the player sees “Couldn't compose a puzzle. Try once more.”
 
-The first visit, with nothing saved, deals a medium puzzle. The selected cell starts on the first empty cell in reading order.
+The first visit, with nothing saved, asks Mt. Sudoku for a medium puzzle. The selected cell starts on the first empty cell in reading order.
 
-Choosing Easy, Medium, or Hard does not replace the current grid. It only chooses the difficulty of the next deal. The button reads “New puzzle” when that matches the grid in play, and “New easy”, “New medium”, or “New hard” when it does not.
+Choosing Easy, Medium, Hard, Expert, Master, or Extreme does not replace the current grid. It chooses the difficulty of the next deal, from Mt. Sudoku or from the built-in generator if Mt. Sudoku does not answer. The button reads “New puzzle” when that matches the grid in play, and “New easy”, “New medium”, “New hard”, “New expert”, “New master”, or “New extreme” when it does not.
 
 ## Entering digits
 
@@ -97,7 +108,7 @@ When the grid matches the solution, the clock stops and a solved panel covers th
 
 ## What is remembered
 
-The game is stored in the browser under `sudoku.desk.v1`. A saved game is restored on the next visit. A saved record that is not a valid puzzle is ignored, and a new medium puzzle is dealt.
+The game is stored in the browser under `sudoku.desk.v1`. A saved game is restored on the next visit, including whether it came from Mt. Sudoku or was generated here. A saved record with no source is treated as generated. A saved record that is not a valid puzzle is ignored, and the next visit asks Mt. Sudoku for a medium puzzle.
 
 The record must have a completed, conflict-free solution. Every given must match the solution and be locked. Every locked cell in the working grid must match the solution. History and redo kept in storage are capped at 30 steps each.
 
@@ -117,7 +128,7 @@ Box borders are heavier than the lines between cells inside a box. Both stay vis
 
 When the selected cell holds a digit, every pencil mark of that same digit is highlighted inside its cell. That mark is added on top of the cell tint. Selecting an empty cell does not highlight notes.
 
-The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81.
+The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81. Under that, the phase line names the phase, the difficulty, and the source: “Mt. Sudoku” or “Generated”.
 
 ## Keyboard
 
@@ -139,4 +150,4 @@ After a win, only P is handled among the single-key shortcuts. While paused, onl
 
 ## What this version does not do
 
-There is no account, no shared puzzle, no scoreboard, and no printed copy. Difficulty is the clue count above, not a separate rating of technique. Pencil marks are not checked for correctness on their own.
+There is no account, no shared puzzle, no scoreboard, and no printed copy. Mt. Sudoku deals the difficulty the player chose. The built-in generator’s difficulty is the clue count above. Pencil marks are not checked for correctness on their own.

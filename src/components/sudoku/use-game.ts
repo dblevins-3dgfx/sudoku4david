@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createGame,
+  createGameFromPuzzle,
   erase,
   hint,
   inputDigit,
@@ -16,6 +17,7 @@ import {
   undo,
   type GameState,
 } from "@/lib/game";
+import { fetchMtSudokuPuzzle } from "@/lib/mtsudoku";
 import { loadGame, saveGame, THEME_STORAGE_KEY } from "@/lib/storage";
 import {
   conflictCount,
@@ -42,6 +44,9 @@ export function useGame() {
   const gameRef = useRef<GameState | null>(null);
   const dealingRef = useRef(false);
   const pendingRef = useRef<Pending | null>(null);
+  const dealSeq = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     gameRef.current = game;
@@ -62,31 +67,10 @@ export function useGame() {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    const id = window.setTimeout(() => {
-      if (cancelled) return;
-      const stored = loadGame();
-      if (stored) {
-        setGame(stored);
-        setChosen(stored.difficulty);
-        setBooting(false);
-        return;
-      }
-      try {
-        const next = createGame("medium");
-        setGame(next);
-        setChosen("medium");
-        saveGame(next);
-        setError(null);
-      } catch {
-        setError("Couldn't compose a puzzle. Try once more.");
-      } finally {
-        setBooting(false);
-      }
-    }, 40);
+    mountedRef.current = true;
     return () => {
-      cancelled = true;
-      window.clearTimeout(id);
+      mountedRef.current = false;
+      abortRef.current?.abort();
     };
   }, []);
 
@@ -134,25 +118,66 @@ export function useGame() {
   const deal = useCallback((difficulty: Difficulty) => {
     if (dealingRef.current) return;
     dealingRef.current = true;
+    const seq = ++dealSeq.current;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setDealing(true);
     setPending(null);
     setNotice(null);
     setError(null);
-    window.setTimeout(() => {
+    void (async () => {
+      const current = () => mountedRef.current && seq === dealSeq.current;
       try {
-        const next = createGame(difficulty);
+        let next: GameState;
+        let dealtHere = false;
+        try {
+          const board = await fetchMtSudokuPuzzle(difficulty, controller.signal);
+          next = createGameFromPuzzle(board.difficulty, board.puzzle, board.solution, "mtsudoku");
+        } catch {
+          if (!current() || controller.signal.aborted) return;
+          try {
+            next = createGame(difficulty);
+            dealtHere = true;
+          } catch {
+            if (current()) setError("Couldn't compose a puzzle. Try once more.");
+            return;
+          }
+        }
+        if (!current()) return;
         setGame(next);
-        setChosen(difficulty);
+        setChosen(next.difficulty);
         saveGame(next);
+        setNotice(dealtHere ? "Mt. Sudoku didn't answer, so this puzzle was dealt here." : null);
         setError(null);
-      } catch {
-        setError("Couldn't compose a puzzle. Try once more.");
       } finally {
-        dealingRef.current = false;
-        setDealing(false);
+        if (current()) {
+          dealingRef.current = false;
+          setDealing(false);
+          setBooting(false);
+        }
       }
-    }, 40);
+    })();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const id = window.setTimeout(() => {
+      if (cancelled) return;
+      const stored = loadGame();
+      if (stored) {
+        setGame(stored);
+        setChosen(stored.difficulty);
+        setBooting(false);
+        return;
+      }
+      deal("medium");
+    }, 40);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
+    };
+  }, [deal]);
 
   const requestNew = useCallback(
     (difficulty: Difficulty) => {

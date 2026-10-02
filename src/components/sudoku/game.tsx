@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { sourceLabel } from "@/lib/game";
 import { DIFFICULTIES, formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
 import { useGame, type Pending } from "./use-game";
@@ -152,7 +153,7 @@ export function Game() {
                 </div>
               </div>
               <p className="mt-2 shrink-0 text-center text-sm text-muted-foreground" role={error ? "alert" : "status"}>
-                {error ?? "Composing a fair puzzle…"}
+                {error ?? `Asking Mt. Sudoku for a ${chosen} puzzle…`}
               </p>
               {error ? (
                 <div className="mt-2 flex shrink-0 justify-center">
@@ -224,8 +225,18 @@ export function Game() {
                 style={{ width: `${(filled / 81) * 100}%` }}
               />
             </div>
-            <p className="mt-1 text-xs tracking-wide text-muted-foreground uppercase min-[720px]:mt-2">
-              {game ? `${game.won ? "Solved" : game.started ? "Playing" : "Ready"} · ${game.difficulty}` : "Dealing"}
+            <p className="mt-1 text-xs tracking-wide text-muted-foreground min-[720px]:mt-2">
+              {game ? (
+                <>
+                  <span className="uppercase">
+                    {game.won ? "Solved" : game.started ? "Playing" : "Ready"} · {game.difficulty}
+                  </span>
+                  {" · "}
+                  {sourceLabel(game.source)}
+                </>
+              ) : (
+                "Dealing"
+              )}
             </p>
           </div>
 
@@ -350,7 +361,7 @@ export function Game() {
                 key={level.id}
                 type="button"
                 variant={chosen === level.id ? "default" : "outline"}
-                className="h-7 px-1 text-xs min-[720px]:h-8 min-[720px]:px-2.5 min-[720px]:text-sm"
+                className="h-7 min-w-0 px-0.5 text-xs min-[720px]:h-8 min-[720px]:px-1 min-[720px]:text-sm"
                 aria-pressed={chosen === level.id}
                 disabled={busy}
                 onClick={() => setChosen(level.id)}

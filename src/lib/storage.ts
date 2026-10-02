@@ -48,7 +48,14 @@ function isLocked(value: unknown): value is boolean[][] {
 }
 
 function isDifficulty(value: unknown): value is Difficulty {
-  return value === "easy" || value === "medium" || value === "hard";
+  return (
+    value === "easy" ||
+    value === "medium" ||
+    value === "hard" ||
+    value === "expert" ||
+    value === "master" ||
+    value === "extreme"
+  );
 }
 
 function isSnapshot(value: unknown): value is Snapshot {
@@ -112,6 +119,7 @@ export function deserializeGame(raw: unknown): GameState | null {
 
   return {
     difficulty: data.difficulty,
+    source: data.source === "mtsudoku" ? "mtsudoku" : "generated",
     puzzle: data.puzzle.map((row) => row.slice()) as Grid,
     solution: data.solution.map((row) => row.slice()) as Grid,
     grid: data.grid.map((row) => row.slice()) as Grid,
