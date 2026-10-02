@@ -21,3 +21,13 @@ npm run dev
 ```
 
 Open the URL printed in the terminal. `npm test` checks the generator and the rules of play. `npm run lint` runs ESLint.
+
+## GitHub Pages
+
+`main` is published by GitHub Actions. The workflow builds a static export into `out/` and deploys that folder. On a project site the build sets `BASE_PATH` to `/<repository>` so scripts and fonts load from the repository path.
+
+```bash
+npm run build
+```
+
+The exported site is in `out/`. To preview the project-page paths locally, build with `BASE_PATH=/sudoku4david`.
