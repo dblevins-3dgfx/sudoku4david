@@ -58,6 +58,10 @@ function isDifficulty(value: unknown): value is Difficulty {
   );
 }
 
+function readErrors(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0;
+}
+
 function isSnapshot(value: unknown): value is Snapshot {
   if (!value || typeof value !== "object") return false;
   const snap = value as Snapshot;
@@ -70,6 +74,15 @@ function isSnapshot(value: unknown): value is Snapshot {
     snap.hintsUsed >= 0 &&
     snap.hintsUsed <= 81
   );
+}
+
+function copySnapshot(snap: Snapshot): Snapshot {
+  return {
+    grid: snap.grid.map((row) => row.slice()) as Grid,
+    notes: cloneNotes(snap.notes),
+    locked: snap.locked.map((row) => row.slice()),
+    hintsUsed: snap.hintsUsed,
+  };
 }
 
 export function deserializeGame(raw: unknown): GameState | null {
@@ -114,8 +127,8 @@ export function deserializeGame(raw: unknown): GameState | null {
     return null;
   }
 
-  const history = Array.isArray(data.history) ? data.history.filter(isSnapshot).slice(-100) : [];
-  const future = Array.isArray(data.future) ? data.future.filter(isSnapshot).slice(-100) : [];
+  const history = Array.isArray(data.history) ? data.history.filter(isSnapshot).slice(-100).map(copySnapshot) : [];
+  const future = Array.isArray(data.future) ? data.future.filter(isSnapshot).slice(-100).map(copySnapshot) : [];
 
   return {
     difficulty: data.difficulty,
@@ -128,6 +141,7 @@ export function deserializeGame(raw: unknown): GameState | null {
     selected: { r: data.selected.r, c: data.selected.c },
     notesMode: Boolean(data.notesMode),
     showMistakes: data.showMistakes !== false,
+    errors: readErrors(data.errors),
     hintsUsed: data.hintsUsed,
     elapsedMs: data.elapsedMs,
     timerOn: Boolean(data.timerOn) && !data.won && !data.paused,

@@ -182,4 +182,96 @@ describe("play", () => {
     const remoteRestored = deserializeGame(JSON.parse(JSON.stringify(remote)) as unknown);
     assert.equal(remoteRestored?.source, "mtsudoku");
   });
+
+  it("counts each conflicting digit while conflicts are shown", () => {
+    const fresh = createGame("easy", mulberry32(8));
+    assert.equal(fresh.errors, 0);
+
+    const empty = fresh.grid.flatMap((row, r) =>
+      row.flatMap((value, c) => (value === 0 ? [{ r, c }] : [])),
+    )[0]!;
+    const legal = inputDigit({ ...fresh, selected: empty }, fresh.solution[empty.r][empty.c] as Digit);
+    assert.equal(legal.errors, 0);
+    assert.equal(legal.grid[empty.r][empty.c], fresh.solution[empty.r][empty.c]);
+
+    const noted = inputDigit({ ...fresh, selected: empty }, 4, true);
+    assert.equal(noted.errors, 0);
+    assert.equal(noted.grid[empty.r][empty.c], 0);
+
+    const game = placeConflict(fresh);
+    const { r, c } = game.selected;
+    const digit = game.grid[r][c] as Digit;
+    assert.equal(game.errors, 1);
+    assert.notEqual(digit, game.solution[r][c]);
+
+    const fixed = inputDigit(game, game.solution[r][c] as Digit);
+    assert.equal(fixed.grid[r][c], game.solution[r][c]);
+    assert.equal(fixed.errors, 1);
+
+    const cleared = inputDigit(game, digit);
+    assert.equal(cleared.grid[r][c], 0);
+    assert.equal(cleared.errors, 1);
+    assert.equal(erase(game).errors, 1);
+
+    const undone = undo(game);
+    assert.equal(undone.grid[r][c], 0);
+    assert.equal(undone.errors, 1);
+    const redone = redo(undone);
+    assert.equal(redone.grid[r][c], digit);
+    assert.equal(redone.errors, 1);
+    assert.equal(placeConflict(undone).errors, 2);
+    assert.equal(restart(game).errors, 0);
+    assert.equal(hint(fresh).errors, 0);
+
+    const twice = placeConflict(game);
+    assert.equal(twice.errors, 2);
+
+    const hidden = placeConflict({ ...fresh, showMistakes: false });
+    assert.equal(hidden.errors, 0);
+    assert.notEqual(hidden.grid[hidden.selected.r][hidden.selected.c], 0);
+
+    const restored = deserializeGame(JSON.parse(JSON.stringify(game)) as unknown);
+    assert.ok(restored);
+    assert.equal(restored.errors, 1);
+    assert.equal(undo(restored).errors, 1);
+
+    const legacy = JSON.parse(JSON.stringify(game)) as {
+      errors?: number;
+      history: { errors?: number }[];
+    };
+    delete legacy.errors;
+    legacy.history[0]!.errors = 4;
+    const legacyRestored = deserializeGame(legacy);
+    assert.equal(legacyRestored?.errors, 0);
+    assert.equal(undo(legacyRestored!).errors, 0);
+  });
 });
+
+function houseDigits(game: GameState, r: number, c: number): Digit[] {
+  const found = new Set<number>();
+  const take = (value: number, same: boolean) => {
+    if (!same && value !== 0) found.add(value);
+  };
+  for (let i = 0; i < 9; i++) {
+    take(game.grid[r][i], i === c);
+    take(game.grid[i][c], i === r);
+  }
+  const br = Math.floor(r / 3) * 3;
+  const bc = Math.floor(c / 3) * 3;
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) take(game.grid[br + i][bc + j], br + i === r && bc + j === c);
+  }
+  return [...found] as Digit[];
+}
+
+function placeConflict(game: GameState): GameState {
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (game.locked[r][c] || game.grid[r][c] !== 0) continue;
+      const digit = houseDigits(game, r, c)[0];
+      if (!digit) continue;
+      return inputDigit({ ...game, selected: { r, c } }, digit);
+    }
+  }
+  throw new Error("no conflicting entry available");
+}

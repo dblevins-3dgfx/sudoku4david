@@ -37,6 +37,7 @@ export type GameState = {
   selected: Coord;
   notesMode: boolean;
   showMistakes: boolean;
+  errors: number;
   hintsUsed: number;
   elapsedMs: number;
   timerOn: boolean;
@@ -68,6 +69,23 @@ function snapshot(state: GameState): Snapshot {
     locked: cloneLocked(state.locked),
     hintsUsed: state.hintsUsed,
   };
+}
+
+function cellConflicts(grid: Grid, r: number, c: number): boolean {
+  const value = grid[r][c];
+  if (value === 0) return false;
+  for (let i = 0; i < 9; i++) {
+    if (i !== c && grid[r][i] === value) return true;
+    if (i !== r && grid[i][c] === value) return true;
+  }
+  const br = ((r / 3) | 0) * 3;
+  const bc = ((c / 3) | 0) * 3;
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      if ((br + i !== r || bc + j !== c) && grid[br + i][bc + j] === value) return true;
+    }
+  }
+  return false;
 }
 
 function pushHistory(state: GameState): Pick<GameState, "history" | "future"> {
@@ -137,6 +155,7 @@ export function createGameFromPuzzle(
     selected: firstEmpty(grid) ?? { r: 0, c: 0 },
     notesMode: false,
     showMistakes: true,
+    errors: 0,
     hintsUsed: 0,
     elapsedMs: 0,
     timerOn: false,
@@ -220,12 +239,14 @@ export function inputDigit(state: GameState, digit: Digit, asNote = state.notesM
   }
 
   const won = gridsEqual(nextGrid, state.solution);
+  const errors = state.errors + (state.showMistakes && cellConflicts(nextGrid, r, c) ? 1 : 0);
   return {
     ...state,
     ...pushHistory(state),
     ...begin(state, won),
     grid: nextGrid,
     notes: nextNotes,
+    errors,
   };
 }
 
@@ -338,6 +359,7 @@ export function restart(state: GameState): GameState {
     notes: emptyNotes(),
     locked: lockedFromPuzzle(state.puzzle),
     hintsUsed: 0,
+    errors: 0,
     elapsedMs: 0,
     timerOn: false,
     won: false,

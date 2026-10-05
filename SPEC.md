@@ -62,6 +62,8 @@ A conflict is a filled cell whose digit also appears in the same row, column, or
 
 Conflicts are shown by default. Preferences can hide them. While they are shown, conflicting cells are marked on the board, and the status line reports “1 conflict” or “N conflicts”.
 
+While conflicts are shown, the game keeps an error count and shows it on the phase line as “0 errors”, “1 error”, or “N errors”. The count starts at 0. It increases by one when a digit is entered and that cell then conflicts. A digit that does not conflict leaves the count unchanged. Notes, erase, hint, and a press that clears the cell do not increase it. Replacing a conflicting digit with one that does not conflict does not lower it. Undo and redo leave the count unchanged, including when undo returns the grid to the original puzzle. While conflicts are hidden, the count is not shown and does not increase. Showing them again shows the count already kept. Check turns conflicts on and does not add existing repeats to the count. Clear entries sets the count to 0. A new puzzle starts at 0.
+
 Check reports:
 
 - Already solved: “This grid is already solved.”
@@ -81,9 +83,9 @@ Hint does nothing when the puzzle is already solved, while the grid is paused, o
 
 Digit entry, notes, erase, and hint each record a step. Up to 100 steps are kept. A new step drops the redo stack.
 
-Undo and redo move one step. They are unavailable while the grid is paused, and when there is no step in that direction. Returning to the original puzzle, with no notes and no hints, is treated as not started: the timer reads 0:00 and does not run.
+Undo and redo move one step and leave the error count unchanged. They are unavailable while the grid is paused, and when there is no step in that direction. Returning to the original puzzle, with no notes and no hints, is treated as not started: the timer reads 0:00 and does not run.
 
-Clear entries restores the original givens, clears notes, hints, the timer, and the history. Given digits stay.
+Clear entries restores the original givens, clears notes, hints, the error count, the timer, and the history. Given digits stay.
 
 - If the player has not started, Clear entries does nothing.
 - If the puzzle is solved, it clears immediately.
@@ -109,7 +111,7 @@ When the grid matches the solution, the clock stops and a solved panel covers th
 
 The game is stored in the browser under `sudoku.desk.v1`. A saved game is restored on the next visit, including whether it came from Mt. Sudoku or was generated here. A saved record with no source is treated as generated. A saved record that is not a valid puzzle is ignored, and the next visit asks Mt. Sudoku for a medium puzzle.
 
-The record must have a completed, conflict-free solution. Every given must match the solution and be locked. Every locked cell in the working grid must match the solution. History and redo kept in storage are capped at 30 steps each.
+The record must have a completed, conflict-free solution. Every given must match the solution and be locked. Every locked cell in the working grid must match the solution. The error count is part of the saved game. A saved game with no error count is treated as 0. History and redo kept in storage are capped at 30 steps each. An error count stored on an older history step is ignored.
 
 The clock is written about every five seconds while it is running, and again when the page is hidden or closed. Other moves are written as they happen.
 
@@ -131,7 +133,7 @@ Box borders are heavier than the lines between cells inside a box. Both stay vis
 
 When the selected cell holds a digit, every pencil mark of that same digit is highlighted inside its cell. That mark is added on top of the cell tint. Selecting an empty cell does not highlight notes.
 
-The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81. Under that, the phase line names the phase, the difficulty, and the source: “Mt. Sudoku” or “Generated”.
+The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81. Under that, the phase line names the phase, the difficulty, and the source: “Mt. Sudoku” or “Generated”. When conflicts are shown, that line also names the error count.
 
 ## Keyboard
 
