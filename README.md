@@ -1,5 +1,7 @@
 # Sudoku
 
+The published game is at [dblevins-3dgfx.github.io/sudoku4david](https://dblevins-3dgfx.github.io/sudoku4david/).
+
 A paper-and-ink Sudoku you can play in the browser. A new puzzle comes from [Mt. Sudoku](https://mtsudoku.com/en/api) at the difficulty you choose, and has exactly one solution. If Mt. Sudoku does not answer, the generator in this page deals the same difficulty.
 
 ## Play
