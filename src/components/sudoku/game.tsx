@@ -268,6 +268,14 @@ export function Game() {
                   </span>
                   {" · "}
                   {sourceLabel(game.source)}
+                  {showMistakes ? (
+                    <>
+                      {" · "}
+                      <span className={cn("tabular-nums", game.errors > 0 && "text-destructive")} aria-live="polite">
+                        {game.errors === 1 ? "1 error" : `${game.errors} errors`}
+                      </span>
+                    </>
+                  ) : null}
                 </>
               ) : (
                 "Dealing"
