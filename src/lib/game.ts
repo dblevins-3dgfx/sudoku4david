@@ -18,7 +18,6 @@ export type Snapshot = {
   notes: Notes;
   locked: boolean[][];
   hintsUsed: number;
-  errors: number;
 };
 
 export type GameSource = "mtsudoku" | "generated";
@@ -69,7 +68,6 @@ function snapshot(state: GameState): Snapshot {
     notes: cloneNotes(state.notes),
     locked: cloneLocked(state.locked),
     hintsUsed: state.hintsUsed,
-    errors: state.errors,
   };
 }
 
@@ -325,7 +323,6 @@ function restore(state: GameState, snap: Snapshot, history: Snapshot[], future: 
     notes: cloneNotes(snap.notes),
     locked: cloneLocked(snap.locked),
     hintsUsed: snap.hintsUsed,
-    errors: snap.errors,
     history,
     future,
     won,

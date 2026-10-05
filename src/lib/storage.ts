@@ -82,7 +82,6 @@ function copySnapshot(snap: Snapshot): Snapshot {
     notes: cloneNotes(snap.notes),
     locked: snap.locked.map((row) => row.slice()),
     hintsUsed: snap.hintsUsed,
-    errors: readErrors(snap.errors),
   };
 }
 

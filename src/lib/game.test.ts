@@ -213,8 +213,13 @@ describe("play", () => {
     assert.equal(cleared.errors, 1);
     assert.equal(erase(game).errors, 1);
 
-    assert.equal(undo(game).errors, 0);
-    assert.equal(redo(undo(game)).errors, 1);
+    const undone = undo(game);
+    assert.equal(undone.grid[r][c], 0);
+    assert.equal(undone.errors, 1);
+    const redone = redo(undone);
+    assert.equal(redone.grid[r][c], digit);
+    assert.equal(redone.errors, 1);
+    assert.equal(placeConflict(undone).errors, 2);
     assert.equal(restart(game).errors, 0);
     assert.equal(hint(fresh).errors, 0);
 
@@ -226,18 +231,19 @@ describe("play", () => {
     assert.notEqual(hidden.grid[hidden.selected.r][hidden.selected.c], 0);
 
     const restored = deserializeGame(JSON.parse(JSON.stringify(game)) as unknown);
-    assert.equal(restored?.errors, 1);
-    assert.equal(restored?.history.at(-1)?.errors, 0);
+    assert.ok(restored);
+    assert.equal(restored.errors, 1);
+    assert.equal(undo(restored).errors, 1);
 
     const legacy = JSON.parse(JSON.stringify(game)) as {
       errors?: number;
       history: { errors?: number }[];
     };
     delete legacy.errors;
-    for (const step of legacy.history) delete step.errors;
+    legacy.history[0]!.errors = 4;
     const legacyRestored = deserializeGame(legacy);
     assert.equal(legacyRestored?.errors, 0);
-    assert.equal(legacyRestored?.history.at(-1)?.errors, 0);
+    assert.equal(undo(legacyRestored!).errors, 0);
   });
 });
 
