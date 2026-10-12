@@ -10,6 +10,7 @@ import {
   mergeRecords,
   parseRecordStore,
   periodStart,
+  placementText,
   puzzleKey,
   rankRecords,
   recordWin,
@@ -208,6 +209,30 @@ describe("ranking", () => {
       rec({ id: "slow", puzzleKey: KEY_C, finishedAt: 500, elapsedMs: 90_000 }),
     ]);
     assert.deepEqual(topRecords(tied, "hard", "all", now, 2).map((r) => r.id), ["sooner", "later"]);
+  });
+});
+
+describe("placement", () => {
+  const now = new Date(2026, 9, 14, 12); // Wednesday
+  const at = (m: number, d: number) => new Date(2026, m, d, 10).getTime();
+  const lastMonth = rec({ id: "last-month", puzzleKey: "4".repeat(81), finishedAt: at(8, 30), elapsedMs: 100_000 });
+  const lastWeek = rec({ id: "last-week", puzzleKey: "5".repeat(81), finishedAt: at(9, 11), elapsedMs: 200_000 });
+  const monday = rec({ id: "monday", puzzleKey: "6".repeat(81), finishedAt: at(9, 12), elapsedMs: 250_000 });
+  const tuesday = rec({ id: "tuesday", puzzleKey: "7".repeat(81), finishedAt: at(9, 13), elapsedMs: 300_000 });
+  const all = store([lastMonth, lastWeek, monday, tuesday]);
+
+  it("names the longest period a game leads", () => {
+    assert.equal(placementText(all, lastMonth, now), "New all-time best on hard");
+    assert.equal(placementText(all, monday, now), "New weekly best on hard");
+    assert.equal(placementText(store([lastMonth, lastWeek]), lastWeek, now), "New monthly best on hard");
+    assert.equal(placementText(store([monday]), monday, now), "Your first record on hard");
+  });
+
+  it("otherwise names the longest period with a top spot", () => {
+    assert.equal(placementText(all, tuesday, now), "#4 all time on hard");
+    assert.equal(placementText(all, tuesday, now, 3), "#3 this month on hard");
+    assert.equal(placementText(all, tuesday, now, 2), "#2 this week on hard");
+    assert.equal(placementText(all, tuesday, now, 1), "Outside this week's top 1 on hard");
   });
 });
 

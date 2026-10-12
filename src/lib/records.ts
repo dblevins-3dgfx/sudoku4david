@@ -236,6 +236,31 @@ export function topRecords(
 }
 
 /**
+ * Where a just-recorded game placed, as one line for the Solved screen, for
+ * example "New monthly best on hard" or "#3 this month on hard". A first place
+ * names the longest period it leads; otherwise the line names the longest
+ * period in which the game made the top `limit`.
+ */
+export function placementText(store: RecordStore, record: ScoreRecord, now: Date, limit = 10): string {
+  const on = `on ${record.difficulty}`;
+  const rankIn = (period: Period) => {
+    const ranked = rankRecords(store, record.difficulty, period, now);
+    // findIndex returns -1 when absent; +1 turns it into a 1-based rank (0 = absent).
+    return { rank: ranked.findIndex((r) => r.id === record.id) + 1, count: ranked.length };
+  };
+  const all = rankIn("all");
+  const month = rankIn("month");
+  const week = rankIn("week");
+  if (all.rank === 1) return all.count === 1 ? `Your first record ${on}` : `New all-time best ${on}`;
+  if (month.rank === 1) return `New monthly best ${on}`;
+  if (week.rank === 1) return `New weekly best ${on}`;
+  if (all.rank > 0 && all.rank <= limit) return `#${all.rank} all time ${on}`;
+  if (month.rank > 0 && month.rank <= limit) return `#${month.rank} this month ${on}`;
+  if (week.rank > 0 && week.rank <= limit) return `#${week.rank} this week ${on}`;
+  return `Outside this week's top ${limit} ${on}`;
+}
+
+/**
  * crypto.randomUUID() is the browser's built-in random UUID generator. It only
  * exists on secure (https or localhost) pages, hence the fallback.
  */
