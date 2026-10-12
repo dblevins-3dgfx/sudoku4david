@@ -48,7 +48,7 @@ function isLocked(value: unknown): value is boolean[][] {
   );
 }
 
-function isDifficulty(value: unknown): value is Difficulty {
+export function isDifficulty(value: unknown): value is Difficulty {
   return (
     value === "easy" ||
     value === "medium" ||
