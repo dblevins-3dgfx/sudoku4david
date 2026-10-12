@@ -280,151 +280,151 @@ export function Game() {
           ) : null}
 
           <div className="play-tools flex w-full min-w-0 items-stretch gap-1 max-[719px]:min-h-[9rem] max-[719px]:flex-1 max-[719px]:flex-row min-[720px]:flex-none min-[720px]:flex-col">
-          <div className="digit-slot flex items-start justify-start max-[719px]:aspect-square max-[719px]:h-full max-[719px]:min-h-0 max-[719px]:max-w-[calc(100%-5.5rem)] min-[720px]:aspect-square min-[720px]:w-full min-[720px]:flex-none min-[720px]:items-center min-[720px]:justify-center">
-            <div className="digit-pad grid grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
-            {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
-              const placed = counts[digit] ?? 0;
-              const remaining = Math.max(0, 9 - placed);
-              const exhausted = remaining === 0;
-              const marked = selectedValue === 0 && (noteMask & (1 << digit)) !== 0;
-              const pressed =
-                !exhausted &&
-                (prefs.entry === "tap"
-                  ? selectedValue === digit || marked
-                  : game?.notesMode
-                    ? marked
-                    : selectedValue === digit);
-              return (
-                <Button
-                  key={digit}
-                  type="button"
-                  variant={pressed ? "default" : "outline"}
-                  className={cn(
-                    "relative h-full w-full min-h-0 min-w-0 text-base font-semibold tabular-nums min-[720px]:text-lg",
-                    exhausted &&
-                      "disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
-                  )}
-                  aria-label={
-                    exhausted
-                      ? `Enter ${digit}, all nine placed`
-                      : `Enter ${digit}, ${remaining} still missing`
-                  }
-                  aria-pressed={pressed}
-                  disabled={lockedPlay || exhausted}
-                  onClick={() => input(digit)}
-                >
-                  {digit}
-                  <span
-                    className={cn(
-                      "absolute top-0.5 right-1 text-[0.6rem] font-medium tabular-nums opacity-70 min-[720px]:top-1 min-[720px]:right-1.5 min-[720px]:text-[0.65rem]",
-                      placed > 9 && "text-destructive opacity-100",
-                    )}
-                  >
-                    {remaining}
-                  </span>
-                </Button>
-              );
-            })}
+            <div className="digit-slot flex items-start justify-start max-[719px]:aspect-square max-[719px]:h-full max-[719px]:min-h-0 max-[719px]:max-w-[calc(100%-5.5rem)] min-[720px]:aspect-square min-[720px]:w-full min-[720px]:flex-none min-[720px]:items-center min-[720px]:justify-center">
+              <div className="digit-pad grid grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
+                {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
+                  const placed = counts[digit] ?? 0;
+                  const remaining = Math.max(0, 9 - placed);
+                  const exhausted = remaining === 0;
+                  const marked = selectedValue === 0 && (noteMask & (1 << digit)) !== 0;
+                  const pressed =
+                    !exhausted &&
+                    (prefs.entry === "tap"
+                      ? selectedValue === digit || marked
+                      : game?.notesMode
+                        ? marked
+                        : selectedValue === digit);
+                  return (
+                    <Button
+                      key={digit}
+                      type="button"
+                      variant={pressed ? "default" : "outline"}
+                      className={cn(
+                        "relative h-full w-full min-h-0 min-w-0 text-base font-semibold tabular-nums min-[720px]:text-lg",
+                        exhausted &&
+                          "disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100",
+                      )}
+                      aria-label={
+                        exhausted
+                          ? `Enter ${digit}, all nine placed`
+                          : `Enter ${digit}, ${remaining} still missing`
+                      }
+                      aria-pressed={pressed}
+                      disabled={lockedPlay || exhausted}
+                      onClick={() => input(digit)}
+                    >
+                      {digit}
+                      <span
+                        className={cn(
+                          "absolute top-0.5 right-1 text-[0.6rem] font-medium tabular-nums opacity-70 min-[720px]:top-1 min-[720px]:right-1.5 min-[720px]:text-[0.65rem]",
+                          placed > 9 && "text-destructive opacity-100",
+                        )}
+                      >
+                        {remaining}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          <div
-            className={cn(
-              "grid h-full min-h-0 w-full min-w-0 auto-rows-fr grid-cols-2 gap-1 max-[719px]:min-w-[5.5rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:auto-rows-auto min-[720px]:grid-rows-1",
-              prefs.entry === "button" ? "min-[720px]:grid-cols-7" : "min-[720px]:grid-cols-6",
-            )}
-          >
-            {prefs.entry === "button" ? (
+            <div
+              className={cn(
+                "grid h-full min-h-0 w-full min-w-0 auto-rows-fr grid-cols-2 gap-1 max-[719px]:min-w-[5.5rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:auto-rows-auto min-[720px]:grid-rows-1",
+                prefs.entry === "button" ? "min-[720px]:grid-cols-7" : "min-[720px]:grid-cols-6",
+              )}
+            >
+              {prefs.entry === "button" ? (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant={game?.notesMode ? "default" : "outline"}
+                  className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+                  aria-label="Notes"
+                  title="Notes"
+                  aria-pressed={game?.notesMode ?? false}
+                  disabled={!game || game.paused || game.won || busy}
+                  onClick={toggleNotes}
+                >
+                  <Pencil />
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 size="icon"
-                variant={game?.notesMode ? "default" : "outline"}
+                variant="outline"
                 className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-                aria-label="Notes"
-                title="Notes"
-                aria-pressed={game?.notesMode ?? false}
-                disabled={!game || game.paused || game.won || busy}
-                onClick={toggleNotes}
+                aria-label="Erase"
+                title="Erase"
+                disabled={lockedPlay}
+                onClick={eraseCell}
               >
-                <Pencil />
+                <Eraser />
               </Button>
-            ) : null}
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-              aria-label="Erase"
-              title="Erase"
-              disabled={lockedPlay}
-              onClick={eraseCell}
-            >
-              <Eraser />
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-              aria-label="Undo"
-              title="Undo"
-              disabled={!game || game.paused || busy || game.history.length === 0}
-              onClick={undoMove}
-            >
-              <Undo2 />
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-              aria-label="Redo"
-              title="Redo"
-              disabled={!game || game.paused || busy || game.future.length === 0}
-              onClick={redoMove}
-            >
-              <Redo2 />
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="relative w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-              aria-label={game && game.hintsUsed > 0 ? `Hint, ${game.hintsUsed} used` : "Hint"}
-              title={game && game.hintsUsed > 0 ? `Hint, ${game.hintsUsed} used` : "Hint"}
-              disabled={!canHint || busy}
-              onClick={giveHint}
-            >
-              <Lightbulb />
-              {game && game.hintsUsed > 0 ? (
-                <span className="absolute top-0.5 right-0.5 text-[0.55rem] leading-none tabular-nums">{game.hintsUsed}</span>
-              ) : null}
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-              aria-label="Check"
-              title="Check"
-              disabled={!game || busy || game.paused}
-              onClick={check}
-            >
-              <SearchCheck />
-            </Button>
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-              aria-label="Clear entries"
-              title="Clear entries"
-              disabled={!game || !game.started || busy}
-              onClick={requestRestart}
-            >
-              <RotateCcw />
-            </Button>
-          </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+                aria-label="Undo"
+                title="Undo"
+                disabled={!game || game.paused || busy || game.history.length === 0}
+                onClick={undoMove}
+              >
+                <Undo2 />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+                aria-label="Redo"
+                title="Redo"
+                disabled={!game || game.paused || busy || game.future.length === 0}
+                onClick={redoMove}
+              >
+                <Redo2 />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="relative w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+                aria-label={game && game.hintsUsed > 0 ? `Hint, ${game.hintsUsed} used` : "Hint"}
+                title={game && game.hintsUsed > 0 ? `Hint, ${game.hintsUsed} used` : "Hint"}
+                disabled={!canHint || busy}
+                onClick={giveHint}
+              >
+                <Lightbulb />
+                {game && game.hintsUsed > 0 ? (
+                  <span className="absolute top-0.5 right-0.5 text-[0.55rem] leading-none tabular-nums">{game.hintsUsed}</span>
+                ) : null}
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+                aria-label="Check"
+                title="Check"
+                disabled={!game || busy || game.paused}
+                onClick={check}
+              >
+                <SearchCheck />
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+                aria-label="Clear entries"
+                title="Clear entries"
+                disabled={!game || !game.started || busy}
+                onClick={requestRestart}
+              >
+                <RotateCcw />
+              </Button>
+            </div>
           </div>
         </aside>
       </div>
