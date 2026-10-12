@@ -48,7 +48,8 @@ export type GameState = {
   future: Snapshot[];
 };
 
-const HISTORY_LIMIT = 100;
+/** Undo and redo steps kept in play, in saves, and on load. */
+export const HISTORY_LIMIT = 100;
 
 export function emptyNotes(): Notes {
   return Array.from({ length: 9 }, () => Array<number>(9).fill(0));
