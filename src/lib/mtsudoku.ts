@@ -13,7 +13,8 @@ export type RemotePuzzle = {
   difficulty: Difficulty;
 };
 
-const ENDPOINT = "https://api.mtsudoku.com/v1/generate";
+export const MTSUDOKU_ORIGIN = "https://api.mtsudoku.com";
+const ENDPOINT = `${MTSUDOKU_ORIGIN}/v1/generate`;
 const TIMEOUT_MS = 8000;
 
 export function parseMtSudokuBoard(payload: unknown, requested: Difficulty): RemotePuzzle {
