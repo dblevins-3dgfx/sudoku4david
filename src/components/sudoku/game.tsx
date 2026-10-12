@@ -18,17 +18,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { sourceLabel } from "@/lib/game";
-import { DIFFICULTIES, formatTime, type Digit } from "@/lib/sudoku";
+import { formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
-import { useGame, type Pending } from "./use-game";
-
-function pendingCopy(pending: Pending, started: boolean): string {
-  if (pending.kind === "restart") {
-    return "Clear every number you wrote? The given digits stay.";
-  }
-  if (started) return "Deal a new puzzle? This grid will be replaced.";
-  return "Choose a difficulty.";
-}
+import { PendingDialog, PrefsDialog } from "./dialogs";
+import { useGame } from "./use-game";
 
 function winDetail(hintsUsed: number, elapsedMs: number, difficulty: string): string {
   const hints = hintsUsed === 0 ? "no hints" : hintsUsed === 1 ? "1 hint" : `${hintsUsed} hints`;
@@ -436,119 +429,21 @@ export function Game() {
         </aside>
       </div>
 
-      {prefsOpen ? (
-        <div
-          className="fixed inset-0 z-30 flex items-center justify-center bg-background/75 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="prefs-title"
-        >
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card px-5 py-5 shadow-lg">
-            <h2 id="prefs-title" className="font-heading text-2xl tracking-tight">
-              Preferences
-            </h2>
-            <div role="group" aria-label="How digits are entered" className="mt-4 grid gap-2">
-              <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Digits</p>
-              <Button
-                type="button"
-                variant={prefs.entry === "button" ? "default" : "outline"}
-                className="h-auto w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left whitespace-normal"
-                aria-pressed={prefs.entry === "button"}
-                onClick={() => setEntry("button")}
-              >
-                <span className="font-medium">Notes button</span>
-                <span className="text-xs font-normal opacity-80">
-                  The pencil switches the keypad between marks and numbers.
-                </span>
-              </Button>
-              <Button
-                type="button"
-                variant={prefs.entry === "tap" ? "default" : "outline"}
-                className="h-auto w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left whitespace-normal"
-                aria-pressed={prefs.entry === "tap"}
-                onClick={() => setEntry("tap")}
-              >
-                <span className="font-medium">One tap, two taps</span>
-                <span className="text-xs font-normal opacity-80">
-                  One tap marks the cell. A second tap writes the digit.
-                </span>
-              </Button>
-            </div>
-            <div role="group" aria-label="Conflicts" className="mt-4">
-              <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Conflicts</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant={prefs.showConflicts ? "default" : "outline"}
-                  className="h-11"
-                  aria-pressed={prefs.showConflicts}
-                  onClick={() => setShowConflicts(true)}
-                >
-                  Shown
-                </Button>
-                <Button
-                  type="button"
-                  variant={prefs.showConflicts ? "outline" : "default"}
-                  className="h-11"
-                  aria-pressed={!prefs.showConflicts}
-                  onClick={() => setShowConflicts(false)}
-                >
-                  Hidden
-                </Button>
-              </div>
-            </div>
-            <Button type="button" variant="outline" className="mt-4 h-11 w-full" onClick={closePrefs}>
-              Done
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {pending ? (
-        <div
-          className="fixed inset-0 z-30 flex items-center justify-center bg-background/75 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="pending-title"
-        >
-          <div className="w-full max-w-sm rounded-xl border border-border bg-card px-5 py-5 shadow-lg">
-            <p id="pending-title" className="text-base leading-6">
-              {pendingCopy(pending, Boolean(game?.started && !game.won))}
-            </p>
-            {pending.kind === "new" ? (
-              <div role="group" aria-label="Difficulty" className="mt-4 grid grid-cols-2 gap-2">
-                {DIFFICULTIES.map((level) => (
-                  <Button
-                    key={level.id}
-                    type="button"
-                    variant={game?.difficulty === level.id ? "default" : "outline"}
-                    className="h-11"
-                    aria-pressed={game?.difficulty === level.id}
-                    onClick={() => deal(level.id)}
-                  >
-                    {level.label}
-                  </Button>
-                ))}
-              </div>
-            ) : null}
-            <div className={pending.kind === "new" ? "mt-3" : "mt-4 flex gap-2"}>
-              {pending.kind === "restart" ? (
-                <Button type="button" className="h-11 flex-1" onClick={confirmPending}>
-                  Clear entries
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="outline"
-                className={pending.kind === "new" ? "h-11 w-full" : "h-11 flex-1"}
-                onClick={cancelPending}
-              >
-                Keep playing
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <PrefsDialog
+        open={prefsOpen}
+        prefs={prefs}
+        onEntry={setEntry}
+        onShowConflicts={setShowConflicts}
+        onClose={closePrefs}
+      />
+      <PendingDialog
+        pending={pending}
+        started={Boolean(game?.started && !game.won)}
+        difficulty={game?.difficulty}
+        onDeal={deal}
+        onConfirm={confirmPending}
+        onCancel={cancelPending}
+      />
     </div>
   );
 }
