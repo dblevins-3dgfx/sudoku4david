@@ -8,6 +8,9 @@ import type { Preferences } from "@/lib/prefs";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
 import { PrefSelect, type PrefOption } from "./pref-select";
 import { ThemePicker } from "./theme-picker";
+import type { useSync } from "./use-sync";
+
+type Sync = ReturnType<typeof useSync>;
 import type { Pending } from "./use-game";
 
 // Base UI moves focus into the dialog, keeps it there while open, and returns
@@ -56,6 +59,7 @@ export function PrefsDialog({
   onShowConflicts,
   onResetRecords,
   onRestoreBackup,
+  sync,
   onClose,
 }: {
   open: boolean;
@@ -64,6 +68,7 @@ export function PrefsDialog({
   onShowConflicts: (show: boolean) => void;
   onResetRecords: () => void;
   onRestoreBackup: (text: string) => boolean;
+  sync: Sync;
   onClose: () => void;
 }) {
   return (
@@ -84,6 +89,7 @@ export function PrefsDialog({
       <ThemePicker />
       <RecordsReset onReset={onResetRecords} />
       <BackupRow onRestore={onRestoreBackup} />
+      {sync.status !== "off" ? <SyncRow sync={sync} /> : null}
       <Button type="button" variant="outline" className="mt-4 h-11 w-full" onClick={onClose}>
         Done
       </Button>
@@ -225,6 +231,101 @@ function BackupRow({ onRestore }: { onRestore: (text: string) => boolean }) {
       {message ? (
         <p className="mt-2 text-sm text-muted-foreground" role="status">
           {message}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function syncSummary(sync: Sync): string {
+  if (sync.status === "syncing") return "Syncing…";
+  if (sync.status === "offline") return "Can't reach the server. It will try again.";
+  if (sync.lastSynced) {
+    const time = new Date(sync.lastSynced).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    return `Synced at ${time}.`;
+  }
+  return "Waiting to sync.";
+}
+
+/**
+ * Sign-in for sync. Signed out: an email box that sends a sign-in link.
+ * Signed in: who, how sync is going, and Sign out.
+ */
+function SyncRow({ sync }: { sync: Sync }) {
+  const [address, setAddress] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // `async` lets the handler wait for the network with `await`; the
+  // try/finally makes sure the buttons come back even if the request fails.
+  const send = async () => {
+    setBusy(true);
+    setMessage(null);
+    try {
+      await sync.sendLink(address.trim());
+      setMessage("Check your email for the sign-in link. Open it on this device.");
+    } catch {
+      setMessage("Couldn't send the link. Check the address and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div role="group" aria-label="Sync" className="mt-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Sync</p>
+        {sync.email ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 min-w-[11rem]"
+            onClick={() => {
+              void sync.signOut().catch(() => setMessage("Couldn't sign out. Try again."));
+            }}
+          >
+            Sign out
+          </Button>
+        ) : null}
+      </div>
+      {sync.email ? (
+        <p className="mt-2 text-sm text-muted-foreground" role="status">
+          Signed in as {sync.email}. {syncSummary(sync)}
+        </p>
+      ) : (
+        // A <form> lets the phone keyboard's Go/Enter key send the link.
+        // preventDefault stops the browser's own form submission, which would
+        // reload the page.
+        <form
+          className="mt-2 flex gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (address.trim()) void send();
+          }}
+        >
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            inputMode="email"
+            placeholder="Your email"
+            aria-label="Email for the sign-in link"
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+          <Button type="submit" variant="outline" className="h-10" disabled={busy}>
+            Send link
+          </Button>
+        </form>
+      )}
+      {message ? (
+        <p className="mt-2 text-sm text-muted-foreground" role="status">
+          {message}
+        </p>
+      ) : !sync.email ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Sign in to keep your game and high scores the same on all your devices.
         </p>
       ) : null}
     </div>
