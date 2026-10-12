@@ -8,10 +8,9 @@ const nextConfig: NextConfig = {
   output: "export",
   trailingSlash: true,
   ...(basePath ? { basePath, assetPrefix: basePath } : {}),
-  // The preview link is a different host than this dev server. Next.js
-  // refuses its dev socket unless the host is listed here, and without that
-  // socket the page never leaves the server-rendered shell.
-  allowedDevOrigins: ["127.0.0.1", "*.agent.cvm.dev"],
+  // The dev server only allows localhost by default. Opening it at 127.0.0.1
+  // needs an entry here, or the page never leaves the server-rendered shell.
+  allowedDevOrigins: ["127.0.0.1"],
 };
 
 export default nextConfig;
