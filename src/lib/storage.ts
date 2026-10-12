@@ -185,6 +185,17 @@ export function loadGameRaw(): unknown {
   }
 }
 
+/**
+ * True when two saved games differ at most in elapsed time and savedAt.
+ * Spreading into a new object keeps each key in its original position, so
+ * the JSON text of equal games is equal. (`undefined` values are left out
+ * of JSON entirely.)
+ */
+function sameIgnoringClock(a: object, b: object): boolean {
+  const strip = (game: object) => JSON.stringify({ ...game, elapsedMs: 0, savedAt: undefined });
+  return strip(a) === strip(b);
+}
+
 export function saveGame(state: GameState, now = Date.now()) {
   try {
     const payload: GameState = {
@@ -193,17 +204,17 @@ export function saveGame(state: GameState, now = Date.now()) {
       history: state.history.slice(-HISTORY_LIMIT),
       future: state.future.slice(-HISTORY_LIMIT),
     };
-    // The game is also saved when the page is hidden or closed, even if
-    // nothing changed. savedAt must only move when the game itself changed,
-    // or merely opening an old game on one device would make it "newest".
-    // So compare with what is stored, minus its savedAt, and keep the old
-    // time when they match (0 for a game saved before savedAt existed).
-    const body = JSON.stringify(payload);
+    // savedAt is when the player last changed the game, not when it was last
+    // written: the game is also saved when the page is hidden or closed, and
+    // every few seconds while the clock runs. Otherwise merely opening an old
+    // game, or leaving its clock running in a background tab, would make it
+    // "newest" for sync. So compare with what is stored, ignoring the clock
+    // and savedAt itself, and keep the old time when nothing else differs
+    // (0 for a game saved before savedAt existed).
     const previous = loadGameRaw();
     let savedAt = now;
-    if (previous && typeof previous === "object") {
-      const { savedAt: previousAt, ...rest } = previous as { savedAt?: unknown };
-      if (JSON.stringify(rest) === body) savedAt = savedAtOf({ savedAt: previousAt });
+    if (previous && typeof previous === "object" && sameIgnoringClock(previous, payload)) {
+      savedAt = savedAtOf(previous);
     }
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({ ...payload, savedAt }));
   } catch {

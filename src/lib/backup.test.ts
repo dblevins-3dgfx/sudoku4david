@@ -52,9 +52,13 @@ describe("savedAt", () => {
       const game = createGame("easy", mulberry32(5));
       saveGame(game, 1_000);
       assert.equal(savedAtOf(loadGameRaw()), 1_000);
-      // Saving the same game again (page hidden, timer tick while paused) keeps the time.
+      // Saving the same game again (page hidden or closed) keeps the time.
       saveGame(game, 2_000);
       assert.equal(savedAtOf(loadGameRaw()), 1_000);
+      // So does the clock running on, as in a forgotten background tab.
+      saveGame({ ...game, elapsedMs: 90_000 }, 2_500);
+      assert.equal(savedAtOf(loadGameRaw()), 1_000);
+      assert.equal(loadGame()?.elapsedMs, 90_000);
       const cell = firstEmpty(game);
       const moved = inputDigit({ ...game, selected: cell }, game.solution[cell.r][cell.c] as Digit);
       saveGame(moved, 3_000);
