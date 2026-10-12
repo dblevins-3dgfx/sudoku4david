@@ -93,7 +93,7 @@ export function Game() {
       <header className="flex shrink-0 items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[0.65rem] font-medium tracking-[0.22em] text-muted-foreground uppercase">
-            One solution
+            David&apos;s own private
           </p>
           <h1 className="font-heading text-2xl leading-none tracking-tight min-[720px]:text-4xl">Sudoku</h1>
           <p className="desk-lede mt-1 hidden truncate text-sm text-muted-foreground min-[720px]:block">
