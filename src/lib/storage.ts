@@ -164,7 +164,28 @@ export function loadGame(): GameState | null {
   }
 }
 
-export function saveGame(state: GameState) {
+/**
+ * When a stored game last changed, in UTC epoch ms, or 0 when unknown (no
+ * game, or one saved before this field existed). Sync (#32) keeps whichever
+ * copy of the current game changed most recently.
+ */
+export function savedAtOf(raw: unknown): number {
+  if (!raw || typeof raw !== "object") return 0;
+  const value = (raw as { savedAt?: unknown }).savedAt;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+/** The stored game exactly as saved (parsed JSON, savedAt included), or null. */
+export function loadGameRaw(): unknown {
+  try {
+    const raw = localStorage.getItem(GAME_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as unknown) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveGame(state: GameState, now = Date.now()) {
   try {
     const payload: GameState = {
       ...state,
@@ -172,8 +193,29 @@ export function saveGame(state: GameState) {
       history: state.history.slice(-HISTORY_LIMIT),
       future: state.future.slice(-HISTORY_LIMIT),
     };
-    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(payload));
+    // The game is also saved when the page is hidden or closed, even if
+    // nothing changed. savedAt must only move when the game itself changed,
+    // or merely opening an old game on one device would make it "newest".
+    // So compare with what is stored, minus its savedAt, and keep the old
+    // time when they match.
+    const body = JSON.stringify(payload);
+    const previous = loadGameRaw();
+    let savedAt = now;
+    if (previous && typeof previous === "object") {
+      const { savedAt: previousAt, ...rest } = previous as { savedAt?: unknown };
+      if (JSON.stringify(rest) === body) savedAt = savedAtOf({ savedAt: previousAt }) || now;
+    }
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({ ...payload, savedAt }));
   } catch {
     // Private mode and quota failures should not interrupt play.
+  }
+}
+
+/** Replaces the stored game with an already validated one, keeping its time. */
+export function writeGameRaw(state: GameState, savedAt: number) {
+  try {
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({ ...state, savedAt }));
+  } catch {
+    // As above.
   }
 }
