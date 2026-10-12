@@ -48,6 +48,7 @@ export function Game() {
     prefs,
     prefsOpen,
     conflicts,
+    conflictTotal,
     counts,
     filled,
     deal,
@@ -75,10 +76,6 @@ export function Game() {
   const lockedPlay = !game || game.paused || game.won || busy;
   const selectedValue = game ? game.grid[game.selected.r][game.selected.c] : 0;
   const noteMask = game ? game.notes[game.selected.r][game.selected.c] : 0;
-  const conflictTotal = conflicts.reduce(
-    (sum, row) => sum + row.reduce((rowSum, cell) => rowSum + (cell ? 1 : 0), 0),
-    0,
-  );
   const open = 81 - filled;
   const showMistakes = game?.showMistakes ?? true;
   const status = !game

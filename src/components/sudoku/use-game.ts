@@ -29,13 +29,20 @@ import { loadGame, saveGame, THEME_STORAGE_KEY } from "@/lib/storage";
 import {
   conflictCount,
   conflictGrid,
-  countFilled,
+  countClues,
   digitCounts,
   type Difficulty,
   type Digit,
 } from "@/lib/sudoku";
 
 export type Pending = { kind: "new" } | { kind: "restart" };
+
+const ARROW_STEPS: Record<string, [number, number]> = {
+  ArrowUp: [-1, 0],
+  ArrowDown: [1, 0],
+  ArrowLeft: [0, -1],
+  ArrowRight: [0, 1],
+};
 
 export function useGame() {
   const [game, setGame] = useState<GameState | null>(null);
@@ -325,26 +332,13 @@ export function useGame() {
 
       if (current.won && event.key.toLowerCase() !== "p") return;
 
-      if (event.key === "ArrowUp") {
+      const step = ARROW_STEPS[event.key];
+      if (step) {
         event.preventDefault();
-        const r = (current.selected.r + 8) % 9;
-        apply((state) => moveSelection(state, -1, 0));
-        focusCell(r, current.selected.c);
-      } else if (event.key === "ArrowDown") {
-        event.preventDefault();
-        const r = (current.selected.r + 1) % 9;
-        apply((state) => moveSelection(state, 1, 0));
-        focusCell(r, current.selected.c);
-      } else if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        const c = (current.selected.c + 8) % 9;
-        apply((state) => moveSelection(state, 0, -1));
-        focusCell(current.selected.r, c);
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        const c = (current.selected.c + 1) % 9;
-        apply((state) => moveSelection(state, 0, 1));
-        focusCell(current.selected.r, c);
+        const [dr, dc] = step;
+        const { r, c } = moveSelection(current, dr, dc).selected;
+        apply((state) => moveSelection(state, dr, dc));
+        focusCell(r, c);
       } else if (/^[1-9]$/.test(event.key)) {
         enterDigit(Number(event.key) as Digit);
       } else if (event.key === "Backspace" || event.key === "Delete" || event.key === "0") {
@@ -371,7 +365,7 @@ export function useGame() {
     const current = gameRef.current;
     if (!current) return;
     const conflicts = conflictCount(current.grid);
-    const left = 81 - countFilled(current.grid);
+    const left = 81 - countClues(current.grid);
     if (current.won) {
       setNotice("This grid is already solved.");
       return;
@@ -392,7 +386,8 @@ export function useGame() {
 
   const conflicts = game ? conflictGrid(game.grid) : [];
   const counts = game ? digitCounts(game.grid) : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-  const filled = game ? countFilled(game.grid) : 0;
+  const conflictTotal = game ? conflictCount(game.grid) : 0;
+  const filled = game ? countClues(game.grid) : 0;
 
   return {
     game,
@@ -405,6 +400,7 @@ export function useGame() {
     prefs,
     prefsOpen,
     conflicts,
+    conflictTotal,
     counts,
     filled,
     setChosen,
