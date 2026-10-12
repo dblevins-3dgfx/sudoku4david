@@ -197,13 +197,13 @@ export function saveGame(state: GameState, now = Date.now()) {
     // nothing changed. savedAt must only move when the game itself changed,
     // or merely opening an old game on one device would make it "newest".
     // So compare with what is stored, minus its savedAt, and keep the old
-    // time when they match.
+    // time when they match (0 for a game saved before savedAt existed).
     const body = JSON.stringify(payload);
     const previous = loadGameRaw();
     let savedAt = now;
     if (previous && typeof previous === "object") {
       const { savedAt: previousAt, ...rest } = previous as { savedAt?: unknown };
-      if (JSON.stringify(rest) === body) savedAt = savedAtOf({ savedAt: previousAt }) || now;
+      if (JSON.stringify(rest) === body) savedAt = savedAtOf({ savedAt: previousAt });
     }
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({ ...payload, savedAt }));
   } catch {

@@ -63,6 +63,18 @@ describe("savedAt", () => {
     });
   });
 
+  it("keeps an unchanged game from before savedAt existed at 0", () => {
+    withStorage((data) => {
+      const game = createGame("easy", mulberry32(6));
+      saveGame(game, 1_000);
+      const { savedAt: _dropped, ...legacy } = JSON.parse(data.get(GAME_STORAGE_KEY)!);
+      void _dropped;
+      data.set(GAME_STORAGE_KEY, JSON.stringify(legacy));
+      saveGame(game, 2_000);
+      assert.equal(savedAtOf(loadGameRaw()), 0);
+    });
+  });
+
   it("reads a missing or bad time as 0", () => {
     assert.equal(savedAtOf(null), 0);
     assert.equal(savedAtOf({}), 0);
