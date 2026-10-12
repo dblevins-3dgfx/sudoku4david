@@ -3,7 +3,6 @@
 import {
   Eraser,
   Lightbulb,
-  Moon,
   Pause,
   Pencil,
   Play,
@@ -12,7 +11,6 @@ import {
   RotateCcw,
   SearchCheck,
   Settings,
-  Sun,
   Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,7 +47,6 @@ export function Game() {
     requestRestart,
     confirmPending,
     cancelPending,
-    toggleTheme,
     openPrefs,
     closePrefs,
     setEntry,
@@ -118,19 +115,6 @@ export function Game() {
             aria-pressed={game?.paused ?? false}
           >
             {game?.paused ? <Play /> : <Pause />}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-9"
-            onClick={toggleTheme}
-            aria-label="Toggle color theme"
-          >
-            <span className="relative size-4">
-              <Sun className="absolute inset-0 hidden size-4 dark:block" />
-              <Moon className="absolute inset-0 size-4 dark:hidden" />
-            </span>
           </Button>
           <Button
             type="button"
