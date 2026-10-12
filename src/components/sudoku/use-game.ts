@@ -25,6 +25,7 @@ import {
   type EntryMethod,
   type Preferences,
 } from "@/lib/prefs";
+import { recordWin } from "@/lib/records";
 import { loadGame, saveGame } from "@/lib/storage";
 import {
   conflictCount,
@@ -54,12 +55,17 @@ export function useGame() {
   const [chosen, setChosen] = useState<Difficulty>("medium");
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [prefsOpen, setPrefsOpen] = useState(false);
+  const [scoresOpen, setScoresOpen] = useState(false);
 
   const gameRef = useRef<GameState | null>(null);
   const dealingRef = useRef(false);
   const pendingRef = useRef<Pending | null>(null);
   const prefsRef = useRef<Preferences>(DEFAULT_PREFERENCES);
   const prefsOpenRef = useRef(false);
+  const scoresOpenRef = useRef(false);
+  // Whether the current game was already won at the last render. Starts as
+  // null so a game loaded already won (a reload) is not recorded again.
+  const wasWonRef = useRef<boolean | null>(null);
   const tapRef = useRef<Tap | null>(null);
   const dealSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
@@ -80,6 +86,20 @@ export function useGame() {
   useEffect(() => {
     prefsOpenRef.current = prefsOpen;
   }, [prefsOpen]);
+
+  useEffect(() => {
+    scoresOpenRef.current = scoresOpen;
+  }, [scoresOpen]);
+
+  // useEffect runs after React has updated the page, here whenever `game`
+  // changes. A record is written only on a true not-won to won step within
+  // play; recordWin also refuses a puzzle that already has a record, which
+  // covers "Same puzzle" replays.
+  useEffect(() => {
+    const won = game ? game.won : null;
+    if (game && won && wasWonRef.current === false) recordWin(game);
+    wasWonRef.current = won;
+  }, [game]);
 
   const commitPrefs = useCallback((next: Preferences) => {
     prefsRef.current = next;
@@ -169,6 +189,7 @@ export function useGame() {
     setDealing(true);
     setPending(null);
     setPrefsOpen(false);
+    setScoresOpen(false);
     setNotice(null);
     setError(null);
     void (async () => {
@@ -237,6 +258,7 @@ export function useGame() {
 
   const requestNew = useCallback(() => {
     setPrefsOpen(false);
+    setScoresOpen(false);
     setPending({ kind: "new" });
   }, []);
 
@@ -285,6 +307,14 @@ export function useGame() {
 
   const closePrefs = useCallback(() => setPrefsOpen(false), []);
 
+  const openScores = useCallback(() => {
+    if (pendingRef.current) return;
+    setPrefsOpen(false);
+    setScoresOpen(true);
+  }, []);
+
+  const closeScores = useCallback(() => setScoresOpen(false), []);
+
   const setEntry = useCallback(
     (entry: EntryMethod) => {
       tapRef.current = null;
@@ -310,11 +340,12 @@ export function useGame() {
       if (event.key === "Escape") {
         if (pendingRef.current) setPending(null);
         else if (prefsOpenRef.current) setPrefsOpen(false);
+        else if (scoresOpenRef.current) setScoresOpen(false);
         else if (current.paused) apply(togglePause);
         return;
       }
 
-      if (pendingRef.current || prefsOpenRef.current) return;
+      if (pendingRef.current || prefsOpenRef.current || scoresOpenRef.current) return;
 
       if (current.paused) {
         if (event.key.toLowerCase() === "p") apply(togglePause);
@@ -390,6 +421,7 @@ export function useGame() {
     chosen,
     prefs,
     prefsOpen,
+    scoresOpen,
     conflicts,
     conflictTotal,
     counts,
@@ -402,6 +434,8 @@ export function useGame() {
     cancelPending,
     openPrefs,
     closePrefs,
+    openScores,
+    closeScores,
     setEntry,
     setShowConflicts: applyShowConflicts,
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),

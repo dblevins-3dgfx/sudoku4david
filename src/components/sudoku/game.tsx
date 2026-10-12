@@ -11,6 +11,7 @@ import {
   RotateCcw,
   SearchCheck,
   Settings,
+  Trophy,
   Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { sourceLabel } from "@/lib/game";
 import { formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
 import { PendingDialog, PrefsDialog } from "./dialogs";
+import { HighScoresDialog } from "./high-scores";
 import { useGame } from "./use-game";
 
 function winDetail(hintsUsed: number, elapsedMs: number, difficulty: string): string {
@@ -49,6 +51,9 @@ export function Game() {
     cancelPending,
     openPrefs,
     closePrefs,
+    scoresOpen,
+    openScores,
+    closeScores,
     setEntry,
     setShowConflicts,
     select,
@@ -100,7 +105,7 @@ export function Game() {
             Fill each row, column, and 3×3 box with 1–9. Nothing repeats.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 min-[400px]:gap-2">
           <p className="min-w-[3.5rem] text-right font-heading text-2xl tabular-nums leading-none min-[720px]:min-w-[4.25rem] min-[720px]:text-3xl" aria-label="Elapsed time">
             {formatTime(game?.elapsedMs ?? 0)}
           </p>
@@ -108,7 +113,7 @@ export function Game() {
             type="button"
             variant="outline"
             size="icon"
-            className="size-9"
+            className="size-8 min-[400px]:size-9"
             onClick={pause}
             disabled={!game || game.won || busy}
             aria-label={game?.paused ? "Resume" : "Pause"}
@@ -120,7 +125,7 @@ export function Game() {
             type="button"
             variant="outline"
             size="icon"
-            className="size-9"
+            className="size-8 min-[400px]:size-9"
             onClick={openPrefs}
             disabled={!game || busy || pending !== null}
             aria-label="Preferences"
@@ -133,7 +138,20 @@ export function Game() {
             type="button"
             variant="outline"
             size="icon"
-            className="size-9"
+            className="size-8 min-[400px]:size-9"
+            onClick={openScores}
+            disabled={pending !== null}
+            aria-label="High scores"
+            title="High scores"
+            aria-pressed={scoresOpen}
+          >
+            <Trophy />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8 min-[400px]:size-9"
             onClick={requestNew}
             disabled={busy}
             aria-label="New puzzle"
@@ -419,6 +437,11 @@ export function Game() {
         onEntry={setEntry}
         onShowConflicts={setShowConflicts}
         onClose={closePrefs}
+      />
+      <HighScoresDialog
+        open={scoresOpen}
+        difficulty={game?.difficulty ?? chosen}
+        onClose={closeScores}
       />
       <PendingDialog
         pending={pending}

@@ -10,7 +10,7 @@ import type { Pending } from "./use-game";
 
 // Base UI moves focus into the dialog, keeps it there while open, and returns
 // it to whatever had focus before (usually the button that opened it).
-function DeskDialog({
+export function DeskDialog({
   open,
   onClose,
   children,
