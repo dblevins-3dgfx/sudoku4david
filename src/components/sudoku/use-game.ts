@@ -25,7 +25,7 @@ import {
   type EntryMethod,
   type Preferences,
 } from "@/lib/prefs";
-import { recordWin } from "@/lib/records";
+import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
 import { loadGame, saveGame } from "@/lib/storage";
 import {
   conflictCount,
@@ -37,6 +37,12 @@ import {
 } from "@/lib/sudoku";
 
 export type Pending = { kind: "new" } | { kind: "restart" };
+
+/**
+ * What the Solved screen says about records for the game just won: where it
+ * placed, or that it was a replay (`placement` is null) and does not count.
+ */
+export type LastWin = { puzzle: string; recordId: string | null; placement: string | null; hinted: boolean };
 
 const ARROW_STEPS: Record<string, [number, number]> = {
   ArrowUp: [-1, 0],
@@ -56,6 +62,7 @@ export function useGame() {
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [scoresOpen, setScoresOpen] = useState(false);
+  const [lastWin, setLastWin] = useState<LastWin | null>(null);
 
   const gameRef = useRef<GameState | null>(null);
   const dealingRef = useRef(false);
@@ -97,7 +104,17 @@ export function useGame() {
   // covers "Same puzzle" replays.
   useEffect(() => {
     const won = game ? game.won : null;
-    if (game && won && wasWonRef.current === false) recordWin(game);
+    if (game && won && wasWonRef.current === false) {
+      const record = recordWin(game);
+      // Setting state from an effect costs one extra render; that is fine
+      // here because it happens once per win.
+      setLastWin({
+        puzzle: puzzleKey(game.puzzle),
+        recordId: record?.id ?? null,
+        placement: record ? placementText(loadRecords(), record, new Date()) : null,
+        hinted: game.hintsUsed > 0,
+      });
+    }
     wasWonRef.current = won;
   }, [game]);
 
@@ -315,6 +332,11 @@ export function useGame() {
 
   const closeScores = useCallback(() => setScoresOpen(false), []);
 
+  const resetRecords = useCallback(() => {
+    resetStoredRecords();
+    setLastWin(null);
+  }, []);
+
   const setEntry = useCallback(
     (entry: EntryMethod) => {
       tapRef.current = null;
@@ -422,6 +444,7 @@ export function useGame() {
     prefs,
     prefsOpen,
     scoresOpen,
+    lastWin,
     conflicts,
     conflictTotal,
     counts,
@@ -436,6 +459,7 @@ export function useGame() {
     closePrefs,
     openScores,
     closeScores,
+    resetRecords,
     setEntry,
     setShowConflicts: applyShowConflicts,
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),

@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { Preferences } from "@/lib/prefs";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
@@ -42,12 +42,14 @@ export function PrefsDialog({
   prefs,
   onEntry,
   onShowConflicts,
+  onResetRecords,
   onClose,
 }: {
   open: boolean;
   prefs: Preferences;
   onEntry: (entry: Preferences["entry"]) => void;
   onShowConflicts: (show: boolean) => void;
+  onResetRecords: () => void;
   onClose: () => void;
 }) {
   return (
@@ -104,10 +106,56 @@ export function PrefsDialog({
         </div>
       </div>
       <ThemePicker />
+      <RecordsReset onReset={onResetRecords} />
       <Button type="button" variant="outline" className="mt-4 h-11 w-full" onClick={onClose}>
         Done
       </Button>
     </DeskDialog>
+  );
+}
+
+/**
+ * "Reset records" with an inline confirmation step. The dialog's contents are
+ * removed from the page when it closes, so this state starts fresh (at
+ * "idle") every time Preferences opens.
+ */
+function RecordsReset({ onReset }: { onReset: () => void }) {
+  const [step, setStep] = useState<"idle" | "confirm" | "done">("idle");
+  return (
+    <div role="group" aria-label="High scores" className="mt-4">
+      <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">High scores</p>
+      {step === "confirm" ? (
+        <>
+          <p className="mt-2 text-sm">Clear every high score? This can&apos;t be undone.</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <Button type="button" variant="outline" className="h-11" onClick={() => setStep("idle")}>
+              Keep them
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="h-11"
+              onClick={() => {
+                onReset();
+                setStep("done");
+              }}
+            >
+              Reset records
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-2 h-11 w-full"
+          disabled={step === "done"}
+          onClick={() => setStep("confirm")}
+        >
+          {step === "done" ? "Records cleared" : "Reset records"}
+        </Button>
+      )}
+    </div>
   );
 }
 
