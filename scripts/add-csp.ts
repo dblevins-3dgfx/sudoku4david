@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { addCsp } from "../src/lib/csp";
-import { THEME_SCRIPT } from "../src/lib/theme-script";
+import { THEME_SCRIPT } from "../src/lib/theme";
 
 const OUT_DIR = "out";
 
