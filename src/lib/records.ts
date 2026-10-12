@@ -1,3 +1,18 @@
+/**
+ * High-score records (issue #31).
+ *
+ * There is no server: everything lives in the browser's localStorage, a small
+ * per-site key/value store of strings (think of a persistent std::map<string,
+ * string> that survives page reloads). We store the data as JSON text.
+ *
+ * Design, chosen so a later cross-device sync (#32) needs no migration:
+ * - We keep the raw list of finished games, never precomputed "top 10" tables.
+ *   Tables are recomputed whenever they are shown.
+ * - Records are immutable once written, and each has a random unique ID, so
+ *   merging two devices' lists is a set union by ID.
+ * - Everything is a pure function of its inputs except the few functions at
+ *   the bottom that read and write localStorage.
+ */
 import type { GameSource, GameState } from "./game";
 import { isDifficulty } from "./storage";
 import type { Difficulty, Grid } from "./sudoku";
@@ -5,12 +20,19 @@ import type { Difficulty, Grid } from "./sudoku";
 export const RECORDS_STORAGE_KEY = "sudoku.scores.v1";
 export const DEVICE_ID_STORAGE_KEY = "sudoku.device";
 
-/** One finished game. Records are written once and never edited. */
+/**
+ * One finished game. Records are written once and never edited.
+ * A TypeScript `type` like this is only a compile-time shape, like a C struct
+ * declaration; at run time it is a plain JavaScript object (a hash map).
+ */
 export type ScoreRecord = {
   id: string;
   /** The puzzle's 81 givens, row by row, with 0 for empty cells. */
   puzzleKey: string;
-  /** Finish time in UTC epoch milliseconds. */
+  /**
+   * Finish time in UTC epoch milliseconds (what Date.now() returns; a
+   * JavaScript number is a 64-bit double, exact for integers up to 2^53).
+   */
   finishedAt: number;
   difficulty: Difficulty;
   elapsedMs: number;
@@ -21,11 +43,15 @@ export type ScoreRecord = {
 
 export type RecordStore = {
   version: 1;
-  /** Records finished before this time were reset and no longer count. */
+  /**
+   * Records finished before this time were reset and no longer count.
+   * The `?` makes the field optional: it may be absent (undefined).
+   */
   clearedBefore?: number;
   records: ScoreRecord[];
 };
 
+/** A string literal union type: like an enum whose values are these strings. */
 export type Period = "week" | "month" | "all";
 
 export function emptyStore(): RecordStore {
@@ -40,6 +66,12 @@ function isTime(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
+/**
+ * Validates one record read back from storage. Stored data is untyped JSON
+ * that could be old or hand-edited, so every field is checked. The
+ * `value is ScoreRecord` return type tells the compiler that a `true` result
+ * means it may treat `value` as a ScoreRecord from then on.
+ */
 function isRecord(value: unknown): value is ScoreRecord {
   if (!value || typeof value !== "object") return false;
   const data = value as Partial<ScoreRecord>;
@@ -60,6 +92,7 @@ function isRecord(value: unknown): value is ScoreRecord {
   );
 }
 
+/** Copies only the known fields, dropping any extra properties in stored data. */
 function copyRecord(record: ScoreRecord): ScoreRecord {
   return {
     id: record.id,
@@ -73,6 +106,10 @@ function copyRecord(record: ScoreRecord): ScoreRecord {
   };
 }
 
+/**
+ * Comparator for Array.prototype.sort, which works like qsort: negative means
+ * a sorts first. Ties fall back to the ID so the order is always the same.
+ */
 function byFinish(a: ScoreRecord, b: ScoreRecord): number {
   if (a.finishedAt !== b.finishedAt) return a.finishedAt - b.finishedAt;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
@@ -86,6 +123,7 @@ function byFinish(a: ScoreRecord, b: ScoreRecord): number {
 function normalize(clearedBefore: number | undefined, records: ScoreRecord[]): RecordStore {
   const seen = new Set<string>();
   const kept: ScoreRecord[] = [];
+  // `[...records]` makes a shallow copy, because sort() reorders in place.
   for (const record of [...records].sort(byFinish)) {
     if (clearedBefore !== undefined && record.finishedAt < clearedBefore) continue;
     if (seen.has(record.puzzleKey)) continue;
@@ -111,6 +149,9 @@ export function hasPuzzle(store: RecordStore, key: string): boolean {
 }
 
 /** Adds a record unless its puzzle already has one (only the first finish counts). */
+// The functions below never modify their arguments; they return a new store.
+// Callers (and later React, which detects changes by object identity) can rely
+// on an old store staying as it was.
 export function addRecord(
   store: RecordStore,
   record: ScoreRecord,
@@ -150,7 +191,14 @@ export function createRecord(
   };
 }
 
-/** Start of the period in local time, or null for all time. Weeks start on Monday. */
+/**
+ * Start of the period in the viewer's local time zone, as epoch ms, or null for
+ * all time. Weeks start on Monday.
+ *
+ * new Date(year, month, day) builds local midnight, and like mktime() it
+ * normalizes out-of-range values, so a day of 0 or less rolls back into the
+ * previous month. Months are 0-based (0 is January); getDay() is 0 for Sunday.
+ */
 export function periodStart(period: Period, now: Date): number | null {
   if (period === "all") return null;
   if (period === "month") return new Date(now.getFullYear(), now.getMonth(), 1).getTime();
@@ -187,6 +235,10 @@ export function topRecords(
   return rankRecords(store, difficulty, period, now).slice(0, limit);
 }
 
+/**
+ * crypto.randomUUID() is the browser's built-in random UUID generator. It only
+ * exists on secure (https or localhost) pages, hence the fallback.
+ */
 function randomId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
@@ -194,6 +246,9 @@ function randomId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
+// localStorage access can throw (private browsing, storage full, or no
+// window at all when Next.js prerenders the page on the server), so each
+// access is wrapped in try/catch and falls back to an empty store.
 export function loadRecords(): RecordStore {
   try {
     const raw = localStorage.getItem(RECORDS_STORAGE_KEY);
@@ -212,6 +267,7 @@ export function saveRecords(store: RecordStore) {
   }
 }
 
+/** A random ID for this browser, created on first use and kept in localStorage. */
 export function deviceId(): string {
   try {
     const existing = localStorage.getItem(DEVICE_ID_STORAGE_KEY);
@@ -225,6 +281,7 @@ export function deviceId(): string {
 }
 
 /** Saves a record for a won game. Returns null when the puzzle was already recorded. */
+// `now = Date.now()` is a default argument, evaluated on each call that omits it.
 export function recordWin(game: GameState, now = Date.now()): ScoreRecord | null {
   if (!game.won) return null;
   const record = createRecord(game, { id: randomId(), deviceId: deviceId(), finishedAt: now });

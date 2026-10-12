@@ -1,3 +1,5 @@
+// Unit tests for records.ts, run by `npm test` with Node's built-in test
+// runner (node:test). describe() groups tests and it() defines one test.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createGame, type GameState } from "./game";
@@ -43,6 +45,8 @@ function store(records: ScoreRecord[], clearedBefore?: number): RecordStore {
     : { version: 1, clearedBefore, records };
 }
 
+// Node has no localStorage, so tests install a fake one backed by a Map on the
+// global object (JavaScript's equivalent of a global variable) and restore it after.
 function withStorage<T>(fn: (data: Map<string, string>) => T): T {
   const data = new Map<string, string>();
   const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
