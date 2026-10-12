@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { MTSUDOKU_ORIGIN } from "./mtsudoku";
+import { syncOrigin } from "./remote-config";
 
 // GitHub Pages can't send headers, so the policy goes in a <meta> tag that a
 // post-build step adds to each exported page. Next.js writes inline scripts
@@ -28,7 +29,7 @@ export function contentSecurityPolicy(scripts: readonly string[]): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",
-    `connect-src 'self' ${MTSUDOKU_ORIGIN}`,
+    `connect-src 'self' ${[MTSUDOKU_ORIGIN, syncOrigin()].filter(Boolean).join(" ")}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

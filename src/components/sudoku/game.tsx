@@ -58,6 +58,7 @@ export function Game() {
     closeScores,
     resetRecords,
     restoreBackup,
+    sync,
     setEntry,
     setShowConflicts,
     select,
@@ -461,6 +462,7 @@ export function Game() {
         onShowConflicts={setShowConflicts}
         onResetRecords={resetRecords}
         onRestoreBackup={restoreBackup}
+        sync={sync}
         onClose={closePrefs}
       />
       <HighScoresDialog
