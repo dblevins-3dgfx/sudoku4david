@@ -25,7 +25,7 @@ import {
   type EntryMethod,
   type Preferences,
 } from "@/lib/prefs";
-import { loadGame, saveGame, THEME_STORAGE_KEY } from "@/lib/storage";
+import { loadGame, saveGame } from "@/lib/storage";
 import {
   conflictCount,
   conflictGrid,
@@ -295,15 +295,6 @@ export function useGame() {
 
   const cancelPending = useCallback(() => setPending(null), []);
 
-  const toggleTheme = useCallback(() => {
-    const dark = document.documentElement.classList.toggle("dark");
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, dark ? "dark" : "light");
-    } catch {
-      // Storage can be unavailable in private browsing.
-    }
-  }, []);
-
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const current = gameRef.current;
@@ -409,7 +400,6 @@ export function useGame() {
     requestRestart,
     confirmPending,
     cancelPending,
-    toggleTheme,
     openPrefs,
     closePrefs,
     setEntry,

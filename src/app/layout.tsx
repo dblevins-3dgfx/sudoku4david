@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Caveat, Fraunces, Geist } from "next/font/google";
 import Script from "next/script";
-import { THEME_SCRIPT } from "@/lib/theme-script";
+import { THEME_CSS, THEME_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,6 +33,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <body className="flex h-dvh flex-col overflow-hidden">
+        <style href="sudoku-themes" precedence="default">
+          {THEME_CSS}
+        </style>
         <Script id="sudoku-theme" strategy="beforeInteractive">
           {THEME_SCRIPT}
         </Script>

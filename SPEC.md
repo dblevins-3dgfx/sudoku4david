@@ -115,7 +115,7 @@ The record must have a completed, conflict-free solution. Every given must match
 
 The clock is written about every five seconds while it is running, and again when the page is hidden or closed. Other moves are written as they happen.
 
-Light and dark appearance is stored separately under `sudoku.theme`. With nothing stored, the page follows the device setting.
+The color theme is stored separately under `sudoku.theme`, as the theme's id. With nothing stored, the page uses Paper or Lamplight to follow the device's light or dark setting. The older values `light` and `dark` map to those two.
 
 How digits are entered, and whether conflicts are shown, are stored under `sudoku.prefs.v1`. The default entry method is the notes button, and conflicts are shown. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing either preference applies immediately and does not reset the puzzle. Hiding or showing conflicts is not an undo step.
 
@@ -123,7 +123,7 @@ How digits are entered, and whether conflicts are shown, are stored under `sudok
 
 The page fills the browser window. From a window width of 720 pixels, the board is the largest square that fits beside the controls, which are a fixed column on the right.
 
-The clock, pause, the color theme, preferences, and new puzzle sit in the header. Preferences and new puzzle are icons. Preferences opens a dialog for the entry method and for showing or hiding conflicts. New puzzle opens the difficulty dialog. Escape closes either dialog.
+The clock, pause, preferences, and new puzzle sit in the header. Preferences and new puzzle are icons. Preferences opens a dialog for the entry method, for showing or hiding conflicts, and for the color theme. Each theme is one file in `src/themes`, listed in `src/themes/index.ts`. New puzzle opens the difficulty dialog. Escape closes either dialog.
 
 Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, erase, undo, redo, hint, check, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other six remain. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and conflicts are chosen in dialogs, not in this column.
 

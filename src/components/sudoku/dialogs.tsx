@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { Preferences } from "@/lib/prefs";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
+import { ThemePicker } from "./theme-picker";
 import type { Pending } from "./use-game";
 
 // Base UI moves focus into the dialog, keeps it there while open, and returns
@@ -28,7 +29,7 @@ function DeskDialog({
     >
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-30 bg-background/75" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-30 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card px-5 py-5 text-card-foreground shadow-lg outline-none">
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-30 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-card px-5 py-5 text-card-foreground shadow-lg outline-none">
           {children}
         </Dialog.Popup>
       </Dialog.Portal>
@@ -102,6 +103,7 @@ export function PrefsDialog({
           </Button>
         </div>
       </div>
+      <ThemePicker />
       <Button type="button" variant="outline" className="mt-4 h-11 w-full" onClick={onClose}>
         Done
       </Button>
