@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { sourceLabel } from "@/lib/game";
+import { puzzleKey } from "@/lib/records";
 import { formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
 import { PendingDialog, PrefsDialog } from "./dialogs";
@@ -52,8 +53,10 @@ export function Game() {
     openPrefs,
     closePrefs,
     scoresOpen,
+    lastWin,
     openScores,
     closeScores,
+    resetRecords,
     setEntry,
     setShowConflicts,
     select,
@@ -213,7 +216,26 @@ export function Game() {
                       <p className="mt-2 text-sm text-muted-foreground">
                         {winDetail(game.hintsUsed, game.elapsedMs, game.difficulty)}
                       </p>
+                      {/* Only for the win just played: after a reload, lastWin is empty. */}
+                      {lastWin && lastWin.puzzle === puzzleKey(game.puzzle) ? (
+                        <p className="mt-1 flex items-center justify-center gap-1 text-sm font-medium">
+                          {lastWin.placement ? (
+                            <>
+                              {lastWin.hinted ? (
+                                <Lightbulb className="size-3.5" role="img" aria-label="Solved with hints" />
+                              ) : null}
+                              {lastWin.placement}
+                            </>
+                          ) : (
+                            "Replayed puzzle, so it doesn't count toward records."
+                          )}
+                        </p>
+                      ) : null}
                       <div className="mt-4 flex flex-wrap justify-center gap-2">
+                        <Button type="button" variant="outline" className="h-9" onClick={openScores}>
+                          <Trophy />
+                          High scores
+                        </Button>
                         <Button type="button" variant="outline" className="h-9" onClick={requestRestart}>
                           <RotateCcw />
                           Same puzzle
@@ -436,11 +458,13 @@ export function Game() {
         prefs={prefs}
         onEntry={setEntry}
         onShowConflicts={setShowConflicts}
+        onResetRecords={resetRecords}
         onClose={closePrefs}
       />
       <HighScoresDialog
         open={scoresOpen}
         difficulty={game?.difficulty ?? chosen}
+        highlightId={lastWin?.recordId ?? null}
         onClose={closeScores}
       />
       <PendingDialog

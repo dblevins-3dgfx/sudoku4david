@@ -4,6 +4,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Lightbulb } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { loadRecords, topRecords, type Period, type ScoreRecord } from "@/lib/records";
 import { DIFFICULTIES, formatTime, type Difficulty } from "@/lib/sudoku";
 import { DeskDialog } from "./dialogs";
@@ -38,11 +39,14 @@ function hintLabel(hints: number): string {
 export function HighScoresDialog({
   open,
   difficulty,
+  highlightId,
   onClose,
 }: {
   open: boolean;
   /** Difficulty shown first: the current game's, so its table is one click away. */
   difficulty: Difficulty;
+  /** The record of the game just won, if any; its row is highlighted. */
+  highlightId: string | null;
   onClose: () => void;
 }) {
   // useState keeps a value across calls of this function, like a member
@@ -103,7 +107,11 @@ export function HighScoresDialog({
       ) : (
         <ol className="mt-4 divide-y divide-border" aria-label={`${PERIODS.find((p) => p.id === period)?.label} ${shown} scores`}>
           {rows.map((record, i) => (
-            <li key={record.id} className="flex items-center gap-3 py-2 text-sm">
+            <li
+              key={record.id}
+              className={cn("flex items-center gap-3 py-2 text-sm", record.id === highlightId && "-mx-2 rounded-md bg-muted px-2")}
+              aria-current={record.id === highlightId ? "true" : undefined}
+            >
               <span className="w-6 text-right text-muted-foreground tabular-nums">{i + 1}</span>
               <span className="font-medium tabular-nums">{formatTime(record.elapsedMs)}</span>
               {record.hintsUsed > 0 ? (
