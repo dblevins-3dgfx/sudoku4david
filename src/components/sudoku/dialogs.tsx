@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { Preferences } from "@/lib/prefs";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
+import { PrefSelect, type PrefOption } from "./pref-select";
 import { ThemePicker } from "./theme-picker";
 import type { Pending } from "./use-game";
 
@@ -37,6 +38,16 @@ export function DeskDialog({
   );
 }
 
+const ENTRY_OPTIONS: PrefOption<Preferences["entry"]>[] = [
+  { value: "button", label: "Notes button", detail: "The pencil switches the keypad between marks and numbers." },
+  { value: "tap", label: "One tap, two taps", detail: "One tap marks the cell. A second tap writes the digit." },
+];
+
+const CONFLICT_OPTIONS: PrefOption<"shown" | "hidden">[] = [
+  { value: "shown", label: "Shown", detail: "Repeated digits are highlighted." },
+  { value: "hidden", label: "Hidden", detail: "Check still finds repeats when you ask." },
+];
+
 export function PrefsDialog({
   open,
   prefs,
@@ -55,56 +66,18 @@ export function PrefsDialog({
   return (
     <DeskDialog open={open} onClose={onClose}>
       <Dialog.Title className="font-heading text-2xl tracking-tight">Preferences</Dialog.Title>
-      <div role="group" aria-label="How digits are entered" className="mt-4 grid gap-2">
-        <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Digits</p>
-        <Button
-          type="button"
-          variant={prefs.entry === "button" ? "default" : "outline"}
-          className="h-auto w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left whitespace-normal"
-          aria-pressed={prefs.entry === "button"}
-          onClick={() => onEntry("button")}
-        >
-          <span className="font-medium">Notes button</span>
-          <span className="text-xs font-normal opacity-80">
-            The pencil switches the keypad between marks and numbers.
-          </span>
-        </Button>
-        <Button
-          type="button"
-          variant={prefs.entry === "tap" ? "default" : "outline"}
-          className="h-auto w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left whitespace-normal"
-          aria-pressed={prefs.entry === "tap"}
-          onClick={() => onEntry("tap")}
-        >
-          <span className="font-medium">One tap, two taps</span>
-          <span className="text-xs font-normal opacity-80">
-            One tap marks the cell. A second tap writes the digit.
-          </span>
-        </Button>
-      </div>
-      <div role="group" aria-label="Conflicts" className="mt-4">
-        <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Conflicts</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant={prefs.showConflicts ? "default" : "outline"}
-            className="h-11"
-            aria-pressed={prefs.showConflicts}
-            onClick={() => onShowConflicts(true)}
-          >
-            Shown
-          </Button>
-          <Button
-            type="button"
-            variant={prefs.showConflicts ? "outline" : "default"}
-            className="h-11"
-            aria-pressed={!prefs.showConflicts}
-            onClick={() => onShowConflicts(false)}
-          >
-            Hidden
-          </Button>
-        </div>
-      </div>
+      <PrefSelect
+        label="Digits"
+        value={prefs.entry}
+        options={ENTRY_OPTIONS}
+        onChange={onEntry}
+      />
+      <PrefSelect
+        label="Conflicts"
+        value={prefs.showConflicts ? "shown" : "hidden"}
+        options={CONFLICT_OPTIONS}
+        onChange={(choice) => onShowConflicts(choice === "shown")}
+      />
       <ThemePicker />
       <RecordsReset onReset={onResetRecords} />
       <Button type="button" variant="outline" className="mt-4 h-11 w-full" onClick={onClose}>
@@ -122,8 +95,19 @@ export function PrefsDialog({
 function RecordsReset({ onReset }: { onReset: () => void }) {
   const [step, setStep] = useState<"idle" | "confirm" | "done">("idle");
   return (
-    <div role="group" aria-label="High scores" className="mt-4">
-      <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">High scores</p>
+    <div role="group" aria-label="High scores" className="mt-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">High scores</p>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 min-w-[11rem]"
+          disabled={step !== "idle"}
+          onClick={() => setStep("confirm")}
+        >
+          {step === "done" ? "Records cleared" : "Reset records"}
+        </Button>
+      </div>
       {step === "confirm" ? (
         <>
           <p className="mt-2 text-sm">Clear every high score? This can&apos;t be undone.</p>
@@ -144,17 +128,7 @@ function RecordsReset({ onReset }: { onReset: () => void }) {
             </Button>
           </div>
         </>
-      ) : (
-        <Button
-          type="button"
-          variant="outline"
-          className="mt-2 h-11 w-full"
-          disabled={step === "done"}
-          onClick={() => setStep("confirm")}
-        >
-          {step === "done" ? "Records cleared" : "Reset records"}
-        </Button>
-      )}
+      ) : null}
     </div>
   );
 }
