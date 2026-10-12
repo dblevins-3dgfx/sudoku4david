@@ -1,7 +1,8 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import { backupFileName, exportBackup } from "@/lib/backup";
 import { Button } from "@/components/ui/button";
 import type { Preferences } from "@/lib/prefs";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
@@ -54,6 +55,7 @@ export function PrefsDialog({
   onEntry,
   onShowConflicts,
   onResetRecords,
+  onRestoreBackup,
   onClose,
 }: {
   open: boolean;
@@ -61,6 +63,7 @@ export function PrefsDialog({
   onEntry: (entry: Preferences["entry"]) => void;
   onShowConflicts: (show: boolean) => void;
   onResetRecords: () => void;
+  onRestoreBackup: (text: string) => boolean;
   onClose: () => void;
 }) {
   return (
@@ -80,6 +83,7 @@ export function PrefsDialog({
       />
       <ThemePicker />
       <RecordsReset onReset={onResetRecords} />
+      <BackupRow onRestore={onRestoreBackup} />
       <Button type="button" variant="outline" className="mt-4 h-11 w-full" onClick={onClose}>
         Done
       </Button>
@@ -128,6 +132,100 @@ function RecordsReset({ onReset }: { onReset: () => void }) {
             </Button>
           </div>
         </>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Starts a download of `text` as a file. Browsers only save files the user
+ * asked for, so this makes a temporary link to an in-memory "blob" (a block
+ * of bytes the page owns, addressed by a blob: URL) and clicks it.
+ */
+function downloadText(text: string, fileName: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  // Free the blob once the browser has started the download.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/**
+ * "Download" and "Load" for backup files. Loading asks first, because the
+ * backup's game replaces the one in progress (high scores are merged, so
+ * nothing is lost there).
+ */
+function BackupRow({ onRestore }: { onRestore: (text: string) => boolean }) {
+  const [pending, setPending] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  // A ref is a handle to the real page element, like a pointer that survives
+  // re-renders; here it lets the Load button open the hidden file picker.
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div role="group" aria-label="Backup" className="mt-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">Backup</p>
+        <div className="grid min-w-[11rem] grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10"
+            onClick={() => {
+              downloadText(exportBackup(), backupFileName(new Date()));
+              setMessage("Backup downloaded.");
+            }}
+          >
+            Download
+          </Button>
+          <Button type="button" variant="outline" className="h-10" onClick={() => fileRef.current?.click()}>
+            Load
+          </Button>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={async (event) => {
+            const file = event.target.files?.[0];
+            // Clear the picker so choosing the same file again still fires onChange.
+            event.target.value = "";
+            if (!file) return;
+            setMessage(null);
+            setPending(await file.text());
+          }}
+        />
+      </div>
+      {pending !== null ? (
+        <>
+          <p className="mt-2 text-sm">
+            Replace the current game with the one in the backup? High scores are combined, not replaced.
+          </p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <Button type="button" variant="outline" className="h-11" onClick={() => setPending(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="h-11"
+              onClick={() => {
+                const ok = onRestore(pending);
+                setPending(null);
+                setMessage(ok ? "Backup loaded." : "That file isn't a Sudoku backup.");
+              }}
+            >
+              Load backup
+            </Button>
+          </div>
+        </>
+      ) : null}
+      {message ? (
+        <p className="mt-2 text-sm text-muted-foreground" role="status">
+          {message}
+        </p>
       ) : null}
     </div>
   );
