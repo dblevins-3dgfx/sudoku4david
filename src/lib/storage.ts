@@ -7,6 +7,7 @@ import {
 import {
   cloneNotes,
   emptyNotes,
+  HISTORY_LIMIT,
   type GameState,
   type Notes,
   type Snapshot,
@@ -127,8 +128,8 @@ export function deserializeGame(raw: unknown): GameState | null {
     return null;
   }
 
-  const history = Array.isArray(data.history) ? data.history.filter(isSnapshot).slice(-100).map(copySnapshot) : [];
-  const future = Array.isArray(data.future) ? data.future.filter(isSnapshot).slice(-100).map(copySnapshot) : [];
+  const history = Array.isArray(data.history) ? data.history.filter(isSnapshot).slice(-HISTORY_LIMIT).map(copySnapshot) : [];
+  const future = Array.isArray(data.future) ? data.future.filter(isSnapshot).slice(-HISTORY_LIMIT).map(copySnapshot) : [];
 
   return {
     difficulty: data.difficulty,
@@ -168,8 +169,8 @@ export function saveGame(state: GameState) {
     const payload: GameState = {
       ...state,
       notes: state.notes ?? emptyNotes(),
-      history: state.history.slice(-30),
-      future: state.future.slice(-30),
+      history: state.history.slice(-HISTORY_LIMIT),
+      future: state.future.slice(-HISTORY_LIMIT),
     };
     localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(payload));
   } catch {

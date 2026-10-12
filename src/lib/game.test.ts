@@ -4,6 +4,7 @@ import {
   createGame,
   createGameFromPuzzle,
   erase,
+  HISTORY_LIMIT,
   hint,
   inputDigit,
   redo,
@@ -12,7 +13,7 @@ import {
   undo,
   type GameState,
 } from "./game";
-import { deserializeGame } from "./storage";
+import { deserializeGame, loadGame, saveGame } from "./storage";
 import { gridsEqual, mulberry32, type Digit } from "./sudoku";
 
 function playSolution(state: GameState): GameState {
@@ -181,6 +182,35 @@ describe("play", () => {
     const remote = createGameFromPuzzle("expert", game.puzzle, game.solution, "mtsudoku");
     const remoteRestored = deserializeGame(JSON.parse(JSON.stringify(remote)) as unknown);
     assert.equal(remoteRestored?.source, "mtsudoku");
+  });
+
+  it("keeps the full undo history through a save and load", () => {
+    let game = createGame("easy", mulberry32(2));
+    const empty = game.grid.flatMap((row, r) =>
+      row.flatMap((value, c) => (value === 0 ? [{ r, c }] : [])),
+    )[0]!;
+    game = { ...game, selected: empty };
+    for (let i = 0; i < HISTORY_LIMIT + 20; i++) game = inputDigit(game, ((i % 9) + 1) as Digit, true);
+    assert.equal(game.history.length, HISTORY_LIMIT);
+
+    const store = new Map<string, string>();
+    const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => void store.set(key, value),
+      },
+    });
+    try {
+      saveGame(game);
+      const restored = loadGame();
+      assert.equal(restored?.history.length, HISTORY_LIMIT);
+      assert.deepEqual(restored?.history, game.history);
+    } finally {
+      if (previous) Object.defineProperty(globalThis, "localStorage", previous);
+      else delete (globalThis as { localStorage?: unknown }).localStorage;
+    }
   });
 
   it("counts each conflicting digit while conflicts are shown", () => {
