@@ -3,8 +3,8 @@
 // receives them, and the database's row-level security is what keeps each
 // player's data private. While either is empty, sync is switched off and the
 // app works exactly as before.
-export const SUPABASE_URL = "";
-export const SUPABASE_KEY = "";
+export const SUPABASE_URL = "https://goeergiwxisrajutteln.supabase.co";
+export const SUPABASE_KEY = "sb_publishable_BfDTIX0ru3zCui_UZnJkag_7OQR3Gv5";
 
 /** The origin the browser may connect to for sync, for the CSP. Empty when off. */
 export function syncOrigin(url: string = SUPABASE_URL): string {
