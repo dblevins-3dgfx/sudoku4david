@@ -28,6 +28,7 @@ import {
 import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
 import { importBackup } from "@/lib/backup";
 import { loadGame, saveGame } from "@/lib/storage";
+import { useSync } from "./use-sync";
 import {
   conflictCount,
   conflictGrid,
@@ -99,6 +100,22 @@ export function useGame() {
     scoresOpenRef.current = scoresOpen;
   }, [scoresOpen]);
 
+  // Shows a game that replaced this one: from the server, or from a backup.
+  const adoptGame = useCallback((state: GameState) => {
+    // A game that arrives already won must not count as a new win here.
+    wasWonRef.current = null;
+    setLastWin(null);
+    setGame(state);
+    setChosen(state.difficulty);
+  }, []);
+
+  const sync = useSync({
+    ready: !booting && game !== null,
+    getGame: () => gameRef.current,
+    adoptGame,
+  });
+  const { syncNow } = sync;
+
   // useEffect runs after React has updated the page, here whenever `game`
   // changes. A record is written only on a true not-won to won step within
   // play; recordWin also refuses a puzzle that already has a record, which
@@ -115,9 +132,10 @@ export function useGame() {
         placement: record ? placementText(loadRecords(), record, new Date()) : null,
         hinted: game.hintsUsed > 0,
       });
+      if (record) void syncNow();
     }
     wasWonRef.current = won;
-  }, [game]);
+  }, [game, syncNow]);
 
   const commitPrefs = useCallback((next: Preferences) => {
     prefsRef.current = next;
@@ -197,7 +215,10 @@ export function useGame() {
     });
   };
 
-  const deal = useCallback((difficulty: Difficulty) => {
+  // `firstDeal` marks the puzzle a browser deals for itself when it has no
+  // saved game. It is saved with savedAt 0, so sync treats it as older than
+  // any game from another device and replaces it (see sync.ts).
+  const deal = useCallback((difficulty: Difficulty, firstDeal = false) => {
     if (dealingRef.current) return;
     dealingRef.current = true;
     const seq = ++dealSeq.current;
@@ -234,7 +255,7 @@ export function useGame() {
         }
         setGame(next);
         setChosen(next.difficulty);
-        saveGame(next);
+        saveGame(next, firstDeal ? 0 : undefined);
         setNotice(dealtHere ? "Mt. Sudoku didn't answer, so this puzzle was dealt here." : null);
         setError(null);
       } finally {
@@ -266,7 +287,7 @@ export function useGame() {
         setBooting(false);
         return;
       }
-      deal("medium");
+      deal("medium", true);
     }, 40);
     return () => {
       cancelled = true;
@@ -339,19 +360,16 @@ export function useGame() {
     if (!importBackup(text)) return false;
     const restored = loadGame();
     setLastWin(null);
-    if (restored) {
-      // A restored game that is already won must not count as a new win.
-      wasWonRef.current = null;
-      setGame(restored);
-      setChosen(restored.difficulty);
-    }
+    if (restored) adoptGame(restored);
+    void syncNow();
     return true;
-  }, []);
+  }, [adoptGame, syncNow]);
 
   const resetRecords = useCallback(() => {
     resetStoredRecords();
     setLastWin(null);
-  }, []);
+    void syncNow();
+  }, [syncNow]);
 
   const setEntry = useCallback(
     (entry: EntryMethod) => {
@@ -477,6 +495,7 @@ export function useGame() {
     closeScores,
     resetRecords,
     restoreBackup,
+    sync,
     setEntry,
     setShowConflicts: applyShowConflicts,
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),
