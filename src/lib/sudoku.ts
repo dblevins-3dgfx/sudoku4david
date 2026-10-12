@@ -61,10 +61,6 @@ export function countClues(grid: Grid): number {
   return count;
 }
 
-export function countFilled(grid: Grid): number {
-  return countClues(grid);
-}
-
 export function gridsEqual(a: Grid, b: Grid): boolean {
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
