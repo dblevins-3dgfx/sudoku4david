@@ -26,6 +26,7 @@ import {
   type Preferences,
 } from "@/lib/prefs";
 import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
+import { importBackup } from "@/lib/backup";
 import { loadGame, saveGame } from "@/lib/storage";
 import {
   conflictCount,
@@ -332,6 +333,21 @@ export function useGame() {
 
   const closeScores = useCallback(() => setScoresOpen(false), []);
 
+  // Loads a backup file's text. On success the restored game replaces the one
+  // in memory too; otherwise the next save would write the old game back.
+  const restoreBackup = useCallback((text: string): boolean => {
+    if (!importBackup(text)) return false;
+    const restored = loadGame();
+    setLastWin(null);
+    if (restored) {
+      // A restored game that is already won must not count as a new win.
+      wasWonRef.current = null;
+      setGame(restored);
+      setChosen(restored.difficulty);
+    }
+    return true;
+  }, []);
+
   const resetRecords = useCallback(() => {
     resetStoredRecords();
     setLastWin(null);
@@ -460,6 +476,7 @@ export function useGame() {
     openScores,
     closeScores,
     resetRecords,
+    restoreBackup,
     setEntry,
     setShowConflicts: applyShowConflicts,
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),

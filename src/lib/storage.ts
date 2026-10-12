@@ -164,7 +164,39 @@ export function loadGame(): GameState | null {
   }
 }
 
-export function saveGame(state: GameState) {
+/**
+ * When a stored game last changed, in UTC epoch ms, or 0 when unknown (no
+ * game, or one saved before this field existed). Sync (#32) keeps whichever
+ * copy of the current game changed most recently.
+ */
+export function savedAtOf(raw: unknown): number {
+  if (!raw || typeof raw !== "object") return 0;
+  const value = (raw as { savedAt?: unknown }).savedAt;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+/** The stored game exactly as saved (parsed JSON, savedAt included), or null. */
+export function loadGameRaw(): unknown {
+  try {
+    const raw = localStorage.getItem(GAME_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as unknown) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * True when two saved games differ at most in elapsed time and savedAt.
+ * Spreading into a new object keeps each key in its original position, so
+ * the JSON text of equal games is equal. (`undefined` values are left out
+ * of JSON entirely.)
+ */
+function sameIgnoringClock(a: object, b: object): boolean {
+  const strip = (game: object) => JSON.stringify({ ...game, elapsedMs: 0, savedAt: undefined });
+  return strip(a) === strip(b);
+}
+
+export function saveGame(state: GameState, now = Date.now()) {
   try {
     const payload: GameState = {
       ...state,
@@ -172,8 +204,29 @@ export function saveGame(state: GameState) {
       history: state.history.slice(-HISTORY_LIMIT),
       future: state.future.slice(-HISTORY_LIMIT),
     };
-    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify(payload));
+    // savedAt is when the player last changed the game, not when it was last
+    // written: the game is also saved when the page is hidden or closed, and
+    // every few seconds while the clock runs. Otherwise merely opening an old
+    // game, or leaving its clock running in a background tab, would make it
+    // "newest" for sync. So compare with what is stored, ignoring the clock
+    // and savedAt itself, and keep the old time when nothing else differs
+    // (0 for a game saved before savedAt existed).
+    const previous = loadGameRaw();
+    let savedAt = now;
+    if (previous && typeof previous === "object" && sameIgnoringClock(previous, payload)) {
+      savedAt = savedAtOf(previous);
+    }
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({ ...payload, savedAt }));
   } catch {
     // Private mode and quota failures should not interrupt play.
+  }
+}
+
+/** Replaces the stored game with an already validated one, keeping its time. */
+export function writeGameRaw(state: GameState, savedAt: number) {
+  try {
+    localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({ ...state, savedAt }));
+  } catch {
+    // As above.
   }
 }
