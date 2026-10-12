@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { parseMtSudokuBoard } from "./mtsudoku";
+import { fetchMtSudokuPuzzle, parseMtSudokuBoard } from "./mtsudoku";
 import { createPuzzle, mulberry32 } from "./sudoku";
 
 function pack(grid: number[][]): string {
@@ -40,4 +40,38 @@ describe("mt sudoku", () => {
       ),
     );
   });
+
+  it("gives up on a request that never answers", async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = hangingFetch;
+    try {
+      await assert.rejects(fetchMtSudokuPuzzle("easy", undefined, 20), { name: "TimeoutError" });
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
+  it("still stops when the caller aborts", async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = hangingFetch;
+    try {
+      const controller = new AbortController();
+      const request = fetchMtSudokuPuzzle("easy", controller.signal);
+      controller.abort();
+      await assert.rejects(request, { name: "AbortError" });
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
 });
+
+function hangingFetch(_input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return new Promise((_, reject) => {
+    // A real pending request keeps Node running; AbortSignal.timeout alone does not.
+    const pending = setTimeout(() => {}, 60_000);
+    init?.signal?.addEventListener("abort", () => {
+      clearTimeout(pending);
+      reject(init.signal?.reason);
+    });
+  });
+}

@@ -14,6 +14,7 @@ export type RemotePuzzle = {
 };
 
 const ENDPOINT = "https://api.mtsudoku.com/v1/generate";
+const TIMEOUT_MS = 8000;
 
 export function parseMtSudokuBoard(payload: unknown, requested: Difficulty): RemotePuzzle {
   if (!payload || typeof payload !== "object") throw new Error("Mt. Sudoku sent an empty board");
@@ -36,9 +37,11 @@ export function parseMtSudokuBoard(payload: unknown, requested: Difficulty): Rem
 export async function fetchMtSudokuPuzzle(
   difficulty: Difficulty,
   signal?: AbortSignal,
+  timeoutMs = TIMEOUT_MS,
 ): Promise<RemotePuzzle> {
   const url = `${ENDPOINT}?mode=classic&difficulty=${difficulty}`;
-  const response = await fetch(url, { signal });
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const response = await fetch(url, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
   if (!response.ok) throw new Error("Mt. Sudoku didn't answer");
   return parseMtSudokuBoard(await response.json(), difficulty);
 }
