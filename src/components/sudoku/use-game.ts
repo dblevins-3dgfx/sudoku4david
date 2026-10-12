@@ -290,7 +290,11 @@ export function useGame() {
 
   const toggleTheme = useCallback(() => {
     const dark = document.documentElement.classList.toggle("dark");
-    localStorage.setItem(THEME_STORAGE_KEY, dark ? "dark" : "light");
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, dark ? "dark" : "light");
+    } catch {
+      // Storage can be unavailable in private browsing.
+    }
   }, []);
 
   useEffect(() => {
