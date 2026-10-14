@@ -253,6 +253,10 @@ function syncSummary(sync: Sync): string {
  */
 function SyncRow({ sync }: { sync: Sync }) {
   const [address, setAddress] = useState("");
+  // The address the last email went to. While set, the row asks for the code
+  // from that email instead of an address.
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -262,14 +266,34 @@ function SyncRow({ sync }: { sync: Sync }) {
     setBusy(true);
     setMessage(null);
     try {
-      await sync.sendLink(address.trim());
-      setMessage("Check your email for the sign-in link. Open it on this device.");
+      const to = address.trim();
+      await sync.sendLink(to);
+      setSentTo(to);
+      setCode("");
+      setMessage("Check your email. Type the code here, or tap the link if you're in Safari.");
     } catch {
-      setMessage("Couldn't send the link. Check the address and try again.");
+      setMessage("Couldn't send the email. Check the address and try again.");
     } finally {
       setBusy(false);
     }
   };
+
+  const verify = async () => {
+    if (!sentTo) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      await sync.verifyCode(sentTo, code.trim());
+      setSentTo(null);
+    } catch {
+      setMessage("That code didn't work. Check it, or send a new email.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fieldClass =
+    "h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
   return (
     <div role="group" aria-label="Sync" className="mt-3">
@@ -292,10 +316,49 @@ function SyncRow({ sync }: { sync: Sync }) {
         <p className="mt-2 text-sm text-muted-foreground" role="status">
           Signed in as {sync.email}. {syncSummary(sync)}
         </p>
+      ) : sentTo ? (
+        // Step 2: the code from the email. autoComplete="one-time-code" lets
+        // iOS offer the code from Mail above the keyboard; inputMode="numeric"
+        // brings up the number pad.
+        <>
+          <form
+            className="mt-2 flex gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (code.trim()) void verify();
+            }}
+          >
+            <input
+              type="text"
+              required
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              placeholder="Code from the email"
+              aria-label="Sign-in code from the email"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              className={fieldClass}
+            />
+            <Button type="submit" variant="outline" className="h-10" disabled={busy}>
+              Sign in
+            </Button>
+          </form>
+          <button
+            type="button"
+            className="mt-2 text-xs text-muted-foreground underline"
+            onClick={() => {
+              setSentTo(null);
+              setMessage(null);
+            }}
+          >
+            Use a different email
+          </button>
+        </>
       ) : (
-        // A <form> lets the phone keyboard's Go/Enter key send the link.
-        // preventDefault stops the browser's own form submission, which would
-        // reload the page.
+        // Step 1: the address. A <form> lets the phone keyboard's Go/Enter
+        // key submit. preventDefault stops the browser's own form submission,
+        // which would reload the page.
         <form
           className="mt-2 flex gap-2"
           onSubmit={(event) => {
@@ -309,13 +372,13 @@ function SyncRow({ sync }: { sync: Sync }) {
             autoComplete="email"
             inputMode="email"
             placeholder="Your email"
-            aria-label="Email for the sign-in link"
+            aria-label="Email for the sign-in code"
             value={address}
             onChange={(event) => setAddress(event.target.value)}
-            className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className={fieldClass}
           />
           <Button type="submit" variant="outline" className="h-10" disabled={busy}>
-            Send link
+            Send code
           </Button>
         </form>
       )}
@@ -323,7 +386,7 @@ function SyncRow({ sync }: { sync: Sync }) {
         <p className="mt-2 text-sm text-muted-foreground" role="status">
           {message}
         </p>
-      ) : !sync.email ? (
+      ) : !sync.email && !sentTo ? (
         <p className="mt-2 text-xs text-muted-foreground">
           Sign in to keep your game and high scores the same on all your devices.
         </p>

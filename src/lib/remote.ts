@@ -70,6 +70,19 @@ export async function sendSignInLink(email: string, returnTo: string): Promise<v
   if (error) throw error;
 }
 
+/**
+ * Signs in with the one-time code printed in the same email as the link.
+ *
+ * The code exists for an app added to the iPhone home screen. Such an app
+ * keeps its own storage, separate from Safari's, and a link tapped in Mail
+ * always opens in Safari. So the link signs in Safari, never the home-screen
+ * app; typing the code into the app itself is the only way to sign it in.
+ */
+export async function verifySignInCode(email: string, code: string): Promise<void> {
+  const { error } = await (await client()).auth.verifyOtp({ email, token: code, type: "email" });
+  if (error) throw error;
+}
+
 export async function signOut(): Promise<void> {
   const { error } = await (await client()).auth.signOut();
   if (error) throw error;
