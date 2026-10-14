@@ -23,6 +23,8 @@ export const metadata: Metadata = {
   title: "David's own private Sudoku",
   description:
     "A paper-and-ink Sudoku. Fill the grid, keep notes, undo a step, and take a hint. New puzzles come from Mt. Sudoku at the difficulty you choose.",
+  // The name under the icon when added to an iPhone home screen.
+  appleWebApp: { title: "Sudoku" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
