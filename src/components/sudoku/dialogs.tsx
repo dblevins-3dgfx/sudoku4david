@@ -5,6 +5,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { backupFileName, exportBackup } from "@/lib/backup";
 import { Button } from "@/components/ui/button";
 import type { Preferences } from "@/lib/prefs";
+import { parseSignInProof } from "@/lib/remote";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
 import { PrefSelect, type PrefOption } from "./pref-select";
 import { ThemePicker } from "./theme-picker";
@@ -270,7 +271,9 @@ function SyncRow({ sync }: { sync: Sync }) {
       await sync.sendLink(to);
       setSentTo(to);
       setCode("");
-      setMessage("Check your email. Type the code here, or tap the link if you're in Safari.");
+      setMessage(
+        "Check your email. In Safari you can just tap the link. In the home-screen app, press and hold the link in the email, choose Copy Link, and paste it here.",
+      );
     } catch {
       setMessage("Couldn't send the email. Check the address and try again.");
     } finally {
@@ -280,13 +283,19 @@ function SyncRow({ sync }: { sync: Sync }) {
 
   const verify = async () => {
     if (!sentTo) return;
+    const proof = parseSignInProof(code);
+    if (!proof) {
+      setMessage("That isn't the link or code from the sign-in email.");
+      return;
+    }
     setBusy(true);
     setMessage(null);
     try {
-      await sync.verifyCode(sentTo, code.trim());
+      await sync.verify(sentTo, proof);
       setSentTo(null);
     } catch {
-      setMessage("That code didn't work. Check it, or send a new email.");
+      // Each link or code works once and expires after a while.
+      setMessage("That didn't work. It may be used up or expired, so send a new email.");
     } finally {
       setBusy(false);
     }
@@ -317,9 +326,9 @@ function SyncRow({ sync }: { sync: Sync }) {
           Signed in as {sync.email}. {syncSummary(sync)}
         </p>
       ) : sentTo ? (
-        // Step 2: the code from the email. autoComplete="one-time-code" lets
-        // iOS offer the code from Mail above the keyboard; inputMode="numeric"
-        // brings up the number pad.
+        // Step 2: the link (or code) from the email. autoComplete="one-time-code"
+        // lets iOS offer a code from Mail above the keyboard; autoCapitalize and
+        // autoCorrect are off so a pasted link isn't altered.
         <>
           <form
             className="mt-2 flex gap-2"
@@ -332,10 +341,11 @@ function SyncRow({ sync }: { sync: Sync }) {
               type="text"
               required
               autoComplete="one-time-code"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              placeholder="Code from the email"
-              aria-label="Sign-in code from the email"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="Paste the link"
+              aria-label="Sign-in link or code from the email"
               value={code}
               onChange={(event) => setCode(event.target.value)}
               className={fieldClass}
@@ -372,13 +382,13 @@ function SyncRow({ sync }: { sync: Sync }) {
             autoComplete="email"
             inputMode="email"
             placeholder="Your email"
-            aria-label="Email for the sign-in code"
+            aria-label="Email for the sign-in link"
             value={address}
             onChange={(event) => setAddress(event.target.value)}
             className={fieldClass}
           />
           <Button type="submit" variant="outline" className="h-10" disabled={busy}>
-            Send code
+            Send link
           </Button>
         </form>
       )}

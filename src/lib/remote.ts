@@ -70,16 +70,70 @@ export async function sendSignInLink(email: string, returnTo: string): Promise<v
   if (error) throw error;
 }
 
+/** What the player typed or pasted to finish signing in, once understood. */
+export type SignInProof =
+  | { kind: "code"; code: string }
+  | { kind: "link"; tokenHash: string; type: "magiclink" | "signup" | "email" };
+
+const LINK_TYPES = ["magiclink", "signup", "email"] as const;
+
 /**
- * Signs in with the one-time code printed in the same email as the link.
+ * Reads either the numeric code from the sign-in email or the email's whole
+ * link, copied from Mail (press and hold the link, then Copy Link).
  *
- * The code exists for an app added to the iPhone home screen. Such an app
- * keeps its own storage, separate from Safari's, and a link tapped in Mail
- * always opens in Safari. So the link signs in Safari, never the home-screen
- * app; typing the code into the app itself is the only way to sign it in.
+ * Supabase's link looks like
+ *   https://<project>.supabase.co/auth/v1/verify?token=<hash>&type=magiclink&redirect_to=...
+ * and the `token` there is a hash that can be redeemed directly. Some mail
+ * apps wrap links in their own redirect (Gmail's google.com/url?q=<link>), so
+ * a link found inside another link's query string is unwrapped first.
+ * Returns null for anything else.
  */
-export async function verifySignInCode(email: string, code: string): Promise<void> {
-  const { error } = await (await client()).auth.verifyOtp({ email, token: code, type: "email" });
+export function parseSignInProof(input: string): SignInProof | null {
+  const text = input.trim();
+  if (/^\d{6,10}$/.test(text)) return { kind: "code", code: text };
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return null;
+  }
+  for (let depth = 0; depth < 3; depth++) {
+    const token = url.searchParams.get("token");
+    const type = url.searchParams.get("type") ?? "magiclink";
+    if (token && url.pathname.endsWith("/auth/v1/verify")) {
+      return (LINK_TYPES as readonly string[]).includes(type)
+        ? { kind: "link", tokenHash: token, type: type as (typeof LINK_TYPES)[number] }
+        : null;
+    }
+    // Not the link itself: look for it inside a query value (a mail redirect).
+    let inner: URL | null = null;
+    for (const value of url.searchParams.values()) {
+      try {
+        inner = new URL(value);
+        break;
+      } catch {}
+    }
+    if (!inner) return null;
+    url = inner;
+  }
+  return null;
+}
+
+/**
+ * Finishes signing in with the code or link from the email.
+ *
+ * This exists for an app added to the iPhone home screen. Such an app keeps
+ * its own storage, separate from Safari's, and a link tapped in Mail always
+ * opens in Safari. So tapping the link signs in Safari, never the home-screen
+ * app; handing the code or the copied link to the app itself is the only way
+ * to sign it in.
+ */
+export async function verifySignIn(email: string, proof: SignInProof): Promise<void> {
+  const auth = (await client()).auth;
+  const { error } =
+    proof.kind === "code"
+      ? await auth.verifyOtp({ email, token: proof.code, type: "email" })
+      : await auth.verifyOtp({ token_hash: proof.tokenHash, type: proof.type });
   if (error) throw error;
 }
 
