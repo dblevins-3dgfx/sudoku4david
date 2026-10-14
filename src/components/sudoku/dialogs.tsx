@@ -252,11 +252,44 @@ function syncSummary(sync: Sync): string {
  * Sign-in for sync. Signed out: an email box that sends a sign-in link.
  * Signed in: who, how sync is going, and Sign out.
  */
+// The address a sign-in email just went to, kept in localStorage so the
+// "Paste the link" step survives the player switching to Mail and back. iOS
+// often reloads a home-screen app when it returns to the foreground, which
+// would otherwise wipe React state and show the email field again.
+// Emailed links expire after an hour, so an older entry is ignored.
+const PENDING_SIGN_IN_KEY = "sudoku.signin-pending";
+const PENDING_SIGN_IN_MS = 60 * 60 * 1000;
+
+function loadPendingSignIn(): string | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PENDING_SIGN_IN_KEY) ?? "null");
+    if (typeof raw?.email === "string" && typeof raw.at === "number" && Date.now() - raw.at < PENDING_SIGN_IN_MS) {
+      return raw.email;
+    }
+  } catch {}
+  return null;
+}
+
+function savePendingSignIn(email: string | null) {
+  try {
+    if (email) localStorage.setItem(PENDING_SIGN_IN_KEY, JSON.stringify({ email, at: Date.now() }));
+    else localStorage.removeItem(PENDING_SIGN_IN_KEY);
+  } catch {}
+}
+
+const PASTE_HELP =
+  "Check your email. In Safari you can just tap the link. In the home-screen app, press and hold the link in the email, choose Copy Link, and paste it here.";
+
 function SyncRow({ sync }: { sync: Sync }) {
   const [address, setAddress] = useState("");
   // The address the last email went to. While set, the row asks for the code
   // from that email instead of an address.
-  const [sentTo, setSentTo] = useState<string | null>(null);
+  // useState(fn) runs fn once, when the row first appears (the dialog opens).
+  const [sentTo, setSentToState] = useState<string | null>(loadPendingSignIn);
+  const setSentTo = (email: string | null) => {
+    setSentToState(email);
+    savePendingSignIn(email);
+  };
   const [code, setCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -271,11 +304,11 @@ function SyncRow({ sync }: { sync: Sync }) {
       await sync.sendLink(to);
       setSentTo(to);
       setCode("");
-      setMessage(
-        "Check your email. In Safari you can just tap the link. In the home-screen app, press and hold the link in the email, choose Copy Link, and paste it here.",
-      );
-    } catch {
-      setMessage("Couldn't send the email. Check the address and try again.");
+    } catch (error) {
+      // Show the server's reason too (for example its limit on emails per
+      // hour), since "try again" doesn't help when the cause is a limit.
+      const reason = error instanceof Error && error.message ? ` (${error.message})` : "";
+      setMessage(`Couldn't send the email${reason}. Check the address, or wait a while and try again.`);
     } finally {
       setBusy(false);
     }
@@ -396,11 +429,13 @@ function SyncRow({ sync }: { sync: Sync }) {
         <p className="mt-2 text-sm text-muted-foreground" role="status">
           {message}
         </p>
-      ) : !sync.email && !sentTo ? (
+      ) : sync.email ? null : sentTo ? (
+        <p className="mt-2 text-sm text-muted-foreground">{PASTE_HELP}</p>
+      ) : (
         <p className="mt-2 text-xs text-muted-foreground">
           Sign in to keep your game and high scores the same on all your devices.
         </p>
-      ) : null}
+      )}
     </div>
   );
 }
