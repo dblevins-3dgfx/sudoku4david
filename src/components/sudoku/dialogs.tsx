@@ -5,6 +5,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { backupFileName, exportBackup } from "@/lib/backup";
 import { Button } from "@/components/ui/button";
 import type { Preferences } from "@/lib/prefs";
+import { parseSignInProof } from "@/lib/remote";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
 import { PrefSelect, type PrefOption } from "./pref-select";
 import { ThemePicker } from "./theme-picker";
@@ -253,6 +254,10 @@ function syncSummary(sync: Sync): string {
  */
 function SyncRow({ sync }: { sync: Sync }) {
   const [address, setAddress] = useState("");
+  // The address the last email went to. While set, the row asks for the code
+  // from that email instead of an address.
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -262,14 +267,42 @@ function SyncRow({ sync }: { sync: Sync }) {
     setBusy(true);
     setMessage(null);
     try {
-      await sync.sendLink(address.trim());
-      setMessage("Check your email for the sign-in link. Open it on this device.");
+      const to = address.trim();
+      await sync.sendLink(to);
+      setSentTo(to);
+      setCode("");
+      setMessage(
+        "Check your email. In Safari you can just tap the link. In the home-screen app, press and hold the link in the email, choose Copy Link, and paste it here.",
+      );
     } catch {
-      setMessage("Couldn't send the link. Check the address and try again.");
+      setMessage("Couldn't send the email. Check the address and try again.");
     } finally {
       setBusy(false);
     }
   };
+
+  const verify = async () => {
+    if (!sentTo) return;
+    const proof = parseSignInProof(code);
+    if (!proof) {
+      setMessage("That isn't the link or code from the sign-in email.");
+      return;
+    }
+    setBusy(true);
+    setMessage(null);
+    try {
+      await sync.verify(sentTo, proof);
+      setSentTo(null);
+    } catch {
+      // Each link or code works once and expires after a while.
+      setMessage("That didn't work. It may be used up or expired, so send a new email.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fieldClass =
+    "h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
   return (
     <div role="group" aria-label="Sync" className="mt-3">
@@ -292,10 +325,50 @@ function SyncRow({ sync }: { sync: Sync }) {
         <p className="mt-2 text-sm text-muted-foreground" role="status">
           Signed in as {sync.email}. {syncSummary(sync)}
         </p>
+      ) : sentTo ? (
+        // Step 2: the link (or code) from the email. autoComplete="one-time-code"
+        // lets iOS offer a code from Mail above the keyboard; autoCapitalize and
+        // autoCorrect are off so a pasted link isn't altered.
+        <>
+          <form
+            className="mt-2 flex gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (code.trim()) void verify();
+            }}
+          >
+            <input
+              type="text"
+              required
+              autoComplete="one-time-code"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="Paste the link"
+              aria-label="Sign-in link or code from the email"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              className={fieldClass}
+            />
+            <Button type="submit" variant="outline" className="h-10" disabled={busy}>
+              Sign in
+            </Button>
+          </form>
+          <button
+            type="button"
+            className="mt-2 text-xs text-muted-foreground underline"
+            onClick={() => {
+              setSentTo(null);
+              setMessage(null);
+            }}
+          >
+            Use a different email
+          </button>
+        </>
       ) : (
-        // A <form> lets the phone keyboard's Go/Enter key send the link.
-        // preventDefault stops the browser's own form submission, which would
-        // reload the page.
+        // Step 1: the address. A <form> lets the phone keyboard's Go/Enter
+        // key submit. preventDefault stops the browser's own form submission,
+        // which would reload the page.
         <form
           className="mt-2 flex gap-2"
           onSubmit={(event) => {
@@ -312,7 +385,7 @@ function SyncRow({ sync }: { sync: Sync }) {
             aria-label="Email for the sign-in link"
             value={address}
             onChange={(event) => setAddress(event.target.value)}
-            className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-2.5 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className={fieldClass}
           />
           <Button type="submit" variant="outline" className="h-10" disabled={busy}>
             Send link
@@ -323,7 +396,7 @@ function SyncRow({ sync }: { sync: Sync }) {
         <p className="mt-2 text-sm text-muted-foreground" role="status">
           {message}
         </p>
-      ) : !sync.email ? (
+      ) : !sync.email && !sentTo ? (
         <p className="mt-2 text-xs text-muted-foreground">
           Sign in to keep your game and high scores the same on all your devices.
         </p>

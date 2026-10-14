@@ -10,6 +10,8 @@ import {
   remoteAvailable,
   sendSignInLink,
   signOut as remoteSignOut,
+  verifySignIn,
+  type SignInProof,
   watchSignIn,
 } from "@/lib/remote";
 import { loadGameRaw, saveGame, writeGameRaw } from "@/lib/storage";
@@ -153,6 +155,11 @@ export function useSync({
     await sendSignInLink(address, window.location.origin + window.location.pathname);
   }, []);
 
+  const verify = useCallback(async (address: string, proof: SignInProof) => {
+    // Success fires the sign-in watcher above, which updates the email and syncs.
+    await verifySignIn(address, proof);
+  }, []);
+
   const signOut = useCallback(async () => {
     await remoteSignOut();
     emailRef.current = null;
@@ -160,5 +167,5 @@ export function useSync({
     setStatus("signed-out");
   }, []);
 
-  return { status, email, lastSynced, syncNow, sendLink, signOut };
+  return { status, email, lastSynced, syncNow, sendLink, verify, signOut };
 }
