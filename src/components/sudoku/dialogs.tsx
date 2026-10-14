@@ -304,8 +304,11 @@ function SyncRow({ sync }: { sync: Sync }) {
       await sync.sendLink(to);
       setSentTo(to);
       setCode("");
-    } catch {
-      setMessage("Couldn't send the email. Check the address and try again.");
+    } catch (error) {
+      // Show the server's reason too (for example its limit on emails per
+      // hour), since "try again" doesn't help when the cause is a limit.
+      const reason = error instanceof Error && error.message ? ` (${error.message})` : "";
+      setMessage(`Couldn't send the email${reason}. Check the address, or wait a while and try again.`);
     } finally {
       setBusy(false);
     }
