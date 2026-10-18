@@ -79,6 +79,14 @@ It uses the selected cell when that cell qualifies. Otherwise it uses the first 
 
 Hint does nothing when the puzzle is already solved, while the grid is paused, or when every unlocked cell already matches the solution.
 
+## Explaining the next step
+
+Explain works out the next logical step from the digits on the board and says why in plain words. It ignores pencil marks, which may be incomplete. It does not change the board and does not count as a hint.
+
+If an unlocked digit on the board is wrong, Explain names that cell first and offers to select it. Otherwise it looks for a hidden single, then a naked single. When neither is visible, it takes candidates out with pointing, claiming, naked and hidden pairs, then naked and hidden triples, and looks again. The explanation lists only the steps the placement depends on, in order, with Back and Next between them, and ends with the digit to place. Fill it in places that digit the same way Hint does, and counts as a hint. If none of these techniques finds a placement, Explain says so.
+
+While an explanation is shown, it replaces the status card and the board tints only the cells it talks about: the cell to fill, the cells that make the pattern, the cells losing a candidate (outlined), and the rest of the row, column, or box. Any change to the board, pausing, or a win closes it. Pressing Explain again also closes it.
+
 ## Undo, redo, and clearing
 
 Digit entry, notes, erase, and hint each record a step. Up to 100 steps are kept. A new step drops the redo stack.

@@ -4,10 +4,26 @@ import { cn } from "@/lib/utils";
 import type { GameState } from "@/lib/game";
 import { sameGroup } from "@/lib/sudoku";
 
+/**
+ * How a cell takes part in the step being explained: the cell to fill, the
+ * cells that make the pattern, cells losing a candidate, or the rest of the
+ * row, column, or box the step is about.
+ */
+export type CellMark = "target" | "pattern" | "removal" | "unit";
+
 type BoardProps = {
   game: GameState;
   conflicts: boolean[][];
+  /** A 9×9 map of marks for the explained step; omitted when none is shown. */
+  marks?: (CellMark | null)[][] | null;
   onSelect: (r: number, c: number) => void;
+};
+
+const MARK_TONE: Record<CellMark, string> = {
+  target: "bg-cell-note-hit",
+  pattern: "bg-cell-same",
+  removal: "bg-cell-peer",
+  unit: "bg-cell-peer",
 };
 
 function noteDigits(mask: number): number[] {
@@ -49,7 +65,7 @@ function lineClass(r: number, c: number): string {
   );
 }
 
-export function Board({ game, conflicts, onSelect }: BoardProps) {
+export function Board({ game, conflicts, marks, onSelect }: BoardProps) {
   const selectedValue = game.grid[game.selected.r][game.selected.c];
 
   return (
@@ -67,15 +83,22 @@ export function Board({ game, conflicts, onSelect }: BoardProps) {
         const peer = !selected && sameGroup(r, c, game.selected.r, game.selected.c);
         const same =
           !selected && value !== 0 && selectedValue !== 0 && value === selectedValue;
+        const mark = marks?.[r][c] ?? null;
+        // While a step is explained, its marks replace the usual peer and
+        // same-digit tints so only the cells it talks about stand out.
         const tone = conflict
           ? "bg-cell-conflict"
-          : selected
-            ? "bg-cell-selected"
-            : same
-              ? "bg-cell-same"
-              : peer
-                ? "bg-cell-peer"
-                : "bg-board";
+          : mark
+            ? MARK_TONE[mark]
+            : selected
+              ? "bg-cell-selected"
+              : marks
+                ? "bg-board"
+                : same
+                  ? "bg-cell-same"
+                  : peer
+                    ? "bg-cell-peer"
+                    : "bg-board";
         const ink = conflict
           ? "text-cell-bad"
           : game.locked[r][c]
@@ -102,6 +125,8 @@ export function Board({ game, conflicts, onSelect }: BoardProps) {
               value !== 0 && ink,
               game.locked[r][c] ? "font-semibold" : "font-medium",
               selected && "ring-2 ring-primary ring-inset",
+              // A dashed outline drawn just inside the cell marks a candidate being removed.
+              mark === "removal" && "outline-2 outline-dashed outline-destructive -outline-offset-4",
             )}
           >
             {value !== 0 ? (
