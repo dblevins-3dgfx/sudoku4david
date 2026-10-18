@@ -81,9 +81,9 @@ Hint does nothing when the puzzle is already solved, while the grid is paused, o
 
 ## Explaining the next step
 
-Explain works out the next logical step from the digits on the board and says why in plain words. It ignores pencil marks, which may be incomplete. It does not change the board and does not count as a hint.
+Explain works out the next logical step from the digits on the board and says why in plain words. It ignores pencil marks, which may be incomplete. It does not change the board. An explanation counts as a hint and starts the clock, unless Explain finds nothing it can explain. Asking again about the same board does not count again, and undo does not take the hint back.
 
-If an unlocked digit on the board is wrong, Explain names that cell first and offers to select it. Otherwise it looks for a hidden single, then a naked single. When neither is visible, it takes candidates out with pointing, claiming, naked and hidden pairs, then naked and hidden triples, and looks again. The explanation lists only the steps the placement depends on, in order, with Back and Next between them, and ends with the digit to place. Fill it in places that digit the same way Hint does, and counts as a hint. If none of these techniques finds a placement, Explain says so.
+If an unlocked digit on the board is wrong, Explain names that cell first and offers to select it. Otherwise it looks for a hidden single, then a naked single. When neither is visible, it takes candidates out with pointing, claiming, naked and hidden pairs, then naked and hidden triples, and looks again. The explanation lists only the steps the placement depends on, in order, with Back and Next between them, and ends with the digit to place. Fill it in places that digit the same way Hint does, without counting a second hint. If none of these techniques finds a placement, Explain says so.
 
 While an explanation is shown, it replaces the status card and the board tints only the cells it talks about: the cell to fill, the cells that make the pattern, the cells losing a candidate (outlined), and the rest of the row, column, or box. Any change to the board, pausing, or a win closes it. Pressing Explain again also closes it.
 

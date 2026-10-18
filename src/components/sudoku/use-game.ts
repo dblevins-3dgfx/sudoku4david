@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nextTap, type Tap } from "@/lib/entry";
 import {
+  countExplanation,
   createGame,
   createGameFromPuzzle,
   erase,
@@ -472,14 +473,23 @@ export function useGame() {
     );
   }, [applyShowConflicts]);
 
-  // Works out the next step for the board as it stands. It changes nothing on
-  // the board and does not count as a hint; only "Fill it in" does.
+  // Works out the next step for the board as it stands, without changing it.
+  // An explanation counts as a hint unless the finder found nothing it could
+  // explain. Asking again about the same board does not count again.
+  const countedGridRef = useRef<Grid | null>(null);
   const explain = useCallback(() => {
     const current = gameRef.current;
     if (!current || current.paused || current.won) return;
-    setNotice(null);
-    setExplained({ grid: current.grid, advice: nextStep(current.grid, current.solution, current.locked), index: 0 });
-  }, []);
+    const advice = nextStep(current.grid, current.solution, current.locked);
+    setExplained({ grid: current.grid, advice, index: 0 });
+    const helps = advice.kind === "steps" || advice.kind === "mistake";
+    if (helps && countedGridRef.current !== current.grid) {
+      countedGridRef.current = current.grid;
+      apply(countExplanation);
+    } else {
+      setNotice(null);
+    }
+  }, [apply]);
 
   // The explanation shows only while the board is the one it was made for.
   // Any move, undo, or new game makes a new grid, and the panel goes away by
@@ -536,8 +546,9 @@ export function useGame() {
     closeAdvice: () => setExplained(null),
     showAdviceStep: (index: number) => setExplained((current) => (current ? { ...current, index } : current)),
     // hint() fills the selected cell when it qualifies, so selecting the
-    // step's cell first makes Hint fill exactly that one.
-    fillCell: (r: number, c: number) => apply((state) => hint(selectCell(state, r, c))),
+    // step's cell first makes Hint fill exactly that one. The explanation
+    // already counted as a hint, so the fill does not count again.
+    fillCell: (r: number, c: number) => apply((state) => hint(selectCell(state, r, c), false)),
     check,
   };
 }
