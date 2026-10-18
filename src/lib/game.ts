@@ -284,7 +284,12 @@ function hintTarget(state: GameState): Coord | null {
   return null;
 }
 
-export function hint(state: GameState): GameState {
+/**
+ * Hint fills one cell with its solution digit. `counted` is false when an
+ * explanation already counted this help (see countExplanation), so placing its
+ * digit does not count twice.
+ */
+export function hint(state: GameState, counted = true): GameState {
   if (state.paused || state.won) return state;
   const target = hintTarget(state);
   if (!target) return state;
@@ -306,8 +311,26 @@ export function hint(state: GameState): GameState {
     grid: nextGrid,
     notes: nextNotes,
     locked: nextLocked,
-    hintsUsed: state.hintsUsed + 1,
+    hintsUsed: state.hintsUsed + (counted ? 1 : 0),
     selected: target,
+  };
+}
+
+/**
+ * Counts an explanation from the step finder as a hint. The board does not
+ * change, so this is not an undo step. Every saved undo and redo step gets the
+ * extra hint too, so undoing an earlier move can't take it back: what was
+ * learned stays learned.
+ */
+export function countExplanation(state: GameState): GameState {
+  if (state.paused || state.won) return state;
+  const bump = (snap: Snapshot): Snapshot => ({ ...snap, hintsUsed: snap.hintsUsed + 1 });
+  return {
+    ...state,
+    ...begin(state, false),
+    hintsUsed: state.hintsUsed + 1,
+    history: state.history.map(bump),
+    future: state.future.map(bump),
   };
 }
 

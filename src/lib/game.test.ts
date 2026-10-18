@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  countExplanation,
   createGame,
   createGameFromPuzzle,
   erase,
@@ -60,6 +61,31 @@ describe("play", () => {
     assert.ok(solved.won);
     assert.equal(solved.timerOn, false);
     assert.ok(gridsEqual(solved.grid, solved.solution));
+  });
+
+  it("counts an explanation as a hint that undo keeps", { timeout: 20_000 }, () => {
+    let game = createGame("medium", mulberry32(21));
+    game = hint(game);
+    game = countExplanation(game);
+    assert.equal(game.hintsUsed, 2);
+    assert.equal(game.history.length, 1, "an explanation is not an undo step");
+    game = undo(game);
+    assert.equal(game.hintsUsed, 1, "undo takes back the fill, not the explanation");
+    game = redo(game);
+    assert.equal(game.hintsUsed, 2);
+  });
+
+  it("starts the clock when an explanation counts", { timeout: 20_000 }, () => {
+    const game = countExplanation(createGame("medium", mulberry32(21)));
+    assert.equal(game.started, true);
+    assert.equal(game.timerOn, true);
+    assert.equal(game.hintsUsed, 1);
+  });
+
+  it("fills a cell without counting when the explanation already counted", { timeout: 20_000 }, () => {
+    const game = hint(createGame("medium", mulberry32(21)), false);
+    assert.equal(game.hintsUsed, 0);
+    assert.equal(game.locked[game.selected.r][game.selected.c], true);
   });
 
   it("hints a cell, then restart clears entries", { timeout: 20_000 }, () => {

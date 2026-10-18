@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { nextTap, type Tap } from "@/lib/entry";
 import {
+  countExplanation,
   createGame,
   createGameFromPuzzle,
   erase,
@@ -28,6 +29,7 @@ import {
 import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
 import { importBackup } from "@/lib/backup";
 import { loadGame, saveGame } from "@/lib/storage";
+import { nextStep, type Advice } from "@/lib/steps";
 import { useSync } from "./use-sync";
 import {
   conflictCount,
@@ -36,7 +38,15 @@ import {
   digitCounts,
   type Difficulty,
   type Digit,
+  type Grid,
 } from "@/lib/sudoku";
+
+/**
+ * An explanation from the step finder, tied to the grid it was worked out
+ * for. Every move builds a new grid array, so comparing references (like
+ * comparing two pointers in C++) tells whether the board has changed since.
+ */
+type Explained = { grid: Grid; advice: Advice; index: number };
 
 export type Pending = { kind: "new" } | { kind: "restart" };
 
@@ -65,6 +75,7 @@ export function useGame() {
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [scoresOpen, setScoresOpen] = useState(false);
   const [lastWin, setLastWin] = useState<LastWin | null>(null);
+  const [explained, setExplained] = useState<Explained | null>(null);
 
   const gameRef = useRef<GameState | null>(null);
   const dealingRef = useRef(false);
@@ -462,6 +473,30 @@ export function useGame() {
     );
   }, [applyShowConflicts]);
 
+  // Works out the next step for the board as it stands, without changing it.
+  // An explanation counts as a hint unless the finder found nothing it could
+  // explain. Asking again about the same board does not count again.
+  const countedGridRef = useRef<Grid | null>(null);
+  const explain = useCallback(() => {
+    const current = gameRef.current;
+    if (!current || current.paused || current.won) return;
+    const advice = nextStep(current.grid, current.solution, current.locked);
+    setExplained({ grid: current.grid, advice, index: 0 });
+    const helps = advice.kind === "steps" || advice.kind === "mistake";
+    if (helps && countedGridRef.current !== current.grid) {
+      countedGridRef.current = current.grid;
+      apply(countExplanation);
+    } else {
+      setNotice(null);
+    }
+  }, [apply]);
+
+  // The explanation shows only while the board is the one it was made for.
+  // Any move, undo, or new game makes a new grid, and the panel goes away by
+  // itself, with no clean-up code needed.
+  const advice =
+    explained && game && explained.grid === game.grid && !game.paused && !game.won ? explained : null;
+
   const conflicts = game ? conflictGrid(game.grid) : [];
   const counts = game ? digitCounts(game.grid) : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   const conflictTotal = game ? conflictCount(game.grid) : 0;
@@ -506,6 +541,14 @@ export function useGame() {
     toggleNotes: () => apply(toggleNotesMode),
     pause: () => apply(togglePause),
     giveHint: () => apply(hint),
+    advice,
+    explain,
+    closeAdvice: () => setExplained(null),
+    showAdviceStep: (index: number) => setExplained((current) => (current ? { ...current, index } : current)),
+    // hint() fills the selected cell when it qualifies, so selecting the
+    // step's cell first makes Hint fill exactly that one. The explanation
+    // already counted as a hint, so the fill does not count again.
+    fillCell: (r: number, c: number) => apply((state) => hint(selectCell(state, r, c), false)),
     check,
   };
 }

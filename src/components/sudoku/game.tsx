@@ -2,6 +2,7 @@
 
 import {
   Eraser,
+  GraduationCap,
   Lightbulb,
   Pause,
   Pencil,
@@ -22,6 +23,7 @@ import { formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
 import { PendingDialog, PrefsDialog } from "./dialogs";
 import { HighScoresDialog } from "./high-scores";
+import { adviceMarks, StepPanel } from "./step-panel";
 import { useGame } from "./use-game";
 
 function winDetail(hintsUsed: number, elapsedMs: number, difficulty: string): string {
@@ -69,6 +71,11 @@ export function Game() {
     toggleNotes,
     pause,
     giveHint,
+    advice,
+    explain,
+    closeAdvice,
+    showAdviceStep,
+    fillCell,
     check,
   } = desk;
 
@@ -197,7 +204,12 @@ export function Game() {
             <div className="board-slot">
               <div className="board-frame relative">
                 <div className="isolate h-full w-full" inert={game.paused || game.won ? true : undefined}>
-                  <Board game={game} conflicts={conflicts} onSelect={select} />
+                  <Board
+                    game={game}
+                    conflicts={conflicts}
+                    marks={advice ? adviceMarks(advice) : null}
+                    onSelect={select}
+                  />
                 </div>
                 {game.paused ? (
                   <div className="absolute inset-0 z-20 flex items-center justify-center bg-card p-4 text-center">
@@ -261,43 +273,53 @@ export function Game() {
         </section>
 
         <aside className="flex min-h-0 w-full flex-1 flex-col gap-1 overflow-y-auto min-[720px]:w-[18.75rem] min-[720px]:shrink-0 min-[720px]:flex-none min-[720px]:self-stretch min-[720px]:[scrollbar-gutter:stable]">
-          <div className="desk-status shrink-0 rounded-xl border border-border bg-card px-2.5 py-1 min-[720px]:px-3 min-[720px]:py-2">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-sm" aria-live="polite">
-                {notice ?? status}
-              </p>
-              <p className="text-sm text-muted-foreground tabular-nums">
-                {game ? `${filled}/81` : "—"}
+          {advice ? (
+            <StepPanel
+              shown={advice}
+              onStep={showAdviceStep}
+              onFill={fillCell}
+              onSelect={select}
+              onClose={closeAdvice}
+            />
+          ) : (
+            <div className="desk-status shrink-0 rounded-xl border border-border bg-card px-2.5 py-1 min-[720px]:px-3 min-[720px]:py-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-sm" aria-live="polite">
+                  {notice ?? status}
+                </p>
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  {game ? `${filled}/81` : "—"}
+                </p>
+              </div>
+              <div className="mt-1.5 h-1 overflow-hidden bg-muted min-[720px]:mt-2" aria-hidden="true">
+                <div
+                  className="h-full bg-primary transition-[width] duration-300"
+                  style={{ width: `${(filled / 81) * 100}%` }}
+                />
+              </div>
+              <p className="mt-1 text-xs tracking-wide text-muted-foreground min-[720px]:mt-2">
+                {game ? (
+                  <>
+                    <span className="uppercase">
+                      {game.won ? "Solved" : game.started ? "Playing" : "Ready"} · {game.difficulty}
+                    </span>
+                    {" · "}
+                    {sourceLabel(game.source)}
+                    {showMistakes ? (
+                      <>
+                        {" · "}
+                        <span className={cn("tabular-nums", game.errors > 0 && "text-destructive")} aria-live="polite">
+                          {game.errors === 1 ? "1 error" : `${game.errors} errors`}
+                        </span>
+                      </>
+                    ) : null}
+                  </>
+                ) : (
+                  "Dealing"
+                )}
               </p>
             </div>
-            <div className="mt-1.5 h-1 overflow-hidden bg-muted min-[720px]:mt-2" aria-hidden="true">
-              <div
-                className="h-full bg-primary transition-[width] duration-300"
-                style={{ width: `${(filled / 81) * 100}%` }}
-              />
-            </div>
-            <p className="mt-1 text-xs tracking-wide text-muted-foreground min-[720px]:mt-2">
-              {game ? (
-                <>
-                  <span className="uppercase">
-                    {game.won ? "Solved" : game.started ? "Playing" : "Ready"} · {game.difficulty}
-                  </span>
-                  {" · "}
-                  {sourceLabel(game.source)}
-                  {showMistakes ? (
-                    <>
-                      {" · "}
-                      <span className={cn("tabular-nums", game.errors > 0 && "text-destructive")} aria-live="polite">
-                        {game.errors === 1 ? "1 error" : `${game.errors} errors`}
-                      </span>
-                    </>
-                  ) : null}
-                </>
-              ) : (
-                "Dealing"
-              )}
-            </p>
-          </div>
+          )}
 
           {error && game ? (
             <p className="text-sm text-destructive" role="alert">
@@ -357,7 +379,7 @@ export function Game() {
             <div
               className={cn(
                 "grid h-full min-h-0 w-full min-w-0 auto-rows-fr grid-cols-2 gap-1 max-[719px]:min-w-[5.5rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:auto-rows-auto min-[720px]:grid-rows-1",
-                prefs.entry === "button" ? "min-[720px]:grid-cols-7" : "min-[720px]:grid-cols-6",
+                prefs.entry === "button" ? "min-[720px]:grid-cols-8" : "min-[720px]:grid-cols-7",
               )}
             >
               {prefs.entry === "button" ? (
@@ -425,6 +447,19 @@ export function Game() {
                 {game && game.hintsUsed > 0 ? (
                   <span className="absolute top-0.5 right-0.5 text-[0.55rem] leading-none tabular-nums">{game.hintsUsed}</span>
                 ) : null}
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant={advice ? "default" : "outline"}
+                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
+                aria-label="Explain the next step"
+                title="Explain the next step"
+                aria-pressed={advice !== null}
+                disabled={lockedPlay}
+                onClick={advice ? closeAdvice : explain}
+              >
+                <GraduationCap />
               </Button>
               <Button
                 type="button"
