@@ -1,8 +1,8 @@
 # Sudoku specification
 
-This document describes the game as it is implemented. It is the baseline for later changes. A change to play, generation, or the screen should update this specification in the same branch.
+This document describes the game as it is implemented. It is the baseline for later changes. Any change the player can see or that changes what is stored (play, generation, the screen, high scores, backup, or sync) must update this specification in the same pull request.
 
-The product is a browser Sudoku. A new puzzle comes from Mt. Sudoku at the difficulty the player chooses. Each puzzle has one solution. Progress stays in that browser.
+The product is a browser Sudoku. A new puzzle comes from Mt. Sudoku at the difficulty the player chooses. Each puzzle has one solution. Progress is kept in that browser. A player who signs in can keep the current game and high scores the same on all their devices.
 
 ## Board
 
@@ -18,9 +18,9 @@ A new puzzle is requested from Mt. Sudoku at the chosen difficulty:
 
 `https://api.mtsudoku.com/v1/generate?mode=classic&difficulty=easy`
 
-`difficulty` is `easy`, `medium`, `hard`, `expert`, `master`, or `extreme`. The response is an 81-character puzzle and an 81-character solution. Empty cells are `0`.
+`difficulty` is `easy`, `medium`, `hard`, `expert`, `master`, or `extreme`. The response is an 81-character puzzle and an 81-character solution. Empty cells are `0` (a `.` is also accepted).
 
-The board is played when the returned difficulty matches the request, the solution is complete and legal, every given matches that solution, and the givens have exactly one solution. Anything else is treated as Mt. Sudoku not answering.
+The board is played when the returned difficulty matches the request, the solution is complete and legal, every given matches that solution, and the givens have exactly one solution. Anything else is treated as Mt. Sudoku not answering, and so is no answer within 8 seconds.
 
 If Mt. Sudoku does not answer, the built-in generator deals a puzzle at the same difficulty, and the player sees “Mt. Sudoku didn't answer, so this puzzle was dealt here.” The built-in generator builds a completed grid and removes digits while keeping exactly one solution. If a removal would leave zero solutions or more than one, that removal is undone.
 
@@ -109,19 +109,23 @@ If play has started and the puzzle is not solved, the dialog says “Deal a new 
 
 The clock starts on the first digit, note, erase, or hint. It shows minutes and seconds, and adds hours after 59:59. It stops on a win. Undo back to an unstarted grid resets it to 0:00.
 
-Pause covers the grid and stops the clock. Resume uncovers the grid and continues the clock only if play had started. Pause is unavailable after a win. The pause control, the P key, and Escape (when no dialog is open) toggle it.
+Pause covers the grid and stops the clock. Resume uncovers the grid and continues the clock only if play had started. Pause is unavailable after a win. The pause control and the P key toggle it. Escape, when no dialog is open, resumes a paused grid; it does not pause.
 
 ## Winning
 
-When the grid matches the solution, the clock stops and a solved panel covers the board. It shows the elapsed time, the difficulty, and the hint count (“no hints”, “1 hint”, or “N hints”). From there the player can replay the same givens or open the new-puzzle dialog and choose a difficulty.
+When the grid matches the solution, the clock stops and a solved panel covers the board. It shows the elapsed time, the difficulty, and the hint count (“no hints”, “1 hint”, or “N hints”). Under that, a line says where the game placed in the high scores (see High scores), or “Replayed puzzle, so it doesn't count toward records.” That line shows only for the win just played, not after a reload. From the panel the player can open High scores, replay the same givens (“Same puzzle”), or open the new-puzzle dialog and choose a difficulty.
 
 ## What is remembered
 
 The game is stored in the browser under `sudoku.desk.v1`. A saved game is restored on the next visit, including whether it came from Mt. Sudoku or was generated here. A saved record with no source is treated as generated. A saved record that is not a valid puzzle is ignored, and the next visit asks Mt. Sudoku for a medium puzzle.
 
-The record must have a completed, conflict-free solution. Every given must match the solution and be locked. Every locked cell in the working grid must match the solution. The error count is part of the saved game. A saved game with no error count is treated as 0. History and redo kept in storage are capped at 30 steps each. An error count stored on an older history step is ignored.
+The record must have a completed, conflict-free solution. Every given must match the solution and be locked. Every locked cell in the working grid must match the solution. The error count is part of the saved game. A saved game with no error count is treated as 0. History and redo kept in storage are capped at 100 steps each, the same as in play, so undo works the same after a refresh. An error count stored on an older history step is ignored.
 
 The clock is written about every five seconds while it is running, and again when the page is hidden or closed. Other moves are written as they happen.
+
+Each saved game carries `savedAt`, the time the player last changed it. Writes that change only the clock keep the old time, so a game left open does not become “newer”. A game a browser deals for itself on a first visit is saved with `savedAt` 0. Sync uses this time to choose between copies.
+
+High scores are stored under `sudoku.scores.v1`, and a random id for this browser under `sudoku.device`. While a sign-in email is waiting, its address is kept for an hour under `sudoku.signin-pending`.
 
 The color theme is stored separately under `sudoku.theme`, as the theme's id. With nothing stored, the page uses Paper or Lamplight to follow the device's light or dark setting. The older values `light` and `dark` map to those two.
 
@@ -131,9 +135,9 @@ How digits are entered, and whether conflicts are shown, are stored under `sudok
 
 The page fills the browser window. From a window width of 720 pixels, the board is the largest square that fits beside the controls, which are a fixed column on the right.
 
-The clock, pause, preferences, and new puzzle sit in the header. Preferences and new puzzle are icons. Preferences opens a dialog for the entry method, for showing or hiding conflicts, and for the color theme. Each theme is one file in `src/themes`, listed in `src/themes/index.ts`. New puzzle opens the difficulty dialog. Escape closes either dialog.
+The clock, pause, preferences, high scores, and new puzzle sit in the header, in that order. Preferences, high scores, and new puzzle are icons. Preferences opens a dialog for the entry method, for showing or hiding conflicts, for the color theme, for resetting high scores, for backup files, and for sync. Each theme is one file in `src/themes`, listed in `src/themes/index.ts`. High scores opens the high-score tables. New puzzle opens the difficulty dialog. Escape closes any of these dialogs.
 
-Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, erase, undo, redo, hint, check, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other six remain. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and conflicts are chosen in dialogs, not in this column.
+Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, erase, undo, redo, hint, explain, check, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other seven remain. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and conflicts are chosen in dialogs, not in this column. From 720 pixels wide, a line under the board lists the main keys for the chosen entry method.
 
 Pencil marks are the largest size that still places all nine digits inside a cell. They are set in a handwritten face so they stay distinct from the printed digits.
 
@@ -161,6 +165,33 @@ These keys apply when a puzzle is on screen and a new grid is not being dealt. C
 
 After a win, only P is handled among the single-key shortcuts. P does not pause a solved grid. The undo chord still undoes. While paused, only P, Escape, and the undo chord are recognized. The undo chord does not change the board until the grid is resumed.
 
+## High scores
+
+Each solved puzzle is recorded once, the first time it is solved. A record keeps the puzzle's givens, when it was finished, the difficulty, the elapsed time, the hint count, the source, and the browser it was solved in. Replaying the same givens, or reloading a game that is already solved, does not add a record. Records are never edited after they are written.
+
+The High scores dialog shows the ten fastest records for one difficulty, with Weekly, Monthly, and All time tabs. It opens on the current puzzle's difficulty. Weeks start on Monday, and weeks and months follow the device's local time. Games solved with hints are ranked with the rest, marked with a lightbulb and their hint count. Each row shows the rank, the time, and the finish date, with the year on the All time tab. The game just won is highlighted.
+
+After a win, the solved panel names the best placing it earned. A first place names the longest period it leads: “Your first record on easy” (the only record at that difficulty), “New all-time best on hard”, “New monthly best on hard”, or “New weekly best on hard”. Otherwise it names the longest period in which the game made the top ten, such as “#3 all time on hard”, “#3 this month on hard”, or “#3 this week on hard”, and failing that “Outside this week's top 10 on hard”.
+
+Reset records in Preferences asks “Clear every high score? This can't be undone.” The player confirms with “Reset records” or keeps them with “Keep them”. A reset drops every record finished before that moment, on every device that syncs.
+
+## Backup files
+
+Preferences can download a backup file, `sudoku-backup-YYYY-MM-DD.json`, holding the current game and every high-score record. Loading one asks “Replace the current game with the one in the backup? High scores are combined, not replaced.” On “Load backup”, the backup's game, if it has one, replaces the current game and counts as changed just now, and its records are merged with the ones already here. A file that is not a valid backup changes nothing and reports “That file isn't a Sudoku backup.” A damaged game inside a backup is skipped, and damaged records are skipped one by one.
+
+## Sync
+
+A player can sign in with an email address to keep the current game and high scores the same on every device. Sync is offered only when a server is configured; otherwise the Sync row is hidden and nothing changes.
+
+Signing in sends an email. Tapping its link in the same browser signs in. Because a home-screen app on a phone keeps its own storage, the player can instead paste the link, or type the code, from the email into the Sync row. A link or code works once and expires. Signed in, the row shows the address, the sync status (“Syncing…”, “Synced at …”, “Can't reach the server. It will try again.”, or “Waiting to sync.”), and Sign out.
+
+Each sync compares this browser's copy with the server's:
+
+- Current game: the copy with the later `savedAt` wins and replaces the other. A brand-new browser's first deal never replaces a game from another device. A game that arrives already solved does not add a high score here.
+- High scores: the two lists are merged. Nothing is lost, only the first finish of each puzzle is kept, and the later reset wins.
+
+Sync runs on sign-in, when the page is shown or hidden, when the network comes back, every 30 seconds while the page is visible, and after a win, a records reset, or loading a backup. Play never waits on it. When the server can't be reached, the game carries on from this browser and the next sync catches up.
+
 ## What this version does not do
 
-There is no account, no shared puzzle, no scoreboard, and no printed copy. Mt. Sudoku deals the difficulty the player chose. The built-in generator’s difficulty is the clue count above. Pencil marks are not checked for correctness on their own.
+There is no shared puzzle, no public scoreboard, and no printed copy. High scores are the player's own, and sign-in exists only for sync. Mt. Sudoku deals the difficulty the player chose. The built-in generator’s difficulty is the clue count above. Pencil marks are not checked for correctness on their own.
