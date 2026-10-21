@@ -12,7 +12,8 @@ import { ThemePicker } from "./theme-picker";
 import type { useSync } from "./use-sync";
 
 type Sync = ReturnType<typeof useSync>;
-import type { Pending } from "./use-game";
+import { pendingCopy } from "@/lib/labels";
+import type { Pending } from "@/lib/pending";
 
 // Base UI moves focus into the dialog, keeps it there while open, and returns
 // it to whatever had focus before (usually the button that opened it).
@@ -438,14 +439,6 @@ function SyncRow({ sync }: { sync: Sync }) {
       )}
     </div>
   );
-}
-
-function pendingCopy(pending: Pending, started: boolean): string {
-  if (pending.kind === "restart") {
-    return "Clear every number you wrote? The given digits stay.";
-  }
-  if (started) return "Deal a new puzzle? This grid will be replaced.";
-  return "Choose a difficulty.";
 }
 
 export function PendingDialog({

@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { nextTap, type Tap } from "@/lib/entry";
+import { chooseEntry, type Tap } from "@/lib/entry";
 import {
   countExplanation,
   createGame,
   createGameFromPuzzle,
   erase,
   hint,
-  inputDigit,
   moveSelection,
   redo,
   restart,
@@ -28,6 +27,16 @@ import {
 } from "@/lib/prefs";
 import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
 import { importBackup } from "@/lib/backup";
+import type { Pending } from "@/lib/pending";
+import {
+  checkResult,
+  clearEntriesAction,
+  digitAllowed,
+  explanationCounts,
+  isNewWin,
+  keyCommand,
+  pressDigit,
+} from "@/lib/play";
 import { loadGame, saveGame } from "@/lib/storage";
 import { nextStep, type Advice } from "@/lib/steps";
 import { useSync } from "./use-sync";
@@ -41,6 +50,8 @@ import {
   type Grid,
 } from "@/lib/sudoku";
 
+export type { Pending } from "@/lib/pending";
+
 /**
  * An explanation from the step finder, tied to the grid it was worked out
  * for. Every move builds a new grid array, so comparing references (like
@@ -48,20 +59,11 @@ import {
  */
 type Explained = { grid: Grid; advice: Advice; index: number };
 
-export type Pending = { kind: "new" } | { kind: "restart" };
-
 /**
  * What the Solved screen says about records for the game just won: where it
  * placed, or that it was a replay (`placement` is null) and does not count.
  */
 export type LastWin = { puzzle: string; recordId: string | null; placement: string | null; hinted: boolean };
-
-const ARROW_STEPS: Record<string, [number, number]> = {
-  ArrowUp: [-1, 0],
-  ArrowDown: [1, 0],
-  ArrowLeft: [0, -1],
-  ArrowRight: [0, 1],
-};
 
 export function useGame() {
   const [game, setGame] = useState<GameState | null>(null);
@@ -133,7 +135,7 @@ export function useGame() {
   // covers "Same puzzle" replays.
   useEffect(() => {
     const won = game ? game.won : null;
-    if (game && won && wasWonRef.current === false) {
+    if (game && isNewWin(wasWonRef.current, game.won)) {
       const record = recordWin(game);
       // Setting state from an effect costs one extra render; that is fine
       // here because it happens once per win.
@@ -314,14 +316,12 @@ export function useGame() {
 
   const requestRestart = useCallback(() => {
     const current = gameRef.current;
-    if (!current || !current.started) return;
-    if (current.won) {
-      setPrefsOpen(false);
-      apply(restart);
-      return;
-    }
+    if (!current) return;
+    const action = clearEntriesAction(current);
+    if (action === "none") return;
     setPrefsOpen(false);
-    setPending({ kind: "restart" });
+    if (action === "now") apply(restart);
+    else setPending({ kind: "restart" });
   }, [apply]);
 
   const confirmPending = useCallback(() => {
@@ -333,21 +333,15 @@ export function useGame() {
 
   const enterDigit = useCallback((digit: Digit) => {
     const current = gameRef.current;
-    if (!current) return;
-    if ((digitCounts(current.grid)[digit] ?? 0) >= 9) return;
+    if (!current || !digitAllowed(current.grid, digit)) return;
 
-    let asNote = current.notesMode;
-    if (prefsRef.current.entry === "tap") {
-      const cell = `${current.selected.r}-${current.selected.c}`;
-      const result = nextTap(tapRef.current, digit, cell, Date.now());
-      tapRef.current = result.tap;
-      asNote = result.action === "note";
-    }
+    const cell = `${current.selected.r}-${current.selected.c}`;
+    const { asNote, tap } = chooseEntry(prefsRef.current.entry, current.notesMode, tapRef.current, digit, cell, Date.now());
+    tapRef.current = tap;
 
-    apply((state) => {
-      if ((digitCounts(state.grid)[digit] ?? 0) >= 9) return state;
-      return inputDigit(state, digit, asNote);
-    });
+    // The guard runs again inside apply: React may run this update later,
+    // against a newer state than `current`.
+    apply((state) => pressDigit(state, digit, asNote));
   }, [apply]);
 
   const openPrefs = useCallback(() => {
@@ -396,53 +390,52 @@ export function useGame() {
     const onKey = (event: KeyboardEvent) => {
       const current = gameRef.current;
       if (!current || dealingRef.current) return;
-      const meta = event.metaKey || event.ctrlKey;
-      if (meta && event.key.toLowerCase() === "z") {
+      const command = keyCommand(event, {
+        dialogOpen: Boolean(pendingRef.current || prefsOpenRef.current || scoresOpenRef.current),
+        paused: current.paused,
+        won: current.won,
+        entry: prefsRef.current.entry,
+      });
+      if (!command) return;
+      // preventDefault stops the browser's own use of the key: scrolling for
+      // arrows, "back" for Backspace in some browsers, its own undo for ⌘Z.
+      // The only chord that gets this far is the undo chord.
+      if (command.kind === "move" || command.kind === "erase" || event.metaKey || event.ctrlKey) {
         event.preventDefault();
-        apply(event.shiftKey ? redo : undo);
-        return;
       }
-      if (meta || event.altKey) return;
-
-      if (event.key === "Escape") {
-        if (pendingRef.current) setPending(null);
-        else if (prefsOpenRef.current) setPrefsOpen(false);
-        else if (scoresOpenRef.current) setScoresOpen(false);
-        else if (current.paused) apply(togglePause);
-        return;
-      }
-
-      if (pendingRef.current || prefsOpenRef.current || scoresOpenRef.current) return;
-
-      if (current.paused) {
-        if (event.key.toLowerCase() === "p") apply(togglePause);
-        return;
-      }
-
-      if (current.won && event.key.toLowerCase() !== "p") return;
-
-      const step = ARROW_STEPS[event.key];
-      if (step) {
-        event.preventDefault();
-        const [dr, dc] = step;
-        const { r, c } = moveSelection(current, dr, dc).selected;
-        apply((state) => moveSelection(state, dr, dc));
-        focusCell(r, c);
-      } else if (/^[1-9]$/.test(event.key)) {
-        enterDigit(Number(event.key) as Digit);
-      } else if (event.key === "Backspace" || event.key === "Delete" || event.key === "0") {
-        event.preventDefault();
-        apply(erase);
-      } else if (event.key.toLowerCase() === "n") {
-        if (prefsRef.current.entry === "button") apply(toggleNotesMode);
-      } else if (event.key.toLowerCase() === "p") {
-        apply(togglePause);
-      } else if (event.key.toLowerCase() === "u") {
-        apply(undo);
-      } else if (event.key.toLowerCase() === "y") {
-        apply(redo);
-      } else if (event.key.toLowerCase() === "h") {
-        apply(hint);
+      switch (command.kind) {
+        case "dismiss":
+          if (pendingRef.current) setPending(null);
+          else if (prefsOpenRef.current) setPrefsOpen(false);
+          else setScoresOpen(false);
+          break;
+        case "move": {
+          const { r, c } = moveSelection(current, command.dr, command.dc).selected;
+          apply((state) => moveSelection(state, command.dr, command.dc));
+          focusCell(r, c);
+          break;
+        }
+        case "digit":
+          enterDigit(command.digit);
+          break;
+        case "erase":
+          apply(erase);
+          break;
+        case "notes":
+          apply(toggleNotesMode);
+          break;
+        case "pause":
+          apply(togglePause);
+          break;
+        case "undo":
+          apply(undo);
+          break;
+        case "redo":
+          apply(redo);
+          break;
+        case "hint":
+          apply(hint);
+          break;
       }
     };
 
@@ -453,24 +446,11 @@ export function useGame() {
   const check = useCallback(() => {
     const current = gameRef.current;
     if (!current) return;
-    const conflicts = conflictCount(current.grid);
-    const left = 81 - countClues(current.grid);
-    if (current.won) {
-      setNotice("This grid is already solved.");
-      return;
+    const result = checkResult(current.grid, current.won);
+    if (result.revealConflicts && (!current.showMistakes || !prefsRef.current.showConflicts)) {
+      applyShowConflicts(true);
     }
-    if (conflicts > 0) {
-      if (!current.showMistakes || !prefsRef.current.showConflicts) applyShowConflicts(true);
-      setNotice(conflicts === 1 ? "One digit is repeated." : `${conflicts} cells repeat a digit.`);
-      return;
-    }
-    if (left === 0) {
-      setNotice("The grid is full, but it isn't the solution.");
-      return;
-    }
-    setNotice(
-      left === 1 ? "No repeats yet. One cell is still open." : `No repeats yet. ${left} cells are still open.`,
-    );
+    setNotice(result.text);
   }, [applyShowConflicts]);
 
   // Works out the next step for the board as it stands, without changing it.
@@ -482,8 +462,7 @@ export function useGame() {
     if (!current || current.paused || current.won) return;
     const advice = nextStep(current.grid, current.solution, current.locked);
     setExplained({ grid: current.grid, advice, index: 0 });
-    const helps = advice.kind === "steps" || advice.kind === "mistake";
-    if (helps && countedGridRef.current !== current.grid) {
+    if (explanationCounts(advice, countedGridRef.current === current.grid)) {
       countedGridRef.current = current.grid;
       apply(countExplanation);
     } else {

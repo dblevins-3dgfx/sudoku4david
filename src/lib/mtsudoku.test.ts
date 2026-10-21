@@ -75,3 +75,47 @@ function hangingFetch(_input: RequestInfo | URL, init?: RequestInit): Promise<Re
     });
   });
 }
+
+// The spec's validation rules for a Mt. Sudoku board, one per test.
+describe("mt sudoku board rules", () => {
+  const { puzzle, solution } = createPuzzle("easy", mulberry32(4));
+  const read = (fields: { puzzle?: unknown; solution?: unknown; difficulty?: unknown }) =>
+    parseMtSudokuBoard({ puzzle: pack(puzzle), solution: pack(solution), difficulty: "easy", ...fields }, "easy");
+
+  it("accepts '.' as well as '0' for an empty cell", () => {
+    const dotted = pack(puzzle).replaceAll("0", ".");
+    assert.deepEqual(read({ puzzle: dotted }).puzzle, puzzle);
+  });
+
+  it("rejects a solution with an empty cell", () => {
+    assert.throws(() => read({ solution: "0" + pack(solution).slice(1) }));
+    assert.throws(() => read({ solution: "." + pack(solution).slice(1) }));
+  });
+
+  it("rejects a solution that repeats a digit", () => {
+    const text = pack(solution);
+    const other = text[0] === "1" ? "2" : "1";
+    assert.throws(() => read({ solution: other + text.slice(1) }));
+  });
+
+  it("rejects givens with more than one solution", () => {
+    assert.throws(() => read({ puzzle: "0".repeat(81) }));
+  });
+
+  it("rejects text that is not 81 digits", () => {
+    assert.throws(() => read({ puzzle: pack(puzzle).slice(1) }));
+    assert.throws(() => read({ puzzle: "x" + pack(puzzle).slice(1) }));
+    assert.throws(() => read({ puzzle: 7 }));
+    assert.throws(() => parseMtSudokuBoard(null, "easy"));
+  });
+
+  it("treats an error status as no answer", async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response("busy", { status: 503 });
+    try {
+      await assert.rejects(fetchMtSudokuPuzzle("easy"));
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+});
