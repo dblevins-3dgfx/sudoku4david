@@ -28,3 +28,21 @@ export function nextTap(
   }
   return { action: "note", tap: { digit, cell, at: now } };
 }
+
+/**
+ * Whether a digit press writes a note, for either entry method, and the tap
+ * to remember for the next press. With the notes button the pencil decides
+ * and the remembered tap is left as it was.
+ */
+export function chooseEntry(
+  entry: "button" | "tap",
+  notesMode: boolean,
+  previous: Tap | null,
+  digit: Digit,
+  cell: string,
+  now: number,
+): { asNote: boolean; tap: Tap | null } {
+  if (entry === "button") return { asNote: notesMode, tap: previous };
+  const result = nextTap(previous, digit, cell, now);
+  return { asNote: result.action === "note", tap: result.tap };
+}

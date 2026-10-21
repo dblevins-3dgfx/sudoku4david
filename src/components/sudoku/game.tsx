@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { sourceLabel } from "@/lib/game";
+import { errorsText, keypadBadge, phaseText, statusText, winDetail } from "@/lib/labels";
 import { puzzleKey } from "@/lib/records";
 import { formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
@@ -25,11 +26,6 @@ import { PendingDialog, PrefsDialog } from "./dialogs";
 import { HighScoresDialog } from "./high-scores";
 import { adviceMarks, StepPanel } from "./step-panel";
 import { useGame } from "./use-game";
-
-function winDetail(hintsUsed: number, elapsedMs: number, difficulty: string): string {
-  const hints = hintsUsed === 0 ? "no hints" : hintsUsed === 1 ? "1 hint" : `${hintsUsed} hints`;
-  return `${formatTime(elapsedMs)} on ${difficulty}, ${hints}.`;
-}
 
 export function Game() {
   const desk = useGame();
@@ -85,19 +81,7 @@ export function Game() {
   const noteMask = game ? game.notes[game.selected.r][game.selected.c] : 0;
   const open = 81 - filled;
   const showMistakes = game?.showMistakes ?? true;
-  const status = !game
-    ? "Preparing a grid"
-    : game.won
-      ? "Solved"
-      : game.paused
-        ? "Paused"
-        : showMistakes && conflictTotal > 0
-          ? conflictTotal === 1
-            ? "1 conflict"
-            : `${conflictTotal} conflicts`
-          : open === 1
-            ? "1 cell open"
-            : `${open} cells open`;
+  const status = statusText(game, conflictTotal, open);
 
   const canHint =
     !!game &&
@@ -301,7 +285,7 @@ export function Game() {
                 {game ? (
                   <>
                     <span className="uppercase">
-                      {game.won ? "Solved" : game.started ? "Playing" : "Ready"} · {game.difficulty}
+                      {phaseText(game)}
                     </span>
                     {" · "}
                     {sourceLabel(game.source)}
@@ -309,7 +293,7 @@ export function Game() {
                       <>
                         {" · "}
                         <span className={cn("tabular-nums", game.errors > 0 && "text-destructive")} aria-live="polite">
-                          {game.errors === 1 ? "1 error" : `${game.errors} errors`}
+                          {errorsText(game.errors)}
                         </span>
                       </>
                     ) : null}
@@ -331,9 +315,7 @@ export function Game() {
             <div className="digit-slot flex items-start justify-start max-[719px]:aspect-square max-[719px]:h-full max-[719px]:min-h-0 max-[719px]:max-w-[calc(100%-5.5rem)] min-[720px]:aspect-square min-[720px]:w-full min-[720px]:flex-none min-[720px]:items-center min-[720px]:justify-center">
               <div className="digit-pad grid grid-cols-3 grid-rows-3 gap-1" aria-label="Digits">
                 {([1, 2, 3, 4, 5, 6, 7, 8, 9] as Digit[]).map((digit) => {
-                  const placed = counts[digit] ?? 0;
-                  const remaining = Math.max(0, 9 - placed);
-                  const exhausted = remaining === 0;
+                  const { remaining, exhausted, over } = keypadBadge(counts[digit] ?? 0);
                   const marked = selectedValue === 0 && (noteMask & (1 << digit)) !== 0;
                   const pressed =
                     !exhausted &&
@@ -365,7 +347,7 @@ export function Game() {
                       <span
                         className={cn(
                           "absolute top-0.5 right-1 text-[0.6rem] font-medium tabular-nums opacity-70 min-[720px]:top-1 min-[720px]:right-1.5 min-[720px]:text-[0.65rem]",
-                          placed > 9 && "text-destructive opacity-100",
+                          over && "text-destructive opacity-100",
                         )}
                       >
                         {remaining}
