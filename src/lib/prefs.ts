@@ -4,13 +4,31 @@ export type EntryMethod = "button" | "tap";
 
 export type Preferences = {
   entry: EntryMethod;
+  /**
+   * The Error checking helpers: shown conflicts, the error count, and Check.
+   * It keeps the field's original name so records saved before Available
+   * helpers existed keep the player's choice.
+   */
   showConflicts: boolean;
+  /** Hint and Explain. */
+  solvingHelp: boolean;
+  /** Tidying pencil marks after a digit is placed. */
+  noteHelpers: boolean;
+  /** Peer and same-digit tints, highlighted marks, and the keypad counts. */
+  highlighting: boolean;
 };
 
 export const DEFAULT_PREFERENCES: Preferences = {
   entry: "button",
   showConflicts: true,
+  solvingHelp: true,
+  noteHelpers: true,
+  highlighting: true,
 };
+
+function flag(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
 
 /**
  * Reads a stored preferences record one field at a time. A field that is
@@ -24,12 +42,15 @@ export function parsePreferences(raw: unknown, fallback: Preferences = DEFAULT_P
   const data = raw as Partial<Record<keyof Preferences, unknown>>;
   return {
     entry: data.entry === "button" || data.entry === "tap" ? data.entry : fallback.entry,
-    showConflicts: typeof data.showConflicts === "boolean" ? data.showConflicts : fallback.showConflicts,
+    showConflicts: flag(data.showConflicts, fallback.showConflicts),
+    solvingHelp: flag(data.solvingHelp, fallback.solvingHelp),
+    noteHelpers: flag(data.noteHelpers, fallback.noteHelpers),
+    highlighting: flag(data.highlighting, fallback.highlighting),
   };
 }
 
 export function loadPreferences(fallbackShowConflicts = true): Preferences {
-  const fallback: Preferences = { entry: "button", showConflicts: fallbackShowConflicts };
+  const fallback: Preferences = { ...DEFAULT_PREFERENCES, showConflicts: fallbackShowConflicts };
   if (typeof window === "undefined") return fallback;
   try {
     const raw = localStorage.getItem(PREFS_STORAGE_KEY);

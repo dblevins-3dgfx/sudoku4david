@@ -1,10 +1,5 @@
-import type { EntryMethod } from "./prefs";
-
-/**
- * The helper groups that Preferences will be able to switch off (issue #69).
- * A control with no group is part of basic play and is always offered.
- */
-export type HelperGroup = "solving" | "checking" | "notes" | "highlighting" | "guessing";
+import { helperOn, type HelperGroup } from "./helpers";
+import type { EntryMethod, Preferences } from "./prefs";
 
 export type ControlId = "notes" | "erase" | "undo" | "redo" | "hint" | "explain" | "check" | "clear";
 
@@ -12,6 +7,7 @@ export type ControlSpec = {
   id: ControlId;
   /** Shown as the tooltip and read by screen readers. */
   label: string;
+  /** The Available helpers group that offers it; null for basic play, always shown. */
   group: HelperGroup | null;
   /** Entry methods that show this control; omitted means every method. */
   entry?: readonly EntryMethod[];
@@ -32,7 +28,10 @@ export const CONTROLS: readonly ControlSpec[] = [
   { id: "clear", label: "Clear entries", group: null },
 ];
 
-/** The controls shown for this entry method, in screen order. */
-export function visibleControls(entry: EntryMethod): ControlSpec[] {
-  return CONTROLS.filter((control) => !control.entry || control.entry.includes(entry));
+/** The controls shown for these preferences, in screen order. */
+export function visibleControls(prefs: Preferences): ControlSpec[] {
+  return CONTROLS.filter(
+    (control) =>
+      (!control.entry || control.entry.includes(prefs.entry)) && (!control.group || helperOn(prefs, control.group)),
+  );
 }

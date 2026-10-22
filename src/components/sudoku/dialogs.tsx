@@ -1,9 +1,11 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
+import { Switch } from "@base-ui/react/switch";
 import { useRef, useState, type ReactNode } from "react";
 import { backupFileName, exportBackup } from "@/lib/backup";
 import { Button } from "@/components/ui/button";
+import { HELPER_SWITCHES, helperOn, type SwitchedGroup } from "@/lib/helpers";
 import type { Preferences } from "@/lib/prefs";
 import { parseSignInProof } from "@/lib/remote";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
@@ -49,16 +51,11 @@ const ENTRY_OPTIONS: PrefOption<Preferences["entry"]>[] = [
   { value: "tap", label: "One tap, two taps", detail: "One tap marks the cell. A second tap writes the digit." },
 ];
 
-const CONFLICT_OPTIONS: PrefOption<"shown" | "hidden">[] = [
-  { value: "shown", label: "Shown", detail: "Repeated digits are highlighted." },
-  { value: "hidden", label: "Hidden", detail: "Check still finds repeats when you ask." },
-];
-
 export function PrefsDialog({
   open,
   prefs,
   onEntry,
-  onShowConflicts,
+  onHelper,
   onResetRecords,
   onRestoreBackup,
   sync,
@@ -67,7 +64,7 @@ export function PrefsDialog({
   open: boolean;
   prefs: Preferences;
   onEntry: (entry: Preferences["entry"]) => void;
-  onShowConflicts: (show: boolean) => void;
+  onHelper: (group: SwitchedGroup, on: boolean) => void;
   onResetRecords: () => void;
   onRestoreBackup: (text: string) => boolean;
   sync: Sync;
@@ -82,12 +79,7 @@ export function PrefsDialog({
         options={ENTRY_OPTIONS}
         onChange={onEntry}
       />
-      <PrefSelect
-        label="Conflicts"
-        value={prefs.showConflicts ? "shown" : "hidden"}
-        options={CONFLICT_OPTIONS}
-        onChange={(choice) => onShowConflicts(choice === "shown")}
-      />
+      <HelperSwitches prefs={prefs} onHelper={onHelper} />
       <ThemePicker />
       <RecordsReset onReset={onResetRecords} />
       <BackupRow onRestore={onRestoreBackup} />
@@ -96,6 +88,45 @@ export function PrefsDialog({
         Done
       </Button>
     </DeskDialog>
+  );
+}
+
+/**
+ * Available helpers: one on/off switch per group of helpers. Base UI's Switch
+ * is a button with the ARIA "switch" role, so screen readers announce it as
+ * on or off; wrapping it in a <label> makes the words clickable too. The
+ * data-checked attribute it sets lets the classes below color the track and move the thumb.
+ */
+function HelperSwitches({
+  prefs,
+  onHelper,
+}: {
+  prefs: Preferences;
+  onHelper: (group: SwitchedGroup, on: boolean) => void;
+}) {
+  return (
+    <div role="group" aria-labelledby="helpers-heading" className="mt-3">
+      <p id="helpers-heading" className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+        Available helpers
+      </p>
+      <div className="mt-1 flex flex-col">
+        {HELPER_SWITCHES.map(({ group, label, detail }) => (
+          <label key={group} className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
+            <span className="flex min-w-0 flex-col">
+              <span className="text-sm">{label}</span>
+              <span className="text-xs text-muted-foreground">{detail}</span>
+            </span>
+            <Switch.Root
+              checked={helperOn(prefs, group)}
+              onCheckedChange={(checked) => onHelper(group, checked)}
+              className="relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border border-border bg-muted p-0.5 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 data-[checked]:border-primary data-[checked]:bg-primary"
+            >
+              <Switch.Thumb className="block size-[1.125rem] rounded-full bg-background shadow-sm transition-transform data-[checked]:translate-x-4" />
+            </Switch.Root>
+          </label>
+        ))}
+      </div>
+    </div>
   );
 }
 

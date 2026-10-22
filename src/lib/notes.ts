@@ -53,12 +53,14 @@ export function clearDigitEverywhere(notes: Notes, digit: Digit) {
 
 /**
  * Tidies the marks after `digit` is written at (r, c), which `grid` already
- * holds: the cell's own marks go, `digit` leaves the marks in its row, column,
- * and box, and once nine copies are on the board it leaves every mark.
- * Changes `notes` in place, so callers pass a copy.
+ * holds: the cell's own marks go. With the note helpers on (`tidy`), `digit`
+ * also leaves the marks in its row, column, and box, and once nine copies are
+ * on the board it leaves every mark. Changes `notes` in place, so callers pass
+ * a copy.
  */
-export function notesAfterPlacing(grid: Grid, notes: Notes, r: number, c: number, digit: Digit) {
+export function notesAfterPlacing(grid: Grid, notes: Notes, r: number, c: number, digit: Digit, tidy = true) {
   notes[r][c] = 0;
+  if (!tidy) return;
   clearDigitNotes(notes, r, c, digit);
   if (countDigit(grid, digit) >= 9) clearDigitEverywhere(notes, digit);
 }

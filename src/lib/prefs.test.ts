@@ -1,17 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { loadPreferences, parsePreferences, PREFS_STORAGE_KEY } from "./prefs";
+import { DEFAULT_PREFERENCES, loadPreferences, parsePreferences, PREFS_STORAGE_KEY } from "./prefs";
+
+const ON = { solvingHelp: true, noteHelpers: true, highlighting: true };
 
 describe("preferences", () => {
   it("reads a complete record", () => {
-    assert.deepEqual(parsePreferences({ entry: "tap", showConflicts: false }), {
-      entry: "tap",
-      showConflicts: false,
-    });
-    assert.deepEqual(parsePreferences({ entry: "button", showConflicts: true }), {
-      entry: "button",
-      showConflicts: true,
-    });
+    assert.deepEqual(parsePreferences({ entry: "tap", showConflicts: false, ...ON }), { entry: "tap", showConflicts: false, ...ON });
+    assert.deepEqual(parsePreferences({ entry: "button", showConflicts: true, ...ON }), { entry: "button", showConflicts: true, ...ON });
   });
 
   it("rejects a record that is not an object", () => {
@@ -21,24 +17,30 @@ describe("preferences", () => {
   });
 
   it("fills a missing or invalid field from the fallback and keeps the rest", () => {
-    assert.deepEqual(parsePreferences({ entry: "tap" }), { entry: "tap", showConflicts: true });
-    assert.deepEqual(parsePreferences({ showConflicts: false }), { entry: "button", showConflicts: false });
-    assert.deepEqual(parsePreferences({ entry: "pencil", showConflicts: false }), {
-      entry: "button",
-      showConflicts: false,
-    });
-    assert.deepEqual(parsePreferences({ entry: "tap", showConflicts: "yes" }), { entry: "tap", showConflicts: true });
-    assert.deepEqual(parsePreferences({ entry: "tap" }, { entry: "button", showConflicts: false }), {
+    assert.deepEqual(parsePreferences({ entry: "tap" }), { entry: "tap", showConflicts: true, ...ON });
+    assert.deepEqual(parsePreferences({ showConflicts: false }), { entry: "button", showConflicts: false, ...ON });
+    assert.deepEqual(parsePreferences({ entry: "pencil", showConflicts: false, ...ON }), { entry: "button", showConflicts: false, ...ON });
+    assert.deepEqual(parsePreferences({ entry: "tap", showConflicts: "yes" }), { entry: "tap", showConflicts: true, ...ON });
+    assert.deepEqual(parsePreferences({ entry: "tap" }, { entry: "button", showConflicts: false, ...ON }), { entry: "tap", showConflicts: false, ...ON });
+  });
+
+  it("gives a record saved before Available helpers every helper on, keeping its conflicts choice", () => {
+    assert.deepEqual(parsePreferences({ entry: "tap", showConflicts: false }), {
+      ...DEFAULT_PREFERENCES,
       entry: "tap",
       showConflicts: false,
     });
   });
 
+  it("reads each helper switch, and falls back for an invalid one", () => {
+    assert.deepEqual(
+      parsePreferences({ entry: "button", showConflicts: true, solvingHelp: false, noteHelpers: false, highlighting: "no" }),
+      { entry: "button", showConflicts: true, solvingHelp: false, noteHelpers: false, highlighting: true },
+    );
+  });
+
   it("ignores fields it does not know", () => {
-    assert.deepEqual(parsePreferences({ entry: "tap", showConflicts: false, later: 1 }), {
-      entry: "tap",
-      showConflicts: false,
-    });
+    assert.deepEqual(parsePreferences({ entry: "tap", showConflicts: false, later: 1 }), { entry: "tap", showConflicts: false, ...ON });
   });
 });
 
@@ -61,7 +63,7 @@ describe("stored preferences", () => {
   }
 
   it("default to the notes button with conflicts shown", () => {
-    withStorage({}, () => assert.deepEqual(loadPreferences(), { entry: "button", showConflicts: true }));
+    withStorage({}, () => assert.deepEqual(loadPreferences(), { entry: "button", showConflicts: true, ...ON }));
   });
 
   it("keep a saved game's conflict setting on a first visit with no preferences", () => {
@@ -71,14 +73,14 @@ describe("stored preferences", () => {
   it("take a field missing from stored preferences from the saved game's setting", () => {
     const stored = JSON.stringify({ entry: "tap" });
     withStorage({ [PREFS_STORAGE_KEY]: stored }, () =>
-      assert.deepEqual(loadPreferences(false), { entry: "tap", showConflicts: false }),
+      assert.deepEqual(loadPreferences(false), { entry: "tap", showConflicts: false, ...ON }),
     );
   });
 
   it("use stored preferences over the saved game's setting", () => {
-    const stored = JSON.stringify({ entry: "tap", showConflicts: true });
+    const stored = JSON.stringify({ entry: "tap", showConflicts: true, ...ON });
     withStorage({ [PREFS_STORAGE_KEY]: stored }, () =>
-      assert.deepEqual(loadPreferences(false), { entry: "tap", showConflicts: true }),
+      assert.deepEqual(loadPreferences(false), { entry: "tap", showConflicts: true, ...ON }),
     );
   });
 });

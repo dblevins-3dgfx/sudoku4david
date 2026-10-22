@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { visibleControls, type ControlId } from "@/lib/controls";
+import { helperOn } from "@/lib/helpers";
 import { sourceLabel } from "@/lib/game";
 import { errorsText, keypadBadge, phaseText, statusText, winDetail } from "@/lib/labels";
 import { puzzleKey } from "@/lib/records";
@@ -100,7 +101,7 @@ export function Game() {
     restoreBackup,
     sync,
     setEntry,
-    setShowConflicts,
+    setHelper,
     select,
     input,
     eraseCell,
@@ -126,6 +127,8 @@ export function Game() {
   const open = 81 - filled;
   const showMistakes = game?.showMistakes ?? true;
   const status = statusText(game, conflictTotal, open);
+  // Board highlighting also covers the keypad's "still missing" counts.
+  const highlighting = helperOn(prefs, "highlighting");
 
   const canHint =
     !!game &&
@@ -156,7 +159,7 @@ export function Game() {
     check: { disabled: !game || busy || game.paused, onClick: check },
     clear: { disabled: !game || !game.started || busy, onClick: requestRestart },
   };
-  const controls = visibleControls(prefs.entry);
+  const controls = visibleControls(prefs);
 
   return (
     <div className="desk-page mx-auto flex min-h-0 w-full max-w-[1100px] flex-1 flex-col gap-1.5 px-1.5 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] min-[720px]:gap-3 min-[720px]:px-5 min-[720px]:py-3">
@@ -261,6 +264,7 @@ export function Game() {
                     game={game}
                     conflicts={conflicts}
                     marks={advice ? adviceMarks(advice) : null}
+                    highlighting={highlighting}
                     flash={hintFlash}
                     onFlashEnd={clearHintFlash}
                     onSelect={select}
@@ -408,21 +412,25 @@ export function Game() {
                       aria-label={
                         exhausted
                           ? `Enter ${digit}, all nine placed`
-                          : `Enter ${digit}, ${remaining} still missing`
+                          : highlighting
+                            ? `Enter ${digit}, ${remaining} still missing`
+                            : `Enter ${digit}`
                       }
                       aria-pressed={pressed}
                       disabled={lockedPlay || exhausted}
                       onClick={() => input(digit)}
                     >
                       {digit}
-                      <span
-                        className={cn(
-                          "absolute top-0.5 right-1 text-[0.6rem] font-medium tabular-nums opacity-70 min-[720px]:top-1 min-[720px]:right-1.5 min-[720px]:text-[0.65rem]",
-                          over && "text-destructive opacity-100",
-                        )}
-                      >
-                        {remaining}
-                      </span>
+                      {highlighting ? (
+                        <span
+                          className={cn(
+                            "absolute top-0.5 right-1 text-[0.6rem] font-medium tabular-nums opacity-70 min-[720px]:top-1 min-[720px]:right-1.5 min-[720px]:text-[0.65rem]",
+                            over && "text-destructive opacity-100",
+                          )}
+                        >
+                          {remaining}
+                        </span>
+                      ) : null}
                     </Button>
                   );
                 })}
@@ -471,7 +479,7 @@ export function Game() {
         open={prefsOpen}
         prefs={prefs}
         onEntry={setEntry}
-        onShowConflicts={setShowConflicts}
+        onHelper={setHelper}
         onResetRecords={resetRecords}
         onRestoreBackup={restoreBackup}
         sync={sync}
