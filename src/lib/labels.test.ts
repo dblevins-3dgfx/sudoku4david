@@ -1,8 +1,8 @@
 // The screen's wording from SPEC.md.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createGameFromPuzzle, hint, inputDigit, togglePause } from "./game";
-import { errorsText, hintNotice, hintsText, keypadBadge, pendingCopy, phaseText, statusText, winDetail } from "./labels";
+import { createGameFromPuzzle, fillNotes, hint, inputDigit, togglePause } from "./game";
+import { errorsText, fillNotice, hintNotice, hintsText, keypadBadge, pendingCopy, phaseText, statusText, winDetail } from "./labels";
 import { conflictCount, createPuzzle, emptyGrid, mulberry32, type Digit } from "./sudoku";
 
 const { puzzle, solution } = createPuzzle("easy", mulberry32(8));
@@ -79,5 +79,20 @@ describe("Hints: the notice after Hint", () => {
   it("says nothing when Hint did nothing", () => {
     const paused = togglePause(fresh());
     assert.equal(hintNotice(paused, hint(paused)), null);
+  });
+});
+
+describe("Entering digits: the notice after Fill all notes", () => {
+  it("names the seconds the fill added", () => {
+    const before = fresh();
+    const after = fillNotes(before);
+    const seconds = (after.elapsedMs - before.elapsedMs) / 1000;
+    assert.ok(seconds > 0);
+    assert.equal(fillNotice(before, after), `Fill all notes: +${seconds} s.`);
+  });
+
+  it("says nothing when the fill did nothing", () => {
+    const filled = fillNotes(fresh());
+    assert.equal(fillNotice(filled, fillNotes(filled)), null);
   });
 });

@@ -54,7 +54,7 @@ Writing a digit removes that cell's notes. With Note helpers on (see Available h
 
 Erase clears the selected cell's digit and its notes. It does nothing on a locked cell, or on a cell that is already empty and unmarked.
 
-Fill all notes replaces the marks in every empty cell with that cell's candidates: each digit not already in its row, column, or box. It works from the digits on the board alone and never looks at the solution, so a wrong digit on the board makes the filled marks wrong too. A digit with nine copies on the board is left out of every mark. Filled cells keep no marks. The whole fill is one undo step, so one undo puts back the marks the player had. It starts the clock, counts as no hint, and does not change the error count. It does nothing while paused, after a win, or when every mark already matches. It is offered while Note helpers is on.
+Fill all notes replaces the marks in every empty cell with that cell's candidates: each digit not already in its row, column, or box. It works from the digits on the board alone and never looks at the solution, so a wrong digit on the board makes the filled marks wrong too. A digit with nine copies on the board is left out of every mark. Filled cells keep no marks. The whole fill is one undo step, so one undo puts back the marks the player had. It starts the clock, counts as no hint, and does not change the error count. It adds one second to the clock for each mark it adds or removes in an empty cell; a mark the player already had that is one of the cell's candidates costs nothing. The status line then says “Fill all notes: +N s.” until the next key, tap, or selection on the board. Undo, redo, and Restore checkpoint do not give the time back. It does nothing while paused, after a win, or when every mark already matches. It is offered while Note helpers is on.
 
 With Board highlighting on, the digit keypad shows how many of that digit are still missing from a full nine. The badge stops at 0. If more than nine copies are on the board, that 0 is shown as an error. With Board highlighting off, there are no counts. Either way, when none are missing, the key is gray. The keypad and the number keys both ignore that digit, including in notes mode, until the count drops. Erase still clears the selected cell.
 
@@ -158,7 +158,7 @@ If play has started and the puzzle is not solved, the dialog says “Deal a new 
 
 ## Timer and pause
 
-The clock starts on the first digit, note, Fill all notes, erase, or hint. It shows minutes and seconds, and adds hours after 59:59. It stops on a win. Undo back to an unstarted grid resets it to 0:00.
+The clock starts on the first digit, note, Fill all notes, erase, or hint. It shows minutes and seconds, and adds hours after 59:59. It stops on a win. Fill all notes adds its time penalty to the clock (see Entering digits). Undo back to an unstarted grid resets it to 0:00.
 
 Pause covers the grid and stops the clock. Resume uncovers the grid and continues the clock only if play had started. Pause is unavailable after a win. The pause control and the P key toggle it. Escape, when no dialog is open, resumes a paused grid; it does not pause.
 

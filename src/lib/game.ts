@@ -12,6 +12,7 @@ import {
   candidateNotes,
   cloneNotes,
   emptyNotes,
+  fillPenaltySeconds,
   notesAfterPlacing,
   notesAreEmpty,
   notesEqual,
@@ -271,18 +272,23 @@ export function erase(state: GameState): GameState {
 /**
  * Fill all notes: replaces the marks in every empty cell with that cell's
  * candidates (see candidateNotes), as one undo step. It is not a hint and
- * does not touch the error count. Returns the same state, recording no step,
+ * does not touch the error count, but it adds one second to the clock for each
+ * mark it adds or removes (see fillPenaltySeconds). Returns the same state, recording no step,
  * when paused, after a win, or when the marks already match.
  */
 export function fillNotes(state: GameState): GameState {
   if (state.paused || state.won) return state;
   const notes = candidateNotes(state.grid);
   if (notesEqual(notes, state.notes)) return state;
+  // The penalty goes straight onto elapsedMs. Snapshots don't hold the clock,
+  // so undo, redo, and Restore checkpoint never give the time back.
+  const penaltyMs = fillPenaltySeconds(state.grid, state.notes, notes) * 1000;
   return {
     ...state,
     ...pushHistory(state),
     ...begin(state, false),
     notes,
+    elapsedMs: state.elapsedMs + penaltyMs,
   };
 }
 
