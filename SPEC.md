@@ -50,32 +50,45 @@ Preferences choose how a digit is entered. The default is the notes button.
 - Notes button. The pencil switches the keypad between marks and numbers. With notes off, the digit is written in the cell. Pressing the digit that is already there clears the cell, unless nine of that digit are already on the board. With notes on, the digit is toggled as a pencil mark in an empty cell. Marks on a filled cell are ignored.
 - One tap, two taps. The pencil is hidden. The first tap or keypress of a digit marks an empty cell. A second tap or keypress of that same digit on the same cell, within a short moment, writes the digit. On a filled cell the first press does nothing, and the second writes the digit, or clears the cell when it already holds that digit and fewer than nine copies are on the board. Each of those presses is its own undo step, so one undo after a fill returns the mark.
 
-Writing a digit removes that cell's notes, and removes that digit from the notes in the same row, column, and box. When that placement leaves nine of the digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. Marks do not have to be legal. A digit that already has nine copies on the board is ignored, so it cannot be added to a mark.
+Writing a digit removes that cell's notes. With Note helpers on (see Available helpers), it also removes that digit from the notes in the same row, column, and box, and when that placement leaves nine of the digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. With Note helpers off, other cells' notes are left as they are. Marks do not have to be legal. A digit that already has nine copies on the board is ignored, so it cannot be added to a mark.
 
 Erase clears the selected cell's digit and its notes. It does nothing on a locked cell, or on a cell that is already empty and unmarked.
 
-The digit keypad shows how many of that digit are still missing from a full nine. The badge stops at 0. If more than nine copies are on the board, that 0 is shown as an error. When none are missing, the key is gray. The keypad and the number keys both ignore that digit, including in notes mode, until the count drops. Erase still clears the selected cell.
+With Board highlighting on, the digit keypad shows how many of that digit are still missing from a full nine. The badge stops at 0. If more than nine copies are on the board, that 0 is shown as an error. With Board highlighting off, there are no counts. Either way, when none are missing, the key is gray. The keypad and the number keys both ignore that digit, including in notes mode, until the count drops. Erase still clears the selected cell.
 
 ## Conflicts
 
 A conflict is a filled cell whose digit also appears in the same row, column, or box. Empty cells are not conflicts.
 
-Conflicts are shown by default. Preferences can hide them. While they are shown, conflicting cells are marked on the board, and the status line reports “N conflicting cells”. A repeat always involves at least two cells, so there is no singular form.
+Conflicts are shown by default. They belong to Error checking (see Available helpers), and switching that off hides them. While they are shown, conflicting cells are marked on the board, and the status line reports “N conflicting cells”. A repeat always involves at least two cells, so there is no singular form.
 
-While conflicts are shown, the game keeps an error count and shows it on the phase line as “0 errors”, “1 error”, or “N errors”. The count starts at 0. It increases by one when a digit is entered and that cell then conflicts. A digit that does not conflict leaves the count unchanged. Notes, erase, hint, and a press that clears the cell do not increase it. Replacing a conflicting digit with one that does not conflict does not lower it. Undo and redo leave the count unchanged, including when undo returns the grid to the original puzzle. While conflicts are hidden, the count is not shown and does not increase. Showing them again shows the count already kept. Check turns conflicts on and does not add existing repeats to the count. Clear entries sets the count to 0. A new puzzle starts at 0.
+While conflicts are shown, the game keeps an error count and shows it on the phase line as “0 errors”, “1 error”, or “N errors”. The count starts at 0. It increases by one when a digit is entered and that cell then conflicts. A digit that does not conflict leaves the count unchanged. Notes, erase, hint, and a press that clears the cell do not increase it. Replacing a conflicting digit with one that does not conflict does not lower it. Undo and redo leave the count unchanged, including when undo returns the grid to the original puzzle. While conflicts are hidden, the count is not shown and does not increase. Showing them again shows the count already kept. Check does not add existing repeats to the count. Clear entries sets the count to 0. A new puzzle starts at 0.
 
-Check reports:
+Check is part of Error checking too, so it is offered only while conflicts are shown. Check reports:
 
 - Already solved: “This grid is already solved.”
-- Repeats: “N cells repeat a digit.” Check says this whether conflicts were already shown or hidden. If they were hidden, Check turns them on and stores that choice. The status line then reports “N conflicting cells” for those same cells.
+- Repeats: “N cells repeat a digit.” The status line then reports “N conflicting cells” for those same cells.
 - No repeats, grid full, but not the solution: “The grid is full, but it isn't the solution.”
 - No repeats, cells still open: “No repeats yet. One cell is still open.” or “No repeats yet. N cells are still open.”
 
+## Available helpers
+
+Preferences has an Available helpers section with one on/off switch for each group of helpers. Every group is on by default. Switching one applies at once, does not reset the puzzle, and is not an undo step. It does not change the hint total, the error count already kept, or high scores.
+
+| Switch | What it covers | When it is off |
+| --- | --- | --- |
+| Solving help | Hint and Explain | Their icons are hidden, H does nothing, and an open explanation closes |
+| Error checking | Conflicts, the error count, and Check | Conflicts are hidden, the error count is neither shown nor increased, and the Check icon is hidden |
+| Note helpers | Clearing a placed digit from other cells' notes, by digit entry or Hint | Placing a digit clears only that cell's own notes |
+| Board highlighting | Peer and same-digit tints, highlighted pencil marks, and the keypad's counts | Only the selected cell, conflicts, and an explanation's cells are tinted; the keypad shows no counts, but a digit with nine copies still grays out and is ignored |
+
+Undo and redo restore the board as it was saved, whichever switches were on when each step was recorded.
+
 ## Hints
 
-Hint fills one unlocked cell that is empty or wrong.
+Hint fills one unlocked cell that is empty or wrong. It is offered while Solving help is on (see Available helpers).
 
-It uses the selected cell when that cell qualifies. Otherwise it fixes the first wrong digit in reading order, and only when no digit is wrong does it fill the first empty cell in reading order. The filled digit is the solution digit. The cell becomes locked, its notes are cleared, and that digit is cleared from notes in the same row, column, and box. If the hint leaves nine of that digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. The hint counts toward the hint total, and the selection moves to that cell. Undo takes back the digit a hint filled, but not the hint: the hint total stays the same.
+It uses the selected cell when that cell qualifies. Otherwise it fixes the first wrong digit in reading order, and only when no digit is wrong does it fill the first empty cell in reading order. The filled digit is the solution digit. The cell becomes locked and its notes are cleared. With Note helpers on, that digit is also cleared from notes in the same row, column, and box, and if the hint leaves nine of that digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. The hint counts toward the hint total, and the selection moves to that cell. Undo takes back the digit a hint filled, but not the hint: the hint total stays the same.
 
 Hint does nothing when the puzzle is already solved, while the grid is paused, or when every unlocked cell already matches the solution.
 
@@ -83,7 +96,7 @@ After Hint fills a cell, the status line says which: “Hint: 7 in row 3, column
 
 ## Explaining the next step
 
-Explain works out the next logical step from the digits on the board and says why in plain words. It ignores pencil marks, which may be incomplete. It does not change the board. An explanation counts as a hint and starts the clock, unless Explain finds nothing it can explain. Asking again about the same board does not count again, and undo does not take the hint back.
+Explain works out the next logical step from the digits on the board and says why in plain words. Like Hint, it is offered while Solving help is on. It ignores pencil marks, which may be incomplete. It does not change the board. An explanation counts as a hint and starts the clock, unless Explain finds nothing it can explain. Asking again about the same board does not count again, and undo does not take the hint back.
 
 If an unlocked digit on the board is wrong, Explain names that cell first and offers to select it. Otherwise it works down the table below and uses the first technique that finds something. The two singles place a digit. The others take candidates out, and after each one Explain starts again from the singles. A candidate is a digit that can still go in a cell, worked out from the digits on the board.
 
@@ -155,21 +168,21 @@ High scores are stored under `sudoku.scores.v1`, and a random id for this browse
 
 The color theme is stored separately under `sudoku.theme`, as the theme's id. With nothing stored, the page uses Paper or Lamplight to follow the device's light or dark setting. The older values `light` and `dark` map to those two.
 
-How digits are entered, and whether conflicts are shown, are stored under `sudoku.prefs.v1`. The default entry method is the notes button, and conflicts are shown. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing either preference applies immediately and does not reset the puzzle. Hiding or showing conflicts is not an undo step.
+How digits are entered, and the Available helpers switches, are stored under `sudoku.prefs.v1`. Error checking is stored as `showConflicts`, the name it had before Available helpers, so an older record keeps its choice; the other switches are `solvingHelp`, `noteHelpers`, and `highlighting`. The default entry method is the notes button, and every helper is on. Each stored field is read on its own: a missing or invalid one takes its default and the others are kept. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing any preference applies immediately and does not reset the puzzle. Preferences stay in this browser; sync does not carry them. Changing a preference is not an undo step.
 
 ## Screen
 
 The page fills the browser window. From a window width of 720 pixels, the board is the largest square that fits beside the controls, which are a fixed column on the right.
 
-The clock, pause, preferences, high scores, and new puzzle sit in the header, in that order. Preferences, high scores, and new puzzle are icons. Preferences opens a dialog for the entry method, for showing or hiding conflicts, for the color theme, for resetting high scores, for backup files, and for sync. Each theme is one file in `src/themes`, listed in `src/themes/index.ts`. High scores opens the high-score tables. New puzzle opens the difficulty dialog. Escape closes any of these dialogs.
+The clock, pause, preferences, high scores, and new puzzle sit in the header, in that order. Preferences, high scores, and new puzzle are icons. Preferences opens a dialog for the entry method, for Available helpers, for the color theme, for resetting high scores, for backup files, and for sync. Each theme is one file in `src/themes`, listed in `src/themes/index.ts`. High scores opens the high-score tables. New puzzle opens the difficulty dialog. Escape closes any of these dialogs.
 
-Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, erase, undo, redo, hint, explain, check, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other seven remain. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and conflicts are chosen in dialogs, not in this column. From 720 pixels wide, a line under the board lists the main keys for the chosen entry method.
+Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, erase, undo, redo, hint, explain, check, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other seven remain. Hint and explain are hidden while Solving help is off, and check while Error checking is off; the icons left fill the same space. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and helpers are chosen in dialogs, not in this column. From 720 pixels wide, a line under the board lists the main keys for the chosen entry method.
 
 Pencil marks are the largest size that still places all nine digits inside a cell. They are set in a handwritten face so they stay distinct from the printed digits.
 
-Box borders are heavier than the lines between cells inside a box. Both stay visible as the board gets smaller. The selected cell is highlighted, peers in its row, column, and box are tinted, and other cells holding the same digit are tinted more strongly. Conflicts, when shown, use their own tint and take precedence over those three.
+Box borders are heavier than the lines between cells inside a box. Both stay visible as the board gets smaller. The selected cell is highlighted. With Board highlighting on, peers in its row, column, and box are tinted, and other cells holding the same digit are tinted more strongly. Conflicts, when shown, use their own tint and take precedence over those three.
 
-When the selected cell holds a digit, every pencil mark of that same digit is highlighted inside its cell. That mark is added on top of the cell tint. Selecting an empty cell does not highlight notes.
+With Board highlighting on, when the selected cell holds a digit, every pencil mark of that same digit is highlighted inside its cell. That mark is added on top of the cell tint. Selecting an empty cell does not highlight notes. With Board highlighting off, only the selected cell, conflicts, and an explanation's cells are tinted, and no marks are highlighted.
 
 The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81. Under that, the phase line names the phase, the difficulty, and the source: “Mt. Sudoku” or “Generated”. When conflicts are shown, that line also names the error count.
 
@@ -184,7 +197,7 @@ These keys apply when a puzzle is on screen and a new grid is not being dealt. C
 | 0, Backspace, Delete | Erase the selected cell |
 | N | Toggle notes when the notes button is selected. Does nothing in one tap, two taps |
 | P | Pause or resume |
-| H | Hint |
+| H | Hint. Does nothing while Solving help is off |
 | U, or Command/Ctrl+Z | Undo |
 | Y, or Command/Ctrl+Shift+Z | Redo |
 | Escape | Dismiss the open dialog, or resume when paused |
