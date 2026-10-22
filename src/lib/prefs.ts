@@ -16,6 +16,10 @@ export type Preferences = {
   noteHelpers: boolean;
   /** Peer and same-digit tints, highlighted marks, and the keypad counts. */
   highlighting: boolean;
+  /** Save and restore checkpoints. */
+  guessingTools: boolean;
+  /** The dead-end warning; it works only while guessingTools is on. */
+  deadEndWarning: boolean;
 };
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -24,6 +28,8 @@ export const DEFAULT_PREFERENCES: Preferences = {
   solvingHelp: true,
   noteHelpers: true,
   highlighting: true,
+  guessingTools: true,
+  deadEndWarning: false,
 };
 
 function flag(value: unknown, fallback: boolean): boolean {
@@ -46,6 +52,8 @@ export function parsePreferences(raw: unknown, fallback: Preferences = DEFAULT_P
     solvingHelp: flag(data.solvingHelp, fallback.solvingHelp),
     noteHelpers: flag(data.noteHelpers, fallback.noteHelpers),
     highlighting: flag(data.highlighting, fallback.highlighting),
+    guessingTools: flag(data.guessingTools, fallback.guessingTools),
+    deadEndWarning: flag(data.deadEndWarning, fallback.deadEndWarning),
   };
 }
 

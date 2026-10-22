@@ -13,13 +13,15 @@ export type CellMark = "target" | "pattern" | "removal" | "unit";
  * one to a CSS class; keeping the choice here, as a plain function, lets the
  * order of precedence be unit-tested without rendering anything.
  */
-export type CellTone = "conflict" | CellMark | "selected" | "same" | "peer" | "plain";
+export type CellTone = "conflict" | "deadend" | CellMark | "selected" | "same" | "peer" | "plain";
 
 export type TintInput = {
   grid: Grid;
   selected: { r: number; c: number };
   /** True when conflicts are shown and this cell repeats a digit. */
   conflict: boolean;
+  /** True when the dead-end warning is on and flags this cell. */
+  deadEnd?: boolean;
   /** The 9×9 marks of the step being explained, or null when none is shown. */
   marks: (CellMark | null)[][] | null;
   /** The Board highlighting switch: off drops the same-digit and peer tints. */
@@ -27,13 +29,15 @@ export type TintInput = {
 };
 
 /**
- * Picks one cell's tone. A shown conflict wins, then an explanation mark, then
- * the selected cell. While a step is explained, its marks replace the usual
+ * Picks one cell's tone. A shown conflict wins, then a dead end, then an
+ * explanation mark, then the selected cell. While a step is explained, its marks replace the usual
  * same-digit and peer tints so only the cells it talks about stand out. With
  * Board highlighting off, there are no same-digit or peer tints at all.
  */
-export function cellTone({ grid, selected, conflict, marks, highlighting }: TintInput, r: number, c: number): CellTone {
+export function cellTone(input: TintInput, r: number, c: number): CellTone {
+  const { grid, selected, conflict, deadEnd, marks, highlighting } = input;
   if (conflict) return "conflict";
+  if (deadEnd) return "deadend";
   const mark = marks?.[r][c] ?? null;
   if (mark) return mark;
   const isSelected = selected.r === r && selected.c === c;

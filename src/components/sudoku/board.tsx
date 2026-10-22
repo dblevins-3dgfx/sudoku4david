@@ -15,12 +15,16 @@ type BoardProps = {
   onFlashEnd?: () => void;
   /** The Board highlighting switch: peer and same-digit tints, and highlighted marks. */
   highlighting: boolean;
+  /** A 9×9 map of cells the dead-end warning flags; omitted when it is off. */
+  deadEnds?: boolean[][] | null;
   onSelect: (r: number, c: number) => void;
 };
 
 // The Tailwind class for each tone that cellTone in src/lib/tint.ts can pick.
 const TONE_CLASS: Record<CellTone, string> = {
   conflict: "bg-cell-conflict",
+  // A dead end borrows the conflict color, with a dotted outline (below) to tell them apart.
+  deadend: "bg-cell-conflict",
   target: "bg-cell-note-hit",
   pattern: "bg-cell-same",
   removal: "bg-cell-peer",
@@ -70,7 +74,7 @@ function lineClass(r: number, c: number): string {
   );
 }
 
-export function Board({ game, conflicts, marks, flash, onFlashEnd, highlighting, onSelect }: BoardProps) {
+export function Board({ game, conflicts, marks, flash, onFlashEnd, highlighting, deadEnds, onSelect }: BoardProps) {
   const selectedValue = game.grid[game.selected.r][game.selected.c];
 
   return (
@@ -87,8 +91,10 @@ export function Board({ game, conflicts, marks, flash, onFlashEnd, highlighting,
         const conflict = game.showMistakes && conflicts[r][c];
         const mark = marks?.[r][c] ?? null;
         const flashing = flash?.r === r && flash?.c === c;
-        const tint = { grid: game.grid, selected: game.selected, conflict, marks: marks ?? null, highlighting };
-        const tone = TONE_CLASS[cellTone(tint, r, c)];
+        const deadEnd = deadEnds?.[r][c] ?? false;
+        const tint = { grid: game.grid, selected: game.selected, conflict, deadEnd, marks: marks ?? null, highlighting };
+        const toneName = cellTone(tint, r, c);
+        const tone = TONE_CLASS[toneName];
         const ink = conflict
           ? "text-cell-bad"
           : game.locked[r][c]
@@ -104,7 +110,10 @@ export function Board({ game, conflicts, marks, flash, onFlashEnd, highlighting,
             aria-selected={selected}
             aria-rowindex={r + 1}
             aria-colindex={c + 1}
-            aria-label={cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict, highlighting ? selectedValue : 0)}
+            aria-label={
+              cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict, highlighting ? selectedValue : 0) +
+              (toneName === "deadend" ? ", dead end" : "")
+            }
             tabIndex={selected ? 0 : -1}
             onClick={() => onSelect(r, c)}
             // The browser fires animationend when a CSS animation finishes.
@@ -120,6 +129,7 @@ export function Board({ game, conflicts, marks, flash, onFlashEnd, highlighting,
               selected && "ring-2 ring-primary ring-inset",
               // A dashed outline drawn just inside the cell marks a candidate being removed.
               mark === "removal" && "outline-2 outline-dashed outline-destructive -outline-offset-4",
+              toneName === "deadend" && "outline-2 outline-dotted outline-destructive -outline-offset-4",
               flashing && "hint-flash",
             )}
           >

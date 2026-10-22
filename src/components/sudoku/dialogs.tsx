@@ -5,7 +5,8 @@ import { Switch } from "@base-ui/react/switch";
 import { useRef, useState, type ReactNode } from "react";
 import { backupFileName, exportBackup } from "@/lib/backup";
 import { Button } from "@/components/ui/button";
-import { HELPER_SWITCHES, helperOn, type SwitchedGroup } from "@/lib/helpers";
+import { cn } from "@/lib/utils";
+import { HELPER_SWITCHES, helperOn, switchValue, type HelperSwitch } from "@/lib/helpers";
 import type { Preferences } from "@/lib/prefs";
 import { parseSignInProof } from "@/lib/remote";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
@@ -64,7 +65,7 @@ export function PrefsDialog({
   open: boolean;
   prefs: Preferences;
   onEntry: (entry: Preferences["entry"]) => void;
-  onHelper: (group: SwitchedGroup, on: boolean) => void;
+  onHelper: (group: HelperSwitch, on: boolean) => void;
   onResetRecords: () => void;
   onRestoreBackup: (text: string) => boolean;
   sync: Sync;
@@ -102,7 +103,7 @@ function HelperSwitches({
   onHelper,
 }: {
   prefs: Preferences;
-  onHelper: (group: SwitchedGroup, on: boolean) => void;
+  onHelper: (group: HelperSwitch, on: boolean) => void;
 }) {
   return (
     <div role="group" aria-labelledby="helpers-heading" className="mt-3">
@@ -110,21 +111,34 @@ function HelperSwitches({
         Available helpers
       </p>
       <div className="mt-1 flex flex-col">
-        {HELPER_SWITCHES.map(({ group, label, detail }) => (
-          <label key={group} className="flex cursor-pointer items-center justify-between gap-3 py-1.5">
+        {HELPER_SWITCHES.map(({ key, label, detail, parent }) => {
+          // A switch inside another (the dead-end warning) is indented, and
+          // grayed out while its parent is off.
+          const blocked = parent !== undefined && !helperOn(prefs, parent);
+          return (
+          <label
+            key={key}
+            className={cn(
+              "flex cursor-pointer items-center justify-between gap-3 py-1.5",
+              parent && "pl-4",
+              blocked && "cursor-default opacity-50",
+            )}
+          >
             <span className="flex min-w-0 flex-col">
               <span className="text-sm">{label}</span>
               <span className="text-xs text-muted-foreground">{detail}</span>
             </span>
             <Switch.Root
-              checked={helperOn(prefs, group)}
-              onCheckedChange={(checked) => onHelper(group, checked)}
+              checked={switchValue(prefs, key)}
+              disabled={blocked}
+              onCheckedChange={(checked) => onHelper(key, checked)}
               className="relative inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border border-border bg-muted p-0.5 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 data-[checked]:border-primary data-[checked]:bg-primary"
             >
               <Switch.Thumb className="block size-[1.125rem] rounded-full bg-background shadow-sm transition-transform data-[checked]:translate-x-4" />
             </Switch.Root>
           </label>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

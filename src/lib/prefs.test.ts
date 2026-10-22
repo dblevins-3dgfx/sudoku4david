@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_PREFERENCES, loadPreferences, parsePreferences, PREFS_STORAGE_KEY } from "./prefs";
 
-const ON = { solvingHelp: true, noteHelpers: true, highlighting: true };
+const ON = { solvingHelp: true, noteHelpers: true, highlighting: true, guessingTools: true, deadEndWarning: false };
 
 describe("preferences", () => {
   it("reads a complete record", () => {
@@ -35,7 +35,7 @@ describe("preferences", () => {
   it("reads each helper switch, and falls back for an invalid one", () => {
     assert.deepEqual(
       parsePreferences({ entry: "button", showConflicts: true, solvingHelp: false, noteHelpers: false, highlighting: "no" }),
-      { entry: "button", showConflicts: true, solvingHelp: false, noteHelpers: false, highlighting: true },
+      { ...ON, entry: "button", showConflicts: true, solvingHelp: false, noteHelpers: false, highlighting: true },
     );
   });
 
