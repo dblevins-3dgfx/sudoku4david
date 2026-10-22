@@ -1,4 +1,5 @@
-import type { Digit, Grid } from "./sudoku";
+import { boardCandidates } from "./steps/board";
+import { digitCounts, type Digit, type Grid } from "./sudoku";
 
 /**
  * Pencil marks, one 9×9 array of bitmasks: bit d (1 << d, for d = 1..9) is set
@@ -63,4 +64,25 @@ export function notesAfterPlacing(grid: Grid, notes: Notes, r: number, c: number
   if (!tidy) return;
   clearDigitNotes(notes, r, c, digit);
   if (countDigit(grid, digit) >= 9) clearDigitEverywhere(notes, digit);
+}
+
+/**
+ * The marks Fill all notes writes: for every empty cell, each digit that is not
+ * already in its row, column, or box, worked out from the digits on the board
+ * alone (the solution is never consulted). A digit with nine copies on the
+ * board is left out everywhere, the same as the keypad refuses it. Filled
+ * cells get no marks. Returns a new array.
+ */
+export function candidateNotes(grid: Grid): Notes {
+  const counts = digitCounts(grid);
+  let full = 0;
+  for (let digit = 1; digit <= 9; digit++) if ((counts[digit] ?? 0) >= 9) full |= 1 << digit;
+  return boardCandidates(grid).map((row) => row.map((mask) => mask & ~full));
+}
+
+export function notesEqual(a: Notes, b: Notes): boolean {
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) if (a[r][c] !== b[r][c]) return false;
+  }
+  return true;
 }
