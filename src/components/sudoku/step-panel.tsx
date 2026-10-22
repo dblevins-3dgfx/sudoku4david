@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Advice, Step } from "@/lib/steps";
-import type { CellMark } from "./board";
+import type { CellMark } from "@/lib/tint";
 
 type Shown = { advice: Advice; index: number };
 
