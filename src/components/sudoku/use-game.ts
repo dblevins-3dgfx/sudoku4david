@@ -7,6 +7,7 @@ import {
   createGame,
   createGameFromPuzzle,
   erase,
+  fillNotes,
   hint,
   moveSelection,
   redo,
@@ -432,6 +433,7 @@ export function useGame() {
         won: current.won,
         entry: prefsRef.current.entry,
         solvingHelp: prefsRef.current.solvingHelp,
+        noteHelpers: prefsRef.current.noteHelpers,
       });
       if (!command) return;
       // preventDefault stops the browser's own use of the key: scrolling for
@@ -472,6 +474,9 @@ export function useGame() {
           break;
         case "hint":
           giveHint();
+          break;
+        case "fill":
+          apply(fillNotes);
           break;
       }
     };
@@ -555,6 +560,7 @@ export function useGame() {
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),
     input: enterDigit,
     eraseCell: () => apply(erase),
+    fillAllNotes: () => apply(fillNotes),
     undoMove: () => apply(undo),
     redoMove: () => apply(redo),
     toggleNotes: () => apply(toggleNotesMode),

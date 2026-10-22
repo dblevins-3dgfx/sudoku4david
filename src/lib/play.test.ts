@@ -156,7 +156,7 @@ describe("High scores: only a win made in play is recorded", () => {
 });
 
 describe("Keyboard", () => {
-  const play: KeyContext = { dialogOpen: false, paused: false, won: false, entry: "button", solvingHelp: true };
+  const play: KeyContext = { dialogOpen: false, paused: false, won: false, entry: "button", solvingHelp: true, noteHelpers: true };
   const press = (key: string, extra: Partial<KeyInput> = {}): KeyInput => ({
     key,
     metaKey: false,
@@ -164,6 +164,13 @@ describe("Keyboard", () => {
     shiftKey: false,
     altKey: false,
     ...extra,
+  });
+
+  it("fills all notes with F, unless Note helpers is off", () => {
+    assert.deepEqual(keyCommand(press("f"), play), { kind: "fill" });
+    assert.deepEqual(keyCommand(press("F"), play), { kind: "fill" });
+    assert.equal(keyCommand(press("f"), { ...play, noteHelpers: false }), null);
+    assert.equal(keyCommand(press("f"), { ...play, paused: true }), null);
   });
 
   it("ignores H while Solving help is off", () => {
