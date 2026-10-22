@@ -18,6 +18,8 @@ import {
   type Notes,
 } from "./notes";
 
+import { CHECKPOINT_LIMIT, checkpointsEqual, withoutLast, type Checkpoint } from "./checkpoints";
+
 export type Coord = { r: number; c: number };
 
 export type Snapshot = {
@@ -25,6 +27,14 @@ export type Snapshot = {
   notes: Notes;
   locked: boolean[][];
   hintsUsed: number;
+  /**
+   * Set when the step between this snapshot and its neighbour was Restore
+   * checkpoint: the checkpoint it took off the stack. In `history` that step
+   * leads away from this snapshot; in `future` it leads to it. Undo puts the
+   * checkpoint back on the stack and redo takes it off again, so undoing a
+   * restore loses nothing. `?:` makes the field optional; most steps have none.
+   */
+  popped?: Checkpoint;
 };
 
 export type GameSource = "mtsudoku" | "generated";
@@ -53,6 +63,8 @@ export type GameState = {
   started: boolean;
   history: Snapshot[];
   future: Snapshot[];
+  /** Saved checkpoints, oldest first; the last is the one Restore uses. */
+  checkpoints: Checkpoint[];
 };
 
 /** Undo and redo steps kept in play, in saves, and on load. */
@@ -69,6 +81,10 @@ function snapshot(state: GameState): Snapshot {
     locked: cloneLocked(state.locked),
     hintsUsed: state.hintsUsed,
   };
+}
+
+function withPopped(snap: Snapshot, popped: Checkpoint | undefined): Snapshot {
+  return popped ? { ...snap, popped } : snap;
 }
 
 /** One more hint on a saved undo or redo step; see countHint. */
@@ -107,8 +123,8 @@ function cellConflicts(grid: Grid, r: number, c: number): boolean {
   return false;
 }
 
-function pushHistory(state: GameState): Pick<GameState, "history" | "future"> {
-  const history = [...state.history, snapshot(state)];
+function pushHistory(state: GameState, popped?: Checkpoint): Pick<GameState, "history" | "future"> {
+  const history = [...state.history, withPopped(snapshot(state), popped)];
   if (history.length > HISTORY_LIMIT) history.shift();
   return { history, future: [] };
 }
@@ -144,6 +160,7 @@ export function createGameFromPuzzle(
     started: false,
     history: [],
     future: [],
+    checkpoints: [],
   };
 }
 
@@ -367,19 +384,67 @@ export function undo(state: GameState): GameState {
   if (state.paused) return state;
   const previous = state.history[state.history.length - 1];
   if (!previous) return state;
-  return restore(
+  const back = restore(
     state,
     previous,
     state.history.slice(0, -1),
-    [...state.future, snapshot(state)],
+    [...state.future, withPopped(snapshot(state), previous.popped)],
   );
+  // Undoing a restore puts its checkpoint back on the stack.
+  return previous.popped ? { ...back, checkpoints: [...state.checkpoints, previous.popped] } : back;
 }
 
 export function redo(state: GameState): GameState {
   if (state.paused) return state;
   const next = state.future[state.future.length - 1];
   if (!next) return state;
-  return restore(state, next, [...state.history, snapshot(state)], state.future.slice(0, -1));
+  const forward = restore(
+    state,
+    next,
+    [...state.history, withPopped(snapshot(state), next.popped)],
+    state.future.slice(0, -1),
+  );
+  return next.popped ? { ...forward, checkpoints: withoutLast(state.checkpoints, next.popped) } : forward;
+}
+
+function checkpointOf(state: GameState): Checkpoint {
+  return { grid: cloneGrid(state.grid), notes: cloneNotes(state.notes), locked: cloneLocked(state.locked) };
+}
+
+/**
+ * Save checkpoint: pushes the board onto the checkpoint stack. It changes
+ * nothing on the board, so it is not an undo step and does not start the
+ * clock. It does nothing while paused, after a win, when the stack is full,
+ * or when the board already matches the top checkpoint.
+ */
+export function saveCheckpoint(state: GameState): GameState {
+  if (state.paused || state.won || state.checkpoints.length >= CHECKPOINT_LIMIT) return state;
+  const cp = checkpointOf(state);
+  const top = state.checkpoints[state.checkpoints.length - 1];
+  if (top && checkpointsEqual(top, cp)) return state;
+  return { ...state, checkpoints: [...state.checkpoints, cp] };
+}
+
+/**
+ * Restore checkpoint: takes the top checkpoint off the stack and puts its
+ * board back, as one undo step (undo returns both the board and the
+ * checkpoint). Like undo, it keeps the clock running and leaves the error
+ * count and hint total alone; a cell that a later hint locked unlocks again.
+ */
+export function restoreCheckpoint(state: GameState): GameState {
+  if (state.paused || state.won) return state;
+  const top = state.checkpoints[state.checkpoints.length - 1];
+  if (!top) return state;
+  const won = gridsEqual(top.grid, state.solution);
+  return {
+    ...state,
+    ...pushHistory(state, top),
+    ...begin(state, won),
+    grid: cloneGrid(top.grid),
+    notes: cloneNotes(top.notes),
+    locked: cloneLocked(top.locked),
+    checkpoints: state.checkpoints.slice(0, -1),
+  };
 }
 
 export function restart(state: GameState): GameState {
@@ -398,6 +463,7 @@ export function restart(state: GameState): GameState {
     started: false,
     history: [],
     future: [],
+    checkpoints: [],
     selected: firstEmpty(grid) ?? { r: 0, c: 0 },
   };
 }

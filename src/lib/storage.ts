@@ -4,6 +4,7 @@ import {
   type Difficulty,
   type Grid,
 } from "./sudoku";
+import { CHECKPOINT_LIMIT, copyCheckpoint, type Checkpoint } from "./checkpoints";
 import { HISTORY_LIMIT, type GameState, type Snapshot } from "./game";
 import { cloneNotes, emptyNotes, type Notes } from "./notes";
 
@@ -71,13 +72,26 @@ function isSnapshot(value: unknown): value is Snapshot {
   );
 }
 
-function copySnapshot(snap: Snapshot): Snapshot {
-  return {
+/**
+ * A stored checkpoint is used only when it is a well-formed board whose locked
+ * cells all match the solution, the same rule as for the working grid.
+ */
+function isCheckpoint(value: unknown, solution: Grid): value is Checkpoint {
+  if (!value || typeof value !== "object") return false;
+  const cp = value as Checkpoint;
+  if (!isGrid(cp.grid) || !isNotes(cp.notes) || !isLocked(cp.locked)) return false;
+  return cp.locked.every((row, r) => row.every((locked, c) => !locked || cp.grid[r][c] === solution[r][c]));
+}
+
+/** Copies a stored step; a damaged checkpoint on it is dropped, keeping the step. */
+function copySnapshot(snap: Snapshot, solution: Grid): Snapshot {
+  const copy: Snapshot = {
     grid: snap.grid.map((row) => row.slice()) as Grid,
     notes: cloneNotes(snap.notes),
     locked: snap.locked.map((row) => row.slice()),
     hintsUsed: snap.hintsUsed,
   };
+  return isCheckpoint(snap.popped, solution) ? { ...copy, popped: copyCheckpoint(snap.popped) } : copy;
 }
 
 export function deserializeGame(raw: unknown): GameState | null {
@@ -122,8 +136,20 @@ export function deserializeGame(raw: unknown): GameState | null {
     return null;
   }
 
-  const history = Array.isArray(data.history) ? data.history.filter(isSnapshot).slice(-HISTORY_LIMIT).map(copySnapshot) : [];
-  const future = Array.isArray(data.future) ? data.future.filter(isSnapshot).slice(-HISTORY_LIMIT).map(copySnapshot) : [];
+  const solution = data.solution;
+  const steps = (list: unknown) =>
+    Array.isArray(list)
+      ? list.filter(isSnapshot).slice(-HISTORY_LIMIT).map((snap) => copySnapshot(snap, solution))
+      : [];
+  const history = steps(data.history);
+  const future = steps(data.future);
+  // A damaged checkpoint is dropped on its own; the rest of the game is kept.
+  const checkpoints = Array.isArray(data.checkpoints)
+    ? data.checkpoints
+        .filter((cp): cp is Checkpoint => isCheckpoint(cp, solution))
+        .slice(-CHECKPOINT_LIMIT)
+        .map(copyCheckpoint)
+    : [];
 
   return {
     difficulty: data.difficulty,
@@ -145,6 +171,7 @@ export function deserializeGame(raw: unknown): GameState | null {
     started: Boolean(data.started),
     history,
     future,
+    checkpoints,
   };
 }
 
