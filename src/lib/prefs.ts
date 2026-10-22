@@ -12,12 +12,20 @@ export const DEFAULT_PREFERENCES: Preferences = {
   showConflicts: true,
 };
 
-export function parsePreferences(raw: unknown): Preferences | null {
+/**
+ * Reads a stored preferences record one field at a time. A field that is
+ * missing or invalid takes its value from `fallback`, so adding a new field
+ * later never throws away the fields an older record already holds. Returns
+ * null only when `raw` is not an object at all.
+ */
+export function parsePreferences(raw: unknown, fallback: Preferences = DEFAULT_PREFERENCES): Preferences | null {
   if (!raw || typeof raw !== "object") return null;
-  const data = raw as Partial<Preferences>;
-  if (data.entry !== "button" && data.entry !== "tap") return null;
-  if (typeof data.showConflicts !== "boolean") return null;
-  return { entry: data.entry, showConflicts: data.showConflicts };
+  // JSON.parse gives back an untyped object, so each field is checked before use.
+  const data = raw as Partial<Record<keyof Preferences, unknown>>;
+  return {
+    entry: data.entry === "button" || data.entry === "tap" ? data.entry : fallback.entry,
+    showConflicts: typeof data.showConflicts === "boolean" ? data.showConflicts : fallback.showConflicts,
+  };
 }
 
 export function loadPreferences(fallbackShowConflicts = true): Preferences {
@@ -26,7 +34,7 @@ export function loadPreferences(fallbackShowConflicts = true): Preferences {
   try {
     const raw = localStorage.getItem(PREFS_STORAGE_KEY);
     if (!raw) return fallback;
-    return parsePreferences(JSON.parse(raw) as unknown) ?? fallback;
+    return parsePreferences(JSON.parse(raw) as unknown, fallback) ?? fallback;
   } catch {
     return fallback;
   }
