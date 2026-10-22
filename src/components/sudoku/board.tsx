@@ -13,6 +13,8 @@ type BoardProps = {
   flash?: { r: number; c: number } | null;
   /** Called when the pulse has finished, so the caller can clear `flash`. */
   onFlashEnd?: () => void;
+  /** The Board highlighting switch: peer and same-digit tints, and highlighted marks. */
+  highlighting: boolean;
   onSelect: (r: number, c: number) => void;
 };
 
@@ -68,7 +70,7 @@ function lineClass(r: number, c: number): string {
   );
 }
 
-export function Board({ game, conflicts, marks, flash, onFlashEnd, onSelect }: BoardProps) {
+export function Board({ game, conflicts, marks, flash, onFlashEnd, highlighting, onSelect }: BoardProps) {
   const selectedValue = game.grid[game.selected.r][game.selected.c];
 
   return (
@@ -85,7 +87,8 @@ export function Board({ game, conflicts, marks, flash, onFlashEnd, onSelect }: B
         const conflict = game.showMistakes && conflicts[r][c];
         const mark = marks?.[r][c] ?? null;
         const flashing = flash?.r === r && flash?.c === c;
-        const tone = TONE_CLASS[cellTone({ grid: game.grid, selected: game.selected, conflict, marks: marks ?? null }, r, c)];
+        const tint = { grid: game.grid, selected: game.selected, conflict, marks: marks ?? null, highlighting };
+        const tone = TONE_CLASS[cellTone(tint, r, c)];
         const ink = conflict
           ? "text-cell-bad"
           : game.locked[r][c]
@@ -101,7 +104,7 @@ export function Board({ game, conflicts, marks, flash, onFlashEnd, onSelect }: B
             aria-selected={selected}
             aria-rowindex={r + 1}
             aria-colindex={c + 1}
-            aria-label={cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict, selectedValue)}
+            aria-label={cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict, highlighting ? selectedValue : 0)}
             tabIndex={selected ? 0 : -1}
             onClick={() => onSelect(r, c)}
             // The browser fires animationend when a CSS animation finishes.
@@ -127,7 +130,7 @@ export function Board({ game, conflicts, marks, flash, onFlashEnd, onSelect }: B
                 {Array.from({ length: 9 }, (_, digit) => {
                   const n = digit + 1;
                   const on = (game.notes[r][c] & (1 << n)) !== 0;
-                  const marked = noteHighlighted(game.grid, game.notes, game.selected, r, c, n);
+                  const marked = noteHighlighted(game.grid, game.notes, game.selected, r, c, n, highlighting);
                   return (
                     <span
                       key={n}

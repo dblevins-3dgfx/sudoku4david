@@ -16,7 +16,7 @@ describe("cell tint", () => {
   grid[0][0] = 5;
   grid[8][8] = 5;
   grid[4][4] = 3;
-  const base = { grid, selected: { r: 0, c: 0 }, conflict: false, marks: null };
+  const base = { grid, selected: { r: 0, c: 0 }, conflict: false, marks: null, highlighting: true };
 
   it("highlights the selected cell", () => {
     assert.equal(cellTone(base, 0, 0), "selected");
@@ -58,6 +58,17 @@ describe("cell tint", () => {
     assert.equal(cellTone(explained, 0, 5), "plain");
   });
 
+  it("drops peer and same-digit tints with Board highlighting off, and keeps the rest", () => {
+    const plain = { ...base, highlighting: false };
+    assert.equal(cellTone(plain, 0, 0), "selected");
+    assert.equal(cellTone(plain, 8, 8), "plain");
+    assert.equal(cellTone(plain, 0, 5), "plain");
+    assert.equal(cellTone({ ...plain, conflict: true }, 8, 8), "conflict");
+    const marks = noMarks();
+    marks[3][3] = "target";
+    assert.equal(cellTone({ ...plain, marks }, 3, 3), "target");
+  });
+
   it("keeps the selected tint on an unmarked selected cell during an explanation", () => {
     assert.equal(cellTone({ ...base, marks: noMarks() }, 0, 0), "selected");
   });
@@ -76,6 +87,10 @@ describe("highlighted notes", () => {
 
   it("does not highlight a digit the cell has no mark for", () => {
     assert.equal(noteHighlighted(grid, notes, { r: 0, c: 0 }, 2, 2, 5), false);
+  });
+
+  it("highlights no marks with Board highlighting off", () => {
+    assert.equal(noteHighlighted(grid, notes, { r: 0, c: 0 }, 1, 1, 5, false), false);
   });
 
   it("highlights no marks when the selected cell is empty", () => {

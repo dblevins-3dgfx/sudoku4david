@@ -42,6 +42,16 @@ describe("notes after placing a digit", () => {
     assert.equal(notes[1][1] & without2, without2);
   });
 
+  it("clears only the cell's own marks when the note helpers are off", () => {
+    const grid = emptyGrid();
+    for (let i = 0; i < 9; i++) grid[i][(i * 3 + ((i / 3) | 0)) % 9] = 2;
+    const notes = fullNotes();
+    notesAfterPlacing(grid, notes, 0, 0, 2, false);
+    assert.equal(notes[0][0], 0);
+    assert.equal(notes[0][5], ALL, "same row keeps 2");
+    assert.equal(notes[8][8], ALL, "nine placed, still kept");
+  });
+
   it("leaves other cells' marks of the digit while fewer than nine are placed", () => {
     const grid = emptyGrid();
     grid[0][0] = 2;

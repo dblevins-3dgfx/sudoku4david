@@ -88,6 +88,20 @@ describe("Entering digits", () => {
     assert.equal(game.notes[far.r][far.c] & bit(digit), bit(digit));
   });
 
+  it("with Note helpers off, writing a digit clears only that cell's own notes, and undo returns them", () => {
+    const open = empties(fresh());
+    const place = open[0];
+    const peer = open.find((cell) => cell !== place && sameGroup(cell, place))!;
+    const digit = solution[place.r][place.c] as Digit;
+    let game = inputDigit(at(fresh(), peer), digit, true);
+    game = inputDigit(at(game, place), 4, true);
+    const before = game;
+    game = inputDigit(game, digit, false, false);
+    assert.equal(game.notes[place.r][place.c], 0);
+    assert.equal(game.notes[peer.r][peer.c] & bit(digit), bit(digit));
+    assert.deepEqual(undo(game).notes, before.notes);
+  });
+
   it("erase clears the digit and notes, and does nothing on a locked or blank cell", () => {
     const game = fresh();
     const given = { r: puzzle.findIndex((row) => row.some((v) => v !== 0)), c: 0 };
@@ -132,6 +146,16 @@ describe("Hints", () => {
     const digit = solution[place.r][place.c] as Digit;
     const game = hint(at(inputDigit(at(fresh(), peer), digit, true), place));
     assert.equal(game.notes[peer.r][peer.c] & bit(digit), 0);
+  });
+
+  it("with Note helpers off, leaves its digit in other cells' notes", () => {
+    const open = empties(fresh());
+    const place = open[0];
+    const peer = open.find((cell) => cell !== place && sameGroup(cell, place))!;
+    const digit = solution[place.r][place.c] as Digit;
+    const game = hint(at(inputDigit(at(fresh(), peer), digit, true), place), true, false);
+    assert.equal(game.grid[place.r][place.c], digit);
+    assert.equal(game.notes[peer.r][peer.c] & bit(digit), bit(digit));
   });
 
   it("does nothing while paused, after a win, or when every unlocked cell is right", () => {

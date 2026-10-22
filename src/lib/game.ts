@@ -181,7 +181,12 @@ function begin(state: GameState, won: boolean): Pick<GameState, "started" | "tim
   };
 }
 
-export function inputDigit(state: GameState, digit: Digit, asNote = state.notesMode): GameState {
+/**
+ * Enters `digit` in the selected cell, as a pencil mark when `asNote`.
+ * `tidyNotes` is the Note helpers switch: when false, placing a digit clears
+ * only that cell's own marks (see notesAfterPlacing).
+ */
+export function inputDigit(state: GameState, digit: Digit, asNote = state.notesMode, tidyNotes = true): GameState {
   if (state.paused || state.won) return state;
   const { r, c } = state.selected;
   if (state.locked[r][c]) return state;
@@ -205,7 +210,7 @@ export function inputDigit(state: GameState, digit: Digit, asNote = state.notesM
     nextGrid[r][c] = 0;
   } else {
     nextGrid[r][c] = digit;
-    notesAfterPlacing(nextGrid, nextNotes, r, c, digit);
+    notesAfterPlacing(nextGrid, nextNotes, r, c, digit, tidyNotes);
   }
 
   const won = gridsEqual(nextGrid, state.solution);
@@ -266,8 +271,9 @@ function hintTarget(state: GameState): Coord | null {
  * explanation already counted this help (see countExplanation), so placing its
  * digit does not count twice. Undo takes back the digit but not the count, the
  * same as for an explanation, so Hint then Undo can't peek at a cell for free.
+ * `tidyNotes` is the Note helpers switch, as for inputDigit.
  */
-export function hint(state: GameState, counted = true): GameState {
+export function hint(state: GameState, counted = true, tidyNotes = true): GameState {
   if (state.paused || state.won) return state;
   const target = hintTarget(state);
   if (!target) return state;
@@ -278,7 +284,7 @@ export function hint(state: GameState, counted = true): GameState {
   const nextLocked = cloneLocked(state.locked);
   nextGrid[target.r][target.c] = digit;
   nextLocked[target.r][target.c] = true;
-  notesAfterPlacing(nextGrid, nextNotes, target.r, target.c, digit);
+  notesAfterPlacing(nextGrid, nextNotes, target.r, target.c, digit, tidyNotes);
   const won = gridsEqual(nextGrid, state.solution);
   // The step saved here holds the board before the fill. When the hint counts,
   // countHint adds it to that step too, so undoing the fill keeps the count.

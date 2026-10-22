@@ -22,20 +22,23 @@ export type TintInput = {
   conflict: boolean;
   /** The 9×9 marks of the step being explained, or null when none is shown. */
   marks: (CellMark | null)[][] | null;
+  /** The Board highlighting switch: off drops the same-digit and peer tints. */
+  highlighting: boolean;
 };
 
 /**
  * Picks one cell's tone. A shown conflict wins, then an explanation mark, then
  * the selected cell. While a step is explained, its marks replace the usual
- * same-digit and peer tints so only the cells it talks about stand out.
+ * same-digit and peer tints so only the cells it talks about stand out. With
+ * Board highlighting off, there are no same-digit or peer tints at all.
  */
-export function cellTone({ grid, selected, conflict, marks }: TintInput, r: number, c: number): CellTone {
+export function cellTone({ grid, selected, conflict, marks, highlighting }: TintInput, r: number, c: number): CellTone {
   if (conflict) return "conflict";
   const mark = marks?.[r][c] ?? null;
   if (mark) return mark;
   const isSelected = selected.r === r && selected.c === c;
   if (isSelected) return "selected";
-  if (marks) return "plain";
+  if (marks || !highlighting) return "plain";
   const selectedValue = grid[selected.r][selected.c];
   const value = grid[r][c];
   if (value !== 0 && selectedValue !== 0 && value === selectedValue) return "same";
@@ -46,7 +49,7 @@ export function cellTone({ grid, selected, conflict, marks }: TintInput, r: numb
 /**
  * True when pencil mark `digit` in cell (r, c) is highlighted: the selected
  * cell holds that same digit and this cell has the mark. Selecting an empty
- * cell highlights no marks.
+ * cell highlights no marks, and neither does Board highlighting switched off.
  */
 export function noteHighlighted(
   grid: Grid,
@@ -55,7 +58,8 @@ export function noteHighlighted(
   r: number,
   c: number,
   digit: number,
+  highlighting = true,
 ): boolean {
   const selectedValue = grid[selected.r][selected.c];
-  return selectedValue !== 0 && digit === selectedValue && (notes[r][c] & (1 << digit)) !== 0;
+  return highlighting && selectedValue !== 0 && digit === selectedValue && (notes[r][c] & (1 << digit)) !== 0;
 }

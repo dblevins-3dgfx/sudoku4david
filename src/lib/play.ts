@@ -14,9 +14,12 @@ export function digitAllowed(grid: Grid, digit: Digit): boolean {
   return (digitCounts(grid)[digit] ?? 0) < 9;
 }
 
-/** A digit press: ignored while nine copies are placed, otherwise entered. */
-export function pressDigit(state: GameState, digit: Digit, asNote: boolean): GameState {
-  return digitAllowed(state.grid, digit) ? inputDigit(state, digit, asNote) : state;
+/**
+ * A digit press: ignored while nine copies are placed, otherwise entered.
+ * `tidyNotes` is the Note helpers switch (see inputDigit).
+ */
+export function pressDigit(state: GameState, digit: Digit, asNote: boolean, tidyNotes = true): GameState {
+  return digitAllowed(state.grid, digit) ? inputDigit(state, digit, asNote, tidyNotes) : state;
 }
 
 /**
@@ -80,6 +83,8 @@ export type KeyContext = {
   paused: boolean;
   won: boolean;
   entry: EntryMethod;
+  /** The Solving help switch: H does nothing while it is off. */
+  solvingHelp: boolean;
 };
 
 /**
@@ -130,6 +135,6 @@ export function keyCommand(event: KeyInput, ctx: KeyContext): KeyCommand | null 
   if (key === "p") return { kind: "pause" };
   if (key === "u") return { kind: "undo" };
   if (key === "y") return { kind: "redo" };
-  if (key === "h") return { kind: "hint" };
+  if (key === "h") return ctx.solvingHelp ? { kind: "hint" } : null;
   return null;
 }

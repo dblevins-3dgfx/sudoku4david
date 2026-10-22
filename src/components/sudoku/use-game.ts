@@ -27,6 +27,7 @@ import {
 } from "@/lib/prefs";
 import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
 import { importBackup } from "@/lib/backup";
+import { withHelper, type SwitchedGroup } from "@/lib/helpers";
 import { hintNotice } from "@/lib/labels";
 import type { Pending } from "@/lib/pending";
 import {
@@ -170,6 +171,20 @@ export function useGame() {
       });
     },
     [commitPrefs],
+  );
+
+  // One switch in Available helpers. Error checking also changes the game,
+  // which keeps its own copy of whether conflicts are shown (see
+  // applyShowConflicts); the other groups only change the preferences.
+  const setHelper = useCallback(
+    (group: SwitchedGroup, on: boolean) => {
+      if (group === "checking") applyShowConflicts(on);
+      else commitPrefs(withHelper(prefsRef.current, group, on));
+      // Switching Solving help off closes an open explanation for good, so
+      // switching it back on does not bring the old one back.
+      if (group === "solving" && !on) setExplained(null);
+    },
+    [applyShowConflicts, commitPrefs],
   );
 
   const apply = useCallback((fn: (current: GameState) => GameState) => {
@@ -344,7 +359,7 @@ export function useGame() {
 
     // The guard runs again inside apply: React may run this update later,
     // against a newer state than `current`.
-    apply((state) => pressDigit(state, digit, asNote));
+    apply((state) => pressDigit(state, digit, asNote, prefsRef.current.noteHelpers));
   }, [apply]);
 
   // Hint, plus the notice and pulse that show which cell it filled. hint() is
@@ -354,9 +369,10 @@ export function useGame() {
   // React applies queued state updates in order.
   const giveHint = useCallback(() => {
     const current = gameRef.current;
-    if (!current) return;
-    const next = hint(current);
-    apply(hint);
+    if (!current || !prefsRef.current.solvingHelp) return;
+    const tidy = prefsRef.current.noteHelpers;
+    const next = hint(current, true, tidy);
+    apply((state) => hint(state, true, tidy));
     const text = hintNotice(current, next);
     if (text) {
       setNotice(text);
@@ -415,6 +431,7 @@ export function useGame() {
         paused: current.paused,
         won: current.won,
         entry: prefsRef.current.entry,
+        solvingHelp: prefsRef.current.solvingHelp,
       });
       if (!command) return;
       // preventDefault stops the browser's own use of the key: scrolling for
@@ -479,7 +496,7 @@ export function useGame() {
   const countedGridRef = useRef<Grid | null>(null);
   const explain = useCallback(() => {
     const current = gameRef.current;
-    if (!current || current.paused || current.won) return;
+    if (!current || current.paused || current.won || !prefsRef.current.solvingHelp) return;
     const advice = nextStep(current.grid, current.solution, current.locked);
     setExplained({ grid: current.grid, advice, index: 0 });
     if (explanationCounts(advice, countedGridRef.current === current.grid)) {
@@ -493,8 +510,11 @@ export function useGame() {
   // The explanation shows only while the board is the one it was made for.
   // Any move, undo, or new game makes a new grid, and the panel goes away by
   // itself, with no clean-up code needed.
+  // Switching Solving help off hides it too (see setHelper).
   const advice =
-    explained && game && explained.grid === game.grid && !game.paused && !game.won ? explained : null;
+    explained && game && explained.grid === game.grid && !game.paused && !game.won && prefs.solvingHelp
+      ? explained
+      : null;
 
   const conflicts = game ? conflictGrid(game.grid) : [];
   const counts = game ? digitCounts(game.grid) : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -531,7 +551,7 @@ export function useGame() {
     restoreBackup,
     sync,
     setEntry,
-    setShowConflicts: applyShowConflicts,
+    setHelper,
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),
     input: enterDigit,
     eraseCell: () => apply(erase),
@@ -549,7 +569,8 @@ export function useGame() {
     // hint() fills the selected cell when it qualifies, so selecting the
     // step's cell first makes Hint fill exactly that one. The explanation
     // already counted as a hint, so the fill does not count again.
-    fillCell: (r: number, c: number) => apply((state) => hint(selectCell(state, r, c), false)),
+    fillCell: (r: number, c: number) =>
+      apply((state) => hint(selectCell(state, r, c), false, prefsRef.current.noteHelpers)),
     check,
   };
 }
