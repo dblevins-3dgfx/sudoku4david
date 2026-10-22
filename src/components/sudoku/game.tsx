@@ -14,6 +14,7 @@ import {
   Settings,
   Trophy,
   Undo2,
+  WandSparkles,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import { useGame } from "./use-game";
 
 const CONTROL_ICONS: Record<ControlId, LucideIcon> = {
   notes: Pencil,
+  fill: WandSparkles,
   erase: Eraser,
   undo: Undo2,
   redo: Redo2,
@@ -105,6 +107,7 @@ export function Game() {
     select,
     input,
     eraseCell,
+    fillAllNotes,
     undoMove,
     redoMove,
     toggleNotes,
@@ -146,6 +149,7 @@ export function Game() {
       disabled: !game || game.paused || game.won || busy,
       onClick: toggleNotes,
     },
+    fill: { disabled: lockedPlay, onClick: fillAllNotes },
     erase: { disabled: lockedPlay, onClick: eraseCell },
     undo: { disabled: !game || game.paused || busy || game.history.length === 0, onClick: undoMove },
     redo: { disabled: !game || game.paused || busy || game.future.length === 0, onClick: redoMove },

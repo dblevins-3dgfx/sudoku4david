@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { cloneNotes, emptyNotes, notesAfterPlacing, notesAreEmpty } from "./notes";
+import { candidateNotes, cloneNotes, emptyNotes, notesAfterPlacing, notesAreEmpty, notesEqual } from "./notes";
 import type { Grid } from "./sudoku";
 
 const ALL = 0b1111111110; // bits 1..9
@@ -74,5 +74,49 @@ describe("notes helpers", () => {
     const copy = cloneNotes(notes);
     copy[0][0] = 1 << 1;
     assert.equal(notes[0][0], 0);
+  });
+});
+
+describe("candidate notes for Fill all notes", () => {
+  it("marks each empty cell with the digits not in its row, column, or box", () => {
+    const grid = emptyGrid();
+    grid[0][1] = 1; // same row as (0,0)
+    grid[5][0] = 2; // same column
+    grid[2][2] = 3; // same box
+    grid[8][8] = 4; // unrelated
+    const notes = candidateNotes(grid);
+    const expected = ALL & ~(1 << 1) & ~(1 << 2) & ~(1 << 3);
+    assert.equal(notes[0][0], expected);
+    assert.equal(notes[4][4], ALL, "sees none of them");
+  });
+
+  it("gives filled cells no marks", () => {
+    const grid = emptyGrid();
+    grid[3][3] = 7;
+    assert.equal(candidateNotes(grid)[3][3], 0);
+  });
+
+  it("leaves out a digit that has nine copies, even next to a repeat", () => {
+    const grid = emptyGrid();
+    // Nine 5s, two of them repeating in row 0, none in row 8, column 8, or the last box.
+    for (const [r, c] of [[0, 0], [1, 3], [2, 6], [3, 1], [4, 4], [5, 7], [6, 2], [7, 5], [0, 4]]) grid[r][c] = 5;
+    const notes = candidateNotes(grid);
+    assert.equal(notes[8][8] & (1 << 5), 0);
+    assert.equal(notes[8][8], ALL & ~(1 << 5));
+  });
+
+  it("gives a cell with no candidates no marks", () => {
+    const grid = emptyGrid();
+    for (let c = 1; c < 9; c++) grid[0][c] = c as 1;
+    grid[1][0] = 9;
+    assert.equal(candidateNotes(grid)[0][0], 0);
+  });
+
+  it("compares marks cell by cell", () => {
+    const a = emptyNotes();
+    const b = emptyNotes();
+    assert.equal(notesEqual(a, b), true);
+    b[4][4] = 1 << 3;
+    assert.equal(notesEqual(a, b), false);
   });
 });

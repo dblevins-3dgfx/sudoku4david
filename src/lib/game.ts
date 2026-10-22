@@ -8,7 +8,15 @@ import {
   type Digit,
   type Grid,
 } from "./sudoku";
-import { cloneNotes, emptyNotes, notesAreEmpty, notesAfterPlacing, type Notes } from "./notes";
+import {
+  candidateNotes,
+  cloneNotes,
+  emptyNotes,
+  notesAfterPlacing,
+  notesAreEmpty,
+  notesEqual,
+  type Notes,
+} from "./notes";
 
 export type Coord = { r: number; c: number };
 
@@ -240,6 +248,24 @@ export function erase(state: GameState): GameState {
     ...begin(state, false),
     grid: nextGrid,
     notes: nextNotes,
+  };
+}
+
+/**
+ * Fill all notes: replaces the marks in every empty cell with that cell's
+ * candidates (see candidateNotes), as one undo step. It is not a hint and
+ * does not touch the error count. Returns the same state, recording no step,
+ * when paused, after a win, or when the marks already match.
+ */
+export function fillNotes(state: GameState): GameState {
+  if (state.paused || state.won) return state;
+  const notes = candidateNotes(state.grid);
+  if (notesEqual(notes, state.notes)) return state;
+  return {
+    ...state,
+    ...pushHistory(state),
+    ...begin(state, false),
+    notes,
   };
 }
 

@@ -54,6 +54,8 @@ Writing a digit removes that cell's notes. With Note helpers on (see Available h
 
 Erase clears the selected cell's digit and its notes. It does nothing on a locked cell, or on a cell that is already empty and unmarked.
 
+Fill all notes replaces the marks in every empty cell with that cell's candidates: each digit not already in its row, column, or box. It works from the digits on the board alone and never looks at the solution, so a wrong digit on the board makes the filled marks wrong too. A digit with nine copies on the board is left out of every mark. Filled cells keep no marks. The whole fill is one undo step, so one undo puts back the marks the player had. It starts the clock, counts as no hint, and does not change the error count. It does nothing while paused, after a win, or when every mark already matches. It is offered while Note helpers is on.
+
 With Board highlighting on, the digit keypad shows how many of that digit are still missing from a full nine. The badge stops at 0. If more than nine copies are on the board, that 0 is shown as an error. With Board highlighting off, there are no counts. Either way, when none are missing, the key is gray. The keypad and the number keys both ignore that digit, including in notes mode, until the count drops. Erase still clears the selected cell.
 
 ## Conflicts
@@ -79,7 +81,7 @@ Preferences has an Available helpers section with one on/off switch for each gro
 | --- | --- | --- |
 | Solving help | Hint and Explain | Their icons are hidden, H does nothing, and an open explanation closes |
 | Error checking | Conflicts, the error count, and Check | Conflicts are hidden, the error count is neither shown nor increased, and the Check icon is hidden |
-| Note helpers | Clearing a placed digit from other cells' notes, by digit entry or Hint | Placing a digit clears only that cell's own notes |
+| Note helpers | Clearing a placed digit from other cells' notes, by digit entry or Hint, and Fill all notes | Placing a digit clears only that cell's own notes, the Fill all notes icon is hidden, and F does nothing |
 | Board highlighting | Peer and same-digit tints, highlighted pencil marks, and the keypad's counts | Only the selected cell, conflicts, and an explanation's cells are tinted; the keypad shows no counts, but a digit with nine copies still grays out and is ignored |
 
 Undo and redo restore the board as it was saved, whichever switches were on when each step was recorded.
@@ -128,7 +130,7 @@ While an explanation is shown, it replaces the status card and the board tints o
 
 ## Undo, redo, and clearing
 
-Digit entry, notes, erase, and hint each record a step. Up to 100 steps are kept. A new step drops the redo stack.
+Digit entry, notes, Fill all notes, erase, and hint each record a step. Up to 100 steps are kept. A new step drops the redo stack.
 
 Undo and redo move one step and leave the error count and the hint total unchanged. They are unavailable while the grid is paused, and when there is no step in that direction. Returning to the original puzzle, with no notes and no hints, is treated as not started: the timer reads 0:00 and does not run.
 
@@ -146,7 +148,7 @@ If play has started and the puzzle is not solved, the dialog says “Deal a new 
 
 ## Timer and pause
 
-The clock starts on the first digit, note, erase, or hint. It shows minutes and seconds, and adds hours after 59:59. It stops on a win. Undo back to an unstarted grid resets it to 0:00.
+The clock starts on the first digit, note, Fill all notes, erase, or hint. It shows minutes and seconds, and adds hours after 59:59. It stops on a win. Undo back to an unstarted grid resets it to 0:00.
 
 Pause covers the grid and stops the clock. Resume uncovers the grid and continues the clock only if play had started. Pause is unavailable after a win. The pause control and the P key toggle it. Escape, when no dialog is open, resumes a paused grid; it does not pause.
 
@@ -176,7 +178,7 @@ The page fills the browser window. From a window width of 720 pixels, the board 
 
 The clock, pause, preferences, high scores, and new puzzle sit in the header, in that order. Preferences, high scores, and new puzzle are icons. Preferences opens a dialog for the entry method, for Available helpers, for the color theme, for resetting high scores, for backup files, and for sync. Each theme is one file in `src/themes`, listed in `src/themes/index.ts`. High scores opens the high-score tables. New puzzle opens the difficulty dialog. Escape closes any of these dialogs.
 
-Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, erase, undo, redo, hint, explain, check, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other seven remain. Hint and explain are hidden while Solving help is off, and check while Error checking is off; the icons left fill the same space. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and helpers are chosen in dialogs, not in this column. From 720 pixels wide, a line under the board lists the main keys for the chosen entry method.
+Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, fill all notes, erase, undo, redo, hint, explain, check, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other eight remain. Fill all notes is hidden while Note helpers is off, hint and explain while Solving help is off, and check while Error checking is off; the icons left fill the same space. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and helpers are chosen in dialogs, not in this column. From 720 pixels wide, a line under the board lists the main keys for the chosen entry method.
 
 Pencil marks are the largest size that still places all nine digits inside a cell. They are set in a handwritten face so they stay distinct from the printed digits.
 
@@ -198,6 +200,7 @@ These keys apply when a puzzle is on screen and a new grid is not being dealt. C
 | N | Toggle notes when the notes button is selected. Does nothing in one tap, two taps |
 | P | Pause or resume |
 | H | Hint. Does nothing while Solving help is off |
+| F | Fill all notes. Does nothing while Note helpers is off |
 | U, or Command/Ctrl+Z | Undo |
 | Y, or Command/Ctrl+Shift+Z | Redo |
 | Escape | Dismiss the open dialog, or resume when paused |

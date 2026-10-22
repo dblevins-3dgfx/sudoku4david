@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import {
   createGameFromPuzzle,
   erase,
+  fillNotes,
   hint,
   inputDigit,
   moveSelection,
@@ -117,6 +118,48 @@ describe("Entering digits", () => {
     const wiped = erase(noted);
     assert.equal(wiped.notes[cell.r][cell.c], 0);
     assert.equal(wiped.history.length, noted.history.length + 1);
+  });
+});
+
+describe("Entering digits: Fill all notes", () => {
+  it("replaces every empty cell's marks with its candidates as one undo step", () => {
+    const open = empties(fresh());
+    const marked = inputDigit(at(fresh(), open[0]), 9, true);
+    const before = inputDigit(at(marked, open[1]), 8, true);
+    const filled = fillNotes(before);
+    assert.equal(filled.history.length, before.history.length + 1);
+    for (const { r, c } of open) {
+      const allowed = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter(
+        (d) => !puzzle.some((row, rr) => row.some((v, cc) => v === d && sameGroup({ r, c }, { r: rr, c: cc }))),
+      );
+      assert.equal(filled.notes[r][c], allowed.reduce((mask, d) => mask | bit(d), 0), `cell ${r},${c}`);
+    }
+    assert.deepEqual(undo(filled).notes, before.notes);
+  });
+
+  it("starts the clock but charges no hint and no error", () => {
+    const game = fillNotes(fresh());
+    assert.equal(game.started, true);
+    assert.equal(game.timerOn, true);
+    assert.equal(game.hintsUsed, 0);
+    assert.equal(game.errors, 0);
+  });
+
+  it("leaves filled cells unmarked and their digits alone", () => {
+    const cell = empties(fresh())[0];
+    const game = fillNotes(inputDigit(at(fresh(), cell), solution[cell.r][cell.c] as Digit));
+    assert.equal(game.notes[cell.r][cell.c], 0);
+    assert.equal(game.grid[cell.r][cell.c], solution[cell.r][cell.c]);
+  });
+
+  it("does nothing while paused, after a win, or when the marks already match", () => {
+    const paused = togglePause(fresh());
+    assert.equal(fillNotes(paused), paused);
+    const once = fillNotes(fresh());
+    assert.equal(fillNotes(once), once);
+    let won = fresh();
+    for (const cell of empties(fresh())) won = inputDigit(at(won, cell), solution[cell.r][cell.c] as Digit);
+    assert.equal(fillNotes(won), won);
   });
 });
 

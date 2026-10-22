@@ -85,6 +85,8 @@ export type KeyContext = {
   entry: EntryMethod;
   /** The Solving help switch: H does nothing while it is off. */
   solvingHelp: boolean;
+  /** The Note helpers switch: F does nothing while it is off. */
+  noteHelpers: boolean;
 };
 
 /**
@@ -100,7 +102,8 @@ export type KeyCommand =
   | { kind: "digit"; digit: Digit }
   | { kind: "erase" }
   | { kind: "notes" }
-  | { kind: "hint" };
+  | { kind: "hint" }
+  | { kind: "fill" };
 
 const ARROW_STEPS: Record<string, [number, number]> = {
   ArrowUp: [-1, 0],
@@ -136,5 +139,6 @@ export function keyCommand(event: KeyInput, ctx: KeyContext): KeyCommand | null 
   if (key === "u") return { kind: "undo" };
   if (key === "y") return { kind: "redo" };
   if (key === "h") return ctx.solvingHelp ? { kind: "hint" } : null;
+  if (key === "f") return ctx.noteHelpers ? { kind: "fill" } : null;
   return null;
 }

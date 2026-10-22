@@ -1,7 +1,7 @@
 import { helperOn, type HelperGroup } from "./helpers";
 import type { EntryMethod, Preferences } from "./prefs";
 
-export type ControlId = "notes" | "erase" | "undo" | "redo" | "hint" | "explain" | "check" | "clear";
+export type ControlId = "notes" | "fill" | "erase" | "undo" | "redo" | "hint" | "explain" | "check" | "clear";
 
 export type ControlSpec = {
   id: ControlId;
@@ -19,6 +19,7 @@ export type ControlSpec = {
  */
 export const CONTROLS: readonly ControlSpec[] = [
   { id: "notes", label: "Notes", group: null, entry: ["button"] },
+  { id: "fill", label: "Fill all notes", group: "notes" },
   { id: "erase", label: "Erase", group: null },
   { id: "undo", label: "Undo", group: null },
   { id: "redo", label: "Redo", group: null },
