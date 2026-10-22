@@ -21,7 +21,10 @@ export type Technique =
   | "x-wing"
   | "swordfish"
   | "xy-wing"
-  | "x-chain";
+  | "x-chain"
+  | "xy-chain"
+  | "w-wing"
+  | "aic";
 
 /** One candidate taken out: `digit` can no longer go in that cell. */
 export type Removal = Coord & { digit: Digit };
@@ -30,15 +33,22 @@ export type Step = {
   technique: Technique;
   /**
    * Where the pattern sits. Null for a naked single, and for the patterns
-   * that span several rows and columns (X-Wing, Swordfish, XY-Wing, X-chain).
+   * that span several rows and columns (X-Wing, Swordfish, XY-Wing, and the
+   * chains).
    */
   unit: Unit | null;
   /** The cells that make the pattern (for a single, the cell being filled). */
   cells: Coord[];
   digits: Digit[];
   removals: Removal[];
-  /** For an X-chain, the unit of each strong link, in chain order. */
-  links?: Unit[];
+  /**
+   * For a chain, the unit of each strong link, in chain order. Null marks an
+   * AIC link inside one cell that has only two candidates; an X-chain's links
+   * are always units.
+   */
+  links?: (Unit | null)[];
+  /** For an AIC, XY-chain, or W-Wing: the chain's candidates in order. */
+  nodes?: (Coord & { digit: Digit })[];
   /** The digit to write in, on the last step of a chain. */
   place: (Coord & { digit: Digit }) | null;
   text: string;

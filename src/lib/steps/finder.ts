@@ -9,7 +9,7 @@
 //
 // The finder looks for a placement first (a single). When none is visible it
 // applies eliminations (pointing, claiming, pairs, triples, X-Wing, Swordfish,
-// XY-Wing, X-chains) to its private candidate copy and looks again. It then
+// XY-Wing, X-chains, AIC) to its private candidate copy and looks again. It then
 // keeps only the eliminations the placement actually depends on, so the
 // explanation is a short chain that ends in a digit to write in.
 //
@@ -18,6 +18,7 @@
 // below (in the order a person would try it), and to PHRASES.
 
 import { isDigit, type Grid } from "../sudoku";
+import { aic, aicPhrase } from "./aic";
 import { boardCandidates, key } from "./board";
 import { fish, fishPhrases } from "./fish";
 import { claiming, intersectionPhrases, pointing } from "./intersections";
@@ -37,6 +38,9 @@ const PHRASES: Record<Technique, Phrase> = {
   ...fishPhrases,
   "xy-wing": xyWingPhrase,
   "x-chain": xChainPhrase,
+  "xy-chain": aicPhrase,
+  "w-wing": aicPhrase,
+  aic: aicPhrase,
 };
 
 function describe(step: Found, usesEarlier: boolean): string {
@@ -55,6 +59,7 @@ const ELIMINATIONS: Finder[] = [
   (grid, cand) => fish(grid, cand, 3),
   xyWing,
   xChain,
+  aic,
 ];
 
 /** Keeps only the eliminations the placement depends on, oldest first. */
@@ -118,7 +123,7 @@ export function nextStep(grid: Grid, solution: Grid, locked: boolean[][]): Advic
   }
   return {
     kind: "stuck",
-    text: "I can't find the next step with the techniques I know (singles, pointing, claiming, pairs, triples, X-Wing, Swordfish, XY-Wing, and X-chains). This puzzle needs a harder one. Hint can still fill in a cell.",
+    text: "I can't find the next step with the techniques I know (singles, pointing, claiming, pairs, triples, X-Wing, Swordfish, XY-Wing, X-chains, XY-chains, W-Wings, and AIC). This puzzle needs a harder one. Hint can still fill in a cell.",
   };
 }
 
@@ -126,4 +131,4 @@ export function nextStep(grid: Grid, solution: Grid, locked: boolean[][]): Advic
 export { describe as describeFound };
 
 /** The individual pattern finders, exported for the unit tests. */
-export const finders = { hiddenSingle, nakedSingle, pointing, claiming, nakedSubset, hiddenSubset, fish, xyWing, xChain };
+export const finders = { hiddenSingle, nakedSingle, pointing, claiming, nakedSubset, hiddenSubset, fish, xyWing, xChain, aic };

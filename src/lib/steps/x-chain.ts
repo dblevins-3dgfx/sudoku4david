@@ -109,7 +109,7 @@ export const xChainPhrase: Phrase = (step) => {
   const names = step.cells.map(cellName);
   const links = (step.links ?? []).map((unit, i) => {
     const [from, to] = [names[2 * i], names[2 * i + 1]];
-    const why = `${to} must be, as the only other place for ${d} in ${unitName(unit)}.`;
+    const why = `${to} must be, as the only other place for ${d} in ${unitName(unit!)}.`;
     return i === 0 ? `If ${from} isn't ${d}, ${why}` : `Then ${from}, which sees ${names[2 * i - 1]}, isn't ${d}, so ${why}`;
   });
   return `${capitalize(links.join(" "))} So either ${names[0]} or ${names[names.length - 1]} is ${d}, and no cell that sees both can be ${d}: ${removalText(step.removals)}.`;

@@ -85,9 +85,33 @@ After Hint fills a cell, the status line says which: “Hint: 7 in row 3, column
 
 Explain works out the next logical step from the digits on the board and says why in plain words. It ignores pencil marks, which may be incomplete. It does not change the board. An explanation counts as a hint and starts the clock, unless Explain finds nothing it can explain. Asking again about the same board does not count again, and undo does not take the hint back.
 
-If an unlocked digit on the board is wrong, Explain names that cell first and offers to select it. Otherwise it looks for a hidden single, then a naked single. When neither is visible, it takes candidates out with pointing, claiming, naked and hidden pairs, naked and hidden triples, then X-Wing, Swordfish, XY-Wing, and X-chains, and looks again. An X-Wing is a digit that, in two rows, fits only in the same two columns (or in two columns, only in the same two rows), so no other cell in those columns can hold it. A Swordfish is the same with three rows and three columns. An XY-Wing is a cell that can only be x or y, seeing one cell that can only be x or z and another that can only be y or z, so no cell that sees both of those can be z. An X-chain follows one digit. It starts in a row, column, or box where the digit has only two places left, so if the first cell isn't the digit the second is. The second cell rules the digit out of a cell it sees, which is one of only two places in another unit, so the other place holds it, and so on. The chain always ends on such a pair, so one of its two end cells holds the digit, and no cell that sees both ends can. Explain uses the shortest X-chain that takes a candidate out, and words it link by link. The explanation lists only the steps the placement depends on, in order, with Back and Next between them, and ends with the digit to place. Fill it in places that digit the same way Hint does, without counting a second hint. If none of these techniques finds a placement, Explain says so.
+If an unlocked digit on the board is wrong, Explain names that cell first and offers to select it. Otherwise it works down the table below and uses the first technique that finds something. The two singles place a digit. The others take candidates out, and after each one Explain starts again from the singles. A candidate is a digit that can still go in a cell, worked out from the digits on the board.
 
-While an explanation is shown, it replaces the status card and the board tints only the cells it talks about: the cell to fill, the cells that make the pattern, the cells losing a candidate (outlined), and the rest of the row, column, or box. X-Wing, Swordfish, XY-Wing, and X-chains span several rows and columns, so they tint only their own cells and the cells losing a candidate. Any change to the board, pausing, or a win closes it. Pressing Explain again also closes it.
+| Order | Heading | What it finds |
+| --- | --- | --- |
+| 1 | Hidden single | A digit with only one place left in a row, column, or box. It is placed. |
+| 2 | Naked single | A cell with only one candidate left. It is placed. |
+| 3 | Pointing | A box where a digit's places all sit on one row or column, so the rest of that line can't hold it. |
+| 4 | Claiming | A row or column where a digit's places all sit in one box, so the rest of that box can't hold it. |
+| 5 | Naked pair | Two cells of a unit that can only hold the same two digits, so no other cell there can. |
+| 6 | Hidden pair | Two digits that fit only in the same two cells of a unit, so those cells can't hold anything else. |
+| 7 | Naked triple, Hidden triple | The same with three cells and three digits. |
+| 8 | X-Wing | A digit that, in two rows, fits only in the same two columns (or in two columns, only in the same two rows), so no other cell in those columns can hold it. |
+| 9 | Swordfish | The same with three rows and three columns. |
+| 10 | XY-Wing | A cell that can only be x or y, seeing one cell that can only be x or z and another that can only be y or z, so no cell that sees both of those can be z. |
+| 11 | X-chain | A chain for one digit, described below. |
+| 12 | XY-chain, W-Wing, Chain (AIC) | A chain across digits (an alternating inference chain), described below. |
+
+Chains are built from pairs where at least one must be true, joined by links where at most one can be true:
+
+- **X-chain.** Each pair is a row, column, or box where the digit has only two places left. Between pairs, a cell rules the digit out of a cell it sees. The chain starts and ends on a pair, so one of its two end cells holds the digit, and no cell that sees both ends can.
+- **AIC.** The same idea for candidates of any digit. A pair is either the two places for a digit in a unit, or a cell with only two candidates. Between pairs, a candidate rules out one that clashes with it: the same digit in a cell it sees, or another digit in the same cell. One of the two end candidates is true, so any candidate that clashes with both is removed.
+- **Headings.** An AIC whose pairs are all two-candidate cells is headed XY-chain. Two cells holding the same two digits, joined through a unit where one of those digits has only two places, is headed W-Wing. Any other AIC is headed Chain (AIC).
+- **Which chain.** Explain uses the shortest chain that takes a candidate out, tries AICs only after X-chains, and words a chain link by link.
+
+The explanation lists only the steps the placement depends on, in order, with Back and Next between them, and ends with the digit to place. Fill it in places that digit the same way Hint does, without counting a second hint. If none of these techniques finds a placement, Explain says so.
+
+While an explanation is shown, it replaces the status card and the board tints only the cells it talks about: the cell to fill, the cells that make the pattern, the cells losing a candidate (outlined), and the rest of the row, column, or box. X-Wing, Swordfish, XY-Wing, and the chains span several rows and columns, so they tint only their own cells and the cells losing a candidate. Any change to the board, pausing, or a win closes it. Pressing Explain again also closes it.
 
 ## Undo, redo, and clearing
 
