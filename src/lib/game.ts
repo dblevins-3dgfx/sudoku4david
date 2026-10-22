@@ -72,6 +72,25 @@ function snapshot(state: GameState): Snapshot {
   };
 }
 
+/** One more hint on a saved undo or redo step; see countHint. */
+function addHint(snap: Snapshot): Snapshot {
+  return { ...snap, hintsUsed: snap.hintsUsed + 1 };
+}
+
+/**
+ * Counts one hint so that no undo or redo can take it back: the live count and
+ * every saved step get it. Once a player has seen an answer, undoing the move
+ * that showed it must not hand back the hint. `.map` builds a new array, so the
+ * old state's steps are left as they were.
+ */
+function countHint(fields: Pick<GameState, "hintsUsed" | "history" | "future">) {
+  return {
+    hintsUsed: fields.hintsUsed + 1,
+    history: fields.history.map(addHint),
+    future: fields.future.map(addHint),
+  };
+}
+
 function cellConflicts(grid: Grid, r: number, c: number): boolean {
   const value = grid[r][c];
   if (value === 0) return false;
@@ -287,7 +306,8 @@ function hintTarget(state: GameState): Coord | null {
 /**
  * Hint fills one cell with its solution digit. `counted` is false when an
  * explanation already counted this help (see countExplanation), so placing its
- * digit does not count twice.
+ * digit does not count twice. Undo takes back the digit but not the count, the
+ * same as for an explanation, so Hint then Undo can't peek at a cell for free.
  */
 export function hint(state: GameState, counted = true): GameState {
   if (state.paused || state.won) return state;
@@ -304,14 +324,16 @@ export function hint(state: GameState, counted = true): GameState {
   clearDigitNotes(nextNotes, target.r, target.c, digit);
   settleLockedDigit(nextGrid, nextNotes, digit);
   const won = gridsEqual(nextGrid, state.solution);
+  // The step saved here holds the board before the fill. When the hint counts,
+  // countHint adds it to that step too, so undoing the fill keeps the count.
+  const steps = { hintsUsed: state.hintsUsed, ...pushHistory(state) };
   return {
     ...state,
-    ...pushHistory(state),
+    ...(counted ? countHint(steps) : steps),
     ...begin(state, won),
     grid: nextGrid,
     notes: nextNotes,
     locked: nextLocked,
-    hintsUsed: state.hintsUsed + (counted ? 1 : 0),
     selected: target,
   };
 }
@@ -324,13 +346,10 @@ export function hint(state: GameState, counted = true): GameState {
  */
 export function countExplanation(state: GameState): GameState {
   if (state.paused || state.won) return state;
-  const bump = (snap: Snapshot): Snapshot => ({ ...snap, hintsUsed: snap.hintsUsed + 1 });
   return {
     ...state,
     ...begin(state, false),
-    hintsUsed: state.hintsUsed + 1,
-    history: state.history.map(bump),
-    future: state.future.map(bump),
+    ...countHint(state),
   };
 }
 

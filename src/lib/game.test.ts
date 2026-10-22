@@ -70,9 +70,38 @@ describe("play", () => {
     assert.equal(game.hintsUsed, 2);
     assert.equal(game.history.length, 1, "an explanation is not an undo step");
     game = undo(game);
-    assert.equal(game.hintsUsed, 1, "undo takes back the fill, not the explanation");
+    assert.equal(game.hintsUsed, 2, "undo takes back the fill, not the hint or the explanation");
     game = redo(game);
     assert.equal(game.hintsUsed, 2);
+  });
+
+  it("keeps a hint counted after undo takes back its digit", { timeout: 20_000 }, () => {
+    const fresh = createGame("medium", mulberry32(21));
+    const hinted = hint(fresh);
+    const { r, c } = hinted.selected;
+    assert.equal(hinted.hintsUsed, 1);
+    let game = undo(hinted);
+    assert.equal(game.grid[r][c], fresh.grid[r][c], "undo empties the hinted cell");
+    assert.equal(game.locked[r][c], false);
+    assert.equal(game.hintsUsed, 1, "undo does not give the hint back");
+    assert.equal(game.started, true, "a used hint keeps the game started");
+    assert.equal(fresh.hintsUsed, 0, "the earlier state is not changed");
+    game = redo(game);
+    assert.equal(game.grid[r][c], hinted.grid[r][c]);
+    assert.equal(game.hintsUsed, 1, "redo does not count it twice");
+    game = undo(hint(undo(game)));
+    assert.equal(game.hintsUsed, 2, "each hint seen counts once");
+  });
+
+  it("keeps a hint counted when undo goes back past it", { timeout: 20_000 }, () => {
+    let game = createGame("medium", mulberry32(21));
+    game = inputDigit(game, 1, true);
+    game = hint(game);
+    game = undo(undo(game));
+    assert.equal(game.history.length, 0);
+    assert.ok(gridsEqual(game.grid, game.puzzle), "back to the original puzzle");
+    assert.equal(game.hintsUsed, 1);
+    assert.equal(game.started, true, "a puzzle with a hint used is not treated as unstarted");
   });
 
   it("starts the clock when an explanation counts", { timeout: 20_000 }, () => {

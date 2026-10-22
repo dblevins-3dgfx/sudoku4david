@@ -75,7 +75,7 @@ Check reports:
 
 Hint fills one unlocked cell that is empty or wrong.
 
-It uses the selected cell when that cell qualifies. Otherwise it uses the first qualifying cell in reading order. The filled digit is the solution digit. The cell becomes locked, its notes are cleared, and that digit is cleared from notes in the same row, column, and box. If the hint leaves nine of that digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. The hint counts toward the hint total, and the selection moves to that cell.
+It uses the selected cell when that cell qualifies. Otherwise it uses the first qualifying cell in reading order. The filled digit is the solution digit. The cell becomes locked, its notes are cleared, and that digit is cleared from notes in the same row, column, and box. If the hint leaves nine of that digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. The hint counts toward the hint total, and the selection moves to that cell. Undo takes back the digit a hint filled, but not the hint: the hint total stays the same.
 
 Hint does nothing when the puzzle is already solved, while the grid is paused, or when every unlocked cell already matches the solution.
 
@@ -91,7 +91,7 @@ While an explanation is shown, it replaces the status card and the board tints o
 
 Digit entry, notes, erase, and hint each record a step. Up to 100 steps are kept. A new step drops the redo stack.
 
-Undo and redo move one step and leave the error count unchanged. They are unavailable while the grid is paused, and when there is no step in that direction. Returning to the original puzzle, with no notes and no hints, is treated as not started: the timer reads 0:00 and does not run.
+Undo and redo move one step and leave the error count and the hint total unchanged. They are unavailable while the grid is paused, and when there is no step in that direction. Returning to the original puzzle, with no notes and no hints, is treated as not started: the timer reads 0:00 and does not run.
 
 Clear entries restores the original givens, clears notes, hints, the error count, the timer, and the history. Given digits stay.
 
