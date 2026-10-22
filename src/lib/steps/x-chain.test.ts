@@ -15,7 +15,7 @@ describe("X-chains", () => {
     assert.deepEqual(found.digits, [4]);
     assert.deepEqual(found.cells, [{ r: 0, c: 4 }, { r: 0, c: 1 }, { r: 6, c: 1 }, { r: 6, c: 3 }]);
     assert.deepEqual(
-      found.links?.map((unit) => `${unit.kind} ${unit.index}`),
+      found.links?.map((unit) => `${unit?.kind} ${unit?.index}`),
       ["row 0", "row 6"],
     );
     assert.deepEqual(found.removals, [
