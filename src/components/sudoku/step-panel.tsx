@@ -24,6 +24,7 @@ const TECHNIQUE_NAMES: Record<Step["technique"], string> = {
   "x-wing": "X-Wing",
   swordfish: "Swordfish",
   "xy-wing": "XY-Wing",
+  "x-chain": "X-chain",
 };
 
 /** The board marks for the step on show, or null when there is nothing to point at. */
