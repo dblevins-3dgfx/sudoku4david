@@ -288,19 +288,27 @@ export function erase(state: GameState): GameState {
   };
 }
 
+/**
+ * Picks the cell Hint fills. The selected cell wins when it is unlocked and
+ * empty or wrong. Otherwise a wrong digit comes before an empty cell, because
+ * every move built on a wrong digit is unreliable; the step finder's
+ * nextStep() names a wrong digit first for the same reason. Within each kind
+ * the first cell in reading order (row by row, left to right) is used.
+ */
 function hintTarget(state: GameState): Coord | null {
+  const unsolved = (r: number, c: number) =>
+    !state.locked[r][c] && state.grid[r][c] !== state.solution[r][c];
   const { r, c } = state.selected;
-  if (!state.locked[r][c] && state.grid[r][c] !== state.solution[r][c]) {
-    return { r, c };
-  }
+  if (unsolved(r, c)) return { r, c };
+  let emptyCell: Coord | null = null;
   for (let row = 0; row < 9; row++) {
     for (let col = 0; col < 9; col++) {
-      if (!state.locked[row][col] && state.grid[row][col] !== state.solution[row][col]) {
-        return { r: row, c: col };
-      }
+      if (!unsolved(row, col)) continue;
+      if (state.grid[row][col] !== 0) return { r: row, c: col };
+      emptyCell ??= { r: row, c: col }; // `??=` assigns only while it is still null
     }
   }
-  return null;
+  return emptyCell;
 }
 
 /**
