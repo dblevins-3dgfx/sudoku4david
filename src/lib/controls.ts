@@ -1,7 +1,7 @@
 import { helperOn, type HelperGroup } from "./helpers";
 import type { EntryMethod, Preferences } from "./prefs";
 
-export type ControlId = "notes" | "fill" | "erase" | "undo" | "redo" | "hint" | "explain" | "check" | "clear";
+export type ControlId = "notes" | "fill" | "erase" | "undo" | "redo" | "hint" | "explain" | "check" | "save" | "restore" | "clear";
 
 export type ControlSpec = {
   id: ControlId;
@@ -26,6 +26,8 @@ export const CONTROLS: readonly ControlSpec[] = [
   { id: "hint", label: "Hint", group: "solving" },
   { id: "explain", label: "Explain the next step", group: "solving" },
   { id: "check", label: "Check", group: "checking" },
+  { id: "save", label: "Save checkpoint", group: "guessing" },
+  { id: "restore", label: "Restore checkpoint", group: "guessing" },
   { id: "clear", label: "Clear entries", group: null },
 ];
 
@@ -35,4 +37,13 @@ export function visibleControls(prefs: Preferences): ControlSpec[] {
     (control) =>
       (!control.entry || control.entry.includes(prefs.entry)) && (!control.group || helperOn(prefs, control.group)),
   );
+}
+
+/**
+ * How many controls sit in each row under the keypad from 720 pixels wide:
+ * up to nine share one row; more are split over two rows, so each icon
+ * stays wide enough to hit.
+ */
+export function deskColumns(count: number): number {
+  return count <= 9 ? count : Math.ceil(count / 2);
 }

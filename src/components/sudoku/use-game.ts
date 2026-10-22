@@ -9,6 +9,8 @@ import {
   erase,
   fillNotes,
   hint,
+  restoreCheckpoint,
+  saveCheckpoint,
   moveSelection,
   redo,
   restart,
@@ -28,7 +30,8 @@ import {
 } from "@/lib/prefs";
 import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
 import { importBackup } from "@/lib/backup";
-import { withHelper, type SwitchedGroup } from "@/lib/helpers";
+import { findDeadEnds } from "@/lib/deadends";
+import { helperOn, withHelper, type HelperSwitch } from "@/lib/helpers";
 import { hintNotice } from "@/lib/labels";
 import type { Pending } from "@/lib/pending";
 import {
@@ -178,7 +181,7 @@ export function useGame() {
   // which keeps its own copy of whether conflicts are shown (see
   // applyShowConflicts); the other groups only change the preferences.
   const setHelper = useCallback(
-    (group: SwitchedGroup, on: boolean) => {
+    (group: HelperSwitch, on: boolean) => {
       if (group === "checking") applyShowConflicts(on);
       else commitPrefs(withHelper(prefsRef.current, group, on));
       // Switching Solving help off closes an open explanation for good, so
@@ -434,6 +437,7 @@ export function useGame() {
         entry: prefsRef.current.entry,
         solvingHelp: prefsRef.current.solvingHelp,
         noteHelpers: prefsRef.current.noteHelpers,
+        guessingTools: prefsRef.current.guessingTools,
       });
       if (!command) return;
       // preventDefault stops the browser's own use of the key: scrolling for
@@ -477,6 +481,12 @@ export function useGame() {
           break;
         case "fill":
           apply(fillNotes);
+          break;
+        case "save":
+          apply(saveCheckpoint);
+          break;
+        case "restore":
+          apply(restoreCheckpoint);
           break;
       }
     };
@@ -525,6 +535,8 @@ export function useGame() {
   const counts = game ? digitCounts(game.grid) : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   const conflictTotal = game ? conflictCount(game.grid) : 0;
   const filled = game ? countClues(game.grid) : 0;
+  // The dead-end warning reads only the board; it is off after a win.
+  const deadEnds = game && !game.won && helperOn(prefs, "deadEnds") ? findDeadEnds(game.grid) : null;
 
   return {
     game,
@@ -542,6 +554,7 @@ export function useGame() {
     conflictTotal,
     counts,
     filled,
+    deadEnds,
     setChosen,
     deal,
     requestNew,
@@ -561,6 +574,8 @@ export function useGame() {
     input: enterDigit,
     eraseCell: () => apply(erase),
     fillAllNotes: () => apply(fillNotes),
+    saveCheck: () => apply(saveCheckpoint),
+    restoreCheck: () => apply(restoreCheckpoint),
     undoMove: () => apply(undo),
     redoMove: () => apply(redo),
     toggleNotes: () => apply(toggleNotesMode),

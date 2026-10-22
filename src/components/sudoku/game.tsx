@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  BookmarkCheck,
+  BookmarkPlus,
   Eraser,
   GraduationCap,
   Lightbulb,
@@ -19,7 +21,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { visibleControls, type ControlId } from "@/lib/controls";
+import { deskColumns, visibleControls, type ControlId } from "@/lib/controls";
+import { CHECKPOINT_LIMIT } from "@/lib/checkpoints";
+import { deadEndCells, deadEndText, hasDeadEnd } from "@/lib/deadends";
 import { helperOn } from "@/lib/helpers";
 import { sourceLabel } from "@/lib/game";
 import { errorsText, keypadBadge, phaseText, statusText, winDetail } from "@/lib/labels";
@@ -40,10 +44,13 @@ const CONTROL_ICONS: Record<ControlId, LucideIcon> = {
   hint: Lightbulb,
   explain: GraduationCap,
   check: SearchCheck,
+  save: BookmarkPlus,
+  restore: BookmarkCheck,
   clear: RotateCcw,
 };
 
-// From 720 pixels wide the controls sit in one row, one column each. Tailwind
+// From 720 pixels wide the controls sit in rows under the keypad (see
+// deskColumns for how many to a row). Tailwind
 // only generates CSS for class names it finds spelled out in the source, so a
 // computed `grid-cols-${n}` would have no style; this table spells them out.
 const DESK_COLUMNS: Record<number, string> = {
@@ -108,6 +115,9 @@ export function Game() {
     input,
     eraseCell,
     fillAllNotes,
+    saveCheck,
+    restoreCheck,
+    deadEnds,
     undoMove,
     redoMove,
     toggleNotes,
@@ -129,7 +139,7 @@ export function Game() {
   const noteMask = game ? game.notes[game.selected.r][game.selected.c] : 0;
   const open = 81 - filled;
   const showMistakes = game?.showMistakes ?? true;
-  const status = statusText(game, conflictTotal, open);
+  const status = (deadEnds && deadEndText(deadEnds)) ?? statusText(game, conflictTotal, open);
   // Board highlighting also covers the keypad's "still missing" counts.
   const highlighting = helperOn(prefs, "highlighting");
 
@@ -143,6 +153,7 @@ export function Game() {
   // with their order and labels, is CONTROLS in src/lib/controls.ts; this
   // supplies the parts that depend on the current game.
   const hintsUsed = game?.hintsUsed ?? 0;
+  const checkpointCount = game?.checkpoints.length ?? 0;
   const controlState: Record<ControlId, ControlState> = {
     notes: {
       pressed: game?.notesMode ?? false,
@@ -161,6 +172,16 @@ export function Game() {
     },
     explain: { pressed: advice !== null, disabled: lockedPlay, onClick: advice ? closeAdvice : explain },
     check: { disabled: !game || busy || game.paused, onClick: check },
+    save: {
+      disabled: lockedPlay || (game?.checkpoints.length ?? 0) >= CHECKPOINT_LIMIT,
+      onClick: saveCheck,
+    },
+    restore: {
+      label: checkpointCount > 0 ? `Restore checkpoint, ${checkpointCount} saved` : undefined,
+      badge: checkpointCount > 0 ? checkpointCount : undefined,
+      disabled: lockedPlay || checkpointCount === 0,
+      onClick: restoreCheck,
+    },
     clear: { disabled: !game || !game.started || busy, onClick: requestRestart },
   };
   const controls = visibleControls(prefs);
@@ -269,6 +290,7 @@ export function Game() {
                     conflicts={conflicts}
                     marks={advice ? adviceMarks(advice) : null}
                     highlighting={highlighting}
+                    deadEnds={deadEnds && hasDeadEnd(deadEnds) ? deadEndCells(game.grid, deadEnds) : null}
                     flash={hintFlash}
                     onFlashEnd={clearHintFlash}
                     onSelect={select}
@@ -443,8 +465,8 @@ export function Game() {
 
             <div
               className={cn(
-                "grid h-full min-h-0 w-full min-w-0 auto-rows-fr grid-cols-2 gap-1 max-[719px]:min-w-[5.5rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:auto-rows-auto min-[720px]:grid-rows-1",
-                DESK_COLUMNS[controls.length],
+                "grid h-full min-h-0 w-full min-w-0 auto-rows-fr grid-cols-2 gap-1 max-[719px]:min-w-[5.5rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:auto-rows-auto",
+                DESK_COLUMNS[deskColumns(controls.length)],
               )}
             >
               {controls.map((control) => {

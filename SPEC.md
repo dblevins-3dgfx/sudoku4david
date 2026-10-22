@@ -75,7 +75,7 @@ Check is part of Error checking too, so it is offered only while conflicts are s
 
 ## Available helpers
 
-Preferences has an Available helpers section with one on/off switch for each group of helpers. Every group is on by default. Switching one applies at once, does not reset the puzzle, and is not an undo step. It does not change the hint total, the error count already kept, or high scores.
+Preferences has an Available helpers section with one on/off switch for each group of helpers. Every group is on by default; the dead-end warning, a switch inside Guessing tools, is off by default. Switching one applies at once, does not reset the puzzle, and is not an undo step. It does not change the hint total, the error count already kept, or high scores.
 
 | Switch | What it covers | When it is off |
 | --- | --- | --- |
@@ -83,8 +83,18 @@ Preferences has an Available helpers section with one on/off switch for each gro
 | Error checking | Conflicts, the error count, and Check | Conflicts are hidden, the error count is neither shown nor increased, and the Check icon is hidden |
 | Note helpers | Clearing a placed digit from other cells' notes, by digit entry or Hint, and Fill all notes | Placing a digit clears only that cell's own notes, the Fill all notes icon is hidden, and F does nothing |
 | Board highlighting | Peer and same-digit tints, highlighted pencil marks, and the keypad's counts | Only the selected cell, conflicts, and an explanation's cells are tinted; the keypad shows no counts, but a digit with nine copies still grays out and is ignored |
+| Guessing tools | Save and Restore checkpoint, and the dead-end warning switch | Their icons are hidden, S and R do nothing, and the dead-end warning is off; saved checkpoints are kept for when it is switched back on |
+| Dead-end warning (inside Guessing tools, off by default) | Flagging a board that can no longer be finished | No dead ends are flagged. While Guessing tools is off, this switch is grayed out and keeps its setting |
 
 Undo and redo restore the board as it was saved, whichever switches were on when each step was recorded.
+
+## Checkpoints and the dead-end warning
+
+Checkpoints support guessing: the player saves the board before trying a digit and goes back if the guess fails. They form a stack, so a guess inside a guess backs out one level at a time.
+
+Save checkpoint puts the board, meaning its digits, pencil marks, and locked cells, on top of the stack. It does not change the board, is not an undo step, and does not start the clock. It does nothing while paused, after a win, when the board matches the checkpoint already on top, or when 20 checkpoints are saved. Restore checkpoint takes the top checkpoint off the stack and puts its board back. A restore is one undo step: undo returns the board as it was and puts the checkpoint back on the stack, and redo restores it again. Like undo, a restore keeps the clock running and leaves the error count and the hint total unchanged. A cell that a hint locked after the checkpoint was saved goes back to empty and unlocked. Restore does nothing while paused, after a win, or with no checkpoint saved. The Restore icon shows how many checkpoints are saved. Clear entries, Same puzzle, and a new puzzle empty the stack.
+
+The dead-end warning works from the digits on the board alone, never the solution. A dead end is an empty cell where no digit can go, or a digit missing from a row, column, or box that has no empty cell left there to take it. A row, column, or box with no empty cell is left to Error checking. While a dead end exists, the status line names the first one: “Dead end: row 4, column 7 has no candidates.”, or “Dead end: 5 has no place in row 3.” (“in column 2”, “in the top-left box”). Dead cells come first in reading order, then units: boxes, then rows, then columns. The cells it names are tinted, either the dead cell, or the empty cells of that row, column, or box. It does not change the error count, and it shows nothing after a win.
 
 ## Hints
 
@@ -130,7 +140,7 @@ While an explanation is shown, it replaces the status card and the board tints o
 
 ## Undo, redo, and clearing
 
-Digit entry, notes, Fill all notes, erase, and hint each record a step. Up to 100 steps are kept. A new step drops the redo stack.
+Digit entry, notes, Fill all notes, erase, hint, and Restore checkpoint each record a step. Up to 100 steps are kept. A new step drops the redo stack.
 
 Undo and redo move one step and leave the error count and the hint total unchanged. They are unavailable while the grid is paused, and when there is no step in that direction. Returning to the original puzzle, with no notes and no hints, is treated as not started: the timer reads 0:00 and does not run.
 
@@ -160,7 +170,7 @@ When the grid matches the solution, the clock stops and a solved panel covers th
 
 The game is stored in the browser under `sudoku.desk.v1`. A saved game is restored on the next visit, including whether it came from Mt. Sudoku or was generated here. A saved record with no source is treated as generated. A saved record that is not a valid puzzle is ignored, and the next visit asks Mt. Sudoku for a medium puzzle.
 
-The record must have a completed, conflict-free solution. Every given must match the solution and be locked. Every locked cell in the working grid must match the solution. The error count is part of the saved game. A saved game with no error count is treated as 0. History and redo kept in storage are capped at 100 steps each, the same as in play, so undo works the same after a refresh. An error count stored on an older history step is ignored.
+The record must have a completed, conflict-free solution. Every given must match the solution and be locked. Every locked cell in the working grid must match the solution. The saved game includes its checkpoints, so backup files and sync carry them too. A stored checkpoint is used only when it is a well-formed board whose locked cells match the solution; a damaged one is dropped on its own, and a game saved before checkpoints existed has none. A restore step in the history keeps the checkpoint it took, so undo still puts it back after a refresh. The error count is part of the saved game. A saved game with no error count is treated as 0. History and redo kept in storage are capped at 100 steps each, the same as in play, so undo works the same after a refresh. An error count stored on an older history step is ignored.
 
 The clock is written about every five seconds while it is running, and again when the page is hidden or closed. Other moves are written as they happen.
 
@@ -170,7 +180,7 @@ High scores are stored under `sudoku.scores.v1`, and a random id for this browse
 
 The color theme is stored separately under `sudoku.theme`, as the theme's id. With nothing stored, the page uses Paper or Lamplight to follow the device's light or dark setting. The older values `light` and `dark` map to those two.
 
-How digits are entered, and the Available helpers switches, are stored under `sudoku.prefs.v1`. Error checking is stored as `showConflicts`, the name it had before Available helpers, so an older record keeps its choice; the other switches are `solvingHelp`, `noteHelpers`, and `highlighting`. The default entry method is the notes button, and every helper is on. Each stored field is read on its own: a missing or invalid one takes its default and the others are kept. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing any preference applies immediately and does not reset the puzzle. Preferences stay in this browser; sync does not carry them. Changing a preference is not an undo step.
+How digits are entered, and the Available helpers switches, are stored under `sudoku.prefs.v1`. Error checking is stored as `showConflicts`, the name it had before Available helpers, so an older record keeps its choice; the other switches are `solvingHelp`, `noteHelpers`, `highlighting`, `guessingTools`, and `deadEndWarning`. The default entry method is the notes button, and every helper is on except the dead-end warning. Each stored field is read on its own: a missing or invalid one takes its default and the others are kept. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing any preference applies immediately and does not reset the puzzle. Preferences stay in this browser; sync does not carry them. Changing a preference is not an undo step.
 
 ## Screen
 
@@ -178,11 +188,11 @@ The page fills the browser window. From a window width of 720 pixels, the board 
 
 The clock, pause, preferences, high scores, and new puzzle sit in the header, in that order. Preferences, high scores, and new puzzle are icons. Preferences opens a dialog for the entry method, for Available helpers, for the color theme, for resetting high scores, for backup files, and for sync. Each theme is one file in `src/themes`, listed in `src/themes/index.ts`. High scores opens the high-score tables. New puzzle opens the difficulty dialog. Escape closes any of these dialogs.
 
-Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, fill all notes, erase, undo, redo, hint, explain, check, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other eight remain. Fill all notes is hidden while Note helpers is off, hint and explain while Solving help is off, and check while Error checking is off; the icons left fill the same space. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit in one row under it. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and helpers are chosen in dialogs, not in this column. From 720 pixels wide, a line under the board lists the main keys for the chosen entry method.
+Below a window width of 720 pixels, the board is as wide as the screen, snapped down to a multiple of nine pixels so the cells stay even. The keypad is a square at the left of the control panel. With the notes button selected, notes, fill all notes, erase, undo, redo, hint, explain, check, save checkpoint, restore checkpoint, and clear entries are icons filling the space to its right. With one tap, two taps selected, the notes icon is hidden and the other ten remain. Fill all notes is hidden while Note helpers is off, hint and explain while Solving help is off, check while Error checking is off, and the two checkpoint icons while Guessing tools is off; the icons left fill the same space. From 720 pixels wide, the keypad is a square the width of the control column, and those same icons sit under it: in one row when there are nine or fewer, otherwise split over two rows. The keypad keeps that size when the window gets shorter. A second tap on a digit writes it without the pad waiting on a zoom gesture. Difficulty and helpers are chosen in dialogs, not in this column. From 720 pixels wide, a line under the board lists the main keys for the chosen entry method.
 
 Pencil marks are the largest size that still places all nine digits inside a cell. They are set in a handwritten face so they stay distinct from the printed digits.
 
-Box borders are heavier than the lines between cells inside a box. Both stay visible as the board gets smaller. The selected cell is highlighted. With Board highlighting on, peers in its row, column, and box are tinted, and other cells holding the same digit are tinted more strongly. Conflicts, when shown, use their own tint and take precedence over those three.
+Box borders are heavier than the lines between cells inside a box. Both stay visible as the board gets smaller. The selected cell is highlighted. With Board highlighting on, peers in its row, column, and box are tinted, and other cells holding the same digit are tinted more strongly. Conflicts, when shown, use their own tint and take precedence over those three. Cells the dead-end warning names use the conflict tint with a dotted outline, after conflicts and before everything else.
 
 With Board highlighting on, when the selected cell holds a digit, every pencil mark of that same digit is highlighted inside its cell. That mark is added on top of the cell tint. Selecting an empty cell does not highlight notes. With Board highlighting off, only the selected cell, conflicts, and an explanation's cells are tinted, and no marks are highlighted.
 
@@ -201,6 +211,8 @@ These keys apply when a puzzle is on screen and a new grid is not being dealt. C
 | P | Pause or resume |
 | H | Hint. Does nothing while Solving help is off |
 | F | Fill all notes. Does nothing while Note helpers is off |
+| S | Save checkpoint. Does nothing while Guessing tools is off |
+| R | Restore checkpoint. Does nothing while Guessing tools is off |
 | U, or Command/Ctrl+Z | Undo |
 | Y, or Command/Ctrl+Shift+Z | Redo |
 | Escape | Dismiss the open dialog, or resume when paused |

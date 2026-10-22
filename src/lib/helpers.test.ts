@@ -1,25 +1,36 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { HELPER_SWITCHES, helperOn, withHelper } from "./helpers";
+import { HELPER_SWITCHES, helperOn, switchValue, withHelper } from "./helpers";
 import { DEFAULT_PREFERENCES } from "./prefs";
 
 describe("Available helpers", () => {
-  it("has every group on by default", () => {
-    for (const { group } of HELPER_SWITCHES) assert.equal(helperOn(DEFAULT_PREFERENCES, group), true, group);
+  it("has every group on by default, and the dead-end warning off", () => {
+    for (const { key } of HELPER_SWITCHES) {
+      assert.equal(helperOn(DEFAULT_PREFERENCES, key), key !== "deadEnds", key);
+    }
   });
 
-  it("lists the four switches in order", () => {
+  it("lists the switches in order", () => {
     assert.deepEqual(
       HELPER_SWITCHES.map((entry) => entry.label),
-      ["Solving help", "Error checking", "Note helpers", "Board highlighting"],
+      ["Solving help", "Error checking", "Note helpers", "Board highlighting", "Guessing tools", "Dead-end warning"],
     );
+  });
+
+  it("keeps the dead-end warning inside Guessing tools", () => {
+    const warned = withHelper(DEFAULT_PREFERENCES, "deadEnds", true);
+    assert.equal(helperOn(warned, "deadEnds"), true);
+    const noGuessing = withHelper(warned, "guessing", false);
+    assert.equal(helperOn(noGuessing, "deadEnds"), false);
+    assert.equal(switchValue(noGuessing, "deadEnds"), true, "its own setting is kept for when Guessing tools comes back");
+    assert.equal(HELPER_SWITCHES.find((entry) => entry.key === "deadEnds")?.parent, "guessing");
   });
 
   it("switches one group without touching the others", () => {
     const prefs = withHelper(DEFAULT_PREFERENCES, "notes", false);
     assert.equal(helperOn(prefs, "notes"), false);
     assert.equal(prefs.noteHelpers, false);
-    for (const group of ["solving", "checking", "highlighting"] as const) assert.equal(helperOn(prefs, group), true);
+    for (const group of ["solving", "checking", "highlighting", "guessing"] as const) assert.equal(helperOn(prefs, group), true);
     assert.equal(prefs.entry, DEFAULT_PREFERENCES.entry);
   });
 

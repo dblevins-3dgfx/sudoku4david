@@ -58,6 +58,15 @@ describe("cell tint", () => {
     assert.equal(cellTone(explained, 0, 5), "plain");
   });
 
+  it("puts a dead end after a conflict and before everything else", () => {
+    assert.equal(cellTone({ ...base, deadEnd: true }, 0, 0), "deadend");
+    assert.equal(cellTone({ ...base, deadEnd: true, conflict: true }, 0, 0), "conflict");
+    const marks = noMarks();
+    marks[3][3] = "target";
+    assert.equal(cellTone({ ...base, marks, deadEnd: true }, 3, 3), "deadend");
+    assert.equal(cellTone({ ...base, highlighting: false, deadEnd: true }, 4, 4), "deadend");
+  });
+
   it("drops peer and same-digit tints with Board highlighting off, and keeps the rest", () => {
     const plain = { ...base, highlighting: false };
     assert.equal(cellTone(plain, 0, 0), "selected");
