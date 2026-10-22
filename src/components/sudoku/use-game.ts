@@ -32,7 +32,7 @@ import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } 
 import { importBackup } from "@/lib/backup";
 import { findDeadEnds } from "@/lib/deadends";
 import { helperOn, withHelper, type HelperSwitch } from "@/lib/helpers";
-import { hintNotice } from "@/lib/labels";
+import { fillNotice, hintNotice } from "@/lib/labels";
 import type { Pending } from "@/lib/pending";
 import {
   checkResult,
@@ -384,6 +384,16 @@ export function useGame() {
     }
   }, [apply]);
 
+  // Fill all notes, plus the notice naming the seconds it cost, worded from
+  // a dry run the same way giveHint words its notice.
+  const fillAllNotes = useCallback(() => {
+    const current = gameRef.current;
+    if (!current) return;
+    const text = fillNotice(current, fillNotes(current));
+    apply(fillNotes);
+    if (text) setNotice(text);
+  }, [apply]);
+
   const openPrefs = useCallback(() => {
     if (dealingRef.current || pendingRef.current || !gameRef.current) return;
     setPrefsOpen(true);
@@ -480,7 +490,7 @@ export function useGame() {
           giveHint();
           break;
         case "fill":
-          apply(fillNotes);
+          fillAllNotes();
           break;
         case "save":
           apply(saveCheckpoint);
@@ -493,7 +503,7 @@ export function useGame() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [apply, enterDigit, giveHint]);
+  }, [apply, enterDigit, fillAllNotes, giveHint]);
 
   const check = useCallback(() => {
     const current = gameRef.current;
@@ -573,7 +583,7 @@ export function useGame() {
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),
     input: enterDigit,
     eraseCell: () => apply(erase),
-    fillAllNotes: () => apply(fillNotes),
+    fillAllNotes,
     saveCheck: () => apply(saveCheckpoint),
     restoreCheck: () => apply(restoreCheckpoint),
     undoMove: () => apply(undo),
