@@ -9,13 +9,14 @@
 // set for digit d, the same layout the notes use (bit 0 unused).
 //
 // The finder looks for a placement first (a single). When none is visible it
-// applies eliminations (pointing, claiming, pairs, triples) to its private
+// applies eliminations (pointing, claiming, pairs, triples, X-Wing, Swordfish,
+// XY-Wing) to its private
 // candidate copy and looks again. It then keeps only the eliminations the
 // placement actually depends on, so the explanation is a short chain that ends
 // in a digit to write in.
 
 import type { Coord } from "./game";
-import { isDigit, type Digit, type Grid } from "./sudoku";
+import { isDigit, sameGroup, type Digit, type Grid } from "./sudoku";
 
 export type UnitKind = "row" | "column" | "box";
 
@@ -30,14 +31,20 @@ export type Technique =
   | "naked-pair"
   | "hidden-pair"
   | "naked-triple"
-  | "hidden-triple";
+  | "hidden-triple"
+  | "x-wing"
+  | "swordfish"
+  | "xy-wing";
 
 /** One candidate taken out: `digit` can no longer go in that cell. */
 export type Removal = Coord & { digit: Digit };
 
 export type Step = {
   technique: Technique;
-  /** Where the pattern sits. Null only for a naked single. */
+  /**
+   * Where the pattern sits. Null for a naked single, and for the patterns
+   * that span several rows and columns (X-Wing, Swordfish, XY-Wing).
+   */
   unit: Unit | null;
   /** The cells that make the pattern (for a single, the cell being filled). */
   cells: Coord[];
@@ -317,6 +324,118 @@ function hiddenSubset(grid: Grid, cand: number[][], size: 2 | 3): Found | null {
   return null;
 }
 
+/**
+ * X-Wing (size 2) and Swordfish (size 3). Take `size` rows in which a digit
+ * fits only within the same `size` columns. Each of those rows needs the
+ * digit once, and no two can use the same column, so between them they fill
+ * the digit in every one of those columns. No other cell in those columns can
+ * hold it. The same works with rows and columns swapped.
+ */
+function fish(grid: Grid, cand: number[][], size: 2 | 3): Found | null {
+  for (let d = 1; d <= 9; d++) {
+    const bit = 1 << d;
+    for (const baseKind of ["row", "column"] as const) {
+      // at(b, k) is the cell in base line b, cover line k.
+      const at = baseKind === "row" ? (b: number, k: number) => ({ r: b, c: k }) : (b: number, k: number) => ({ r: k, c: b });
+      const isOpen = ({ r, c }: Coord) => grid[r][c] === 0;
+      const has = ({ r, c }: Coord) => grid[r][c] === 0 && (cand[r][c] & bit) !== 0;
+      // For each base line with 2..size places for d, those places as a mask of cover indices.
+      const bases: { line: number; spots: number }[] = [];
+      for (let b = 0; b < 9; b++) {
+        let spots = 0;
+        for (let k = 0; k < 9; k++) if (has(at(b, k))) spots |= 1 << k;
+        const count = bitCount(spots);
+        if (count >= 2 && count <= size) bases.push({ line: b, spots });
+      }
+      for (const group of combinations(bases, size)) {
+        const cover = group.reduce((mask, base) => mask | base.spots, 0);
+        if (bitCount(cover) !== size) continue;
+        const baseLines = group.map((base) => base.line);
+        const coverLines = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter((k) => cover & (1 << k));
+        const removals: Removal[] = [];
+        for (const k of coverLines) {
+          for (let b = 0; b < 9; b++) {
+            const cell = at(b, k);
+            if (!baseLines.includes(b) && has(cell)) removals.push({ ...cell, digit: d as Digit });
+          }
+        }
+        if (removals.length === 0) continue;
+        const cells = baseLines.flatMap((b) => coverLines.map((k) => at(b, k)).filter(has));
+        // The pattern needs d to be out of every other open cell of the base lines.
+        const relies = baseLines.flatMap((b) =>
+          [0, 1, 2, 3, 4, 5, 6, 7, 8]
+            .filter((k) => !(cover & (1 << k)))
+            .map((k) => at(b, k))
+            .filter(isOpen)
+            .map(({ r, c }) => key(r, c, d)),
+        );
+        // Removals in reading order, so the wording lists them tidily.
+        removals.sort((a, b) => a.r * 9 + a.c - (b.r * 9 + b.c));
+        return {
+          technique: size === 2 ? "x-wing" : "swordfish",
+          unit: null,
+          cells,
+          digits: [d as Digit],
+          removals,
+          place: null,
+          relies,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * XY-Wing: a pivot cell that can only be x or y sees two pincer cells, one
+ * that can only be x or z and one that can only be y or z. Whichever digit the
+ * pivot takes, one pincer must be z, so a cell that sees both pincers can't be
+ * z. `digits` is [x, y, z].
+ */
+function xyWing(grid: Grid, cand: number[][]): Found | null {
+  const pairs: Coord[] = [];
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) if (grid[r][c] === 0 && bitCount(cand[r][c]) === 2) pairs.push({ r, c });
+  }
+  const sees = (a: Coord, b: Coord) => (a.r !== b.r || a.c !== b.c) && sameGroup(a.r, a.c, b.r, b.c);
+  for (const pivot of pairs) {
+    const pivotMask = cand[pivot.r][pivot.c];
+    const [x, y] = maskDigits(pivotMask);
+    const wings = pairs.filter((cell) => sees(pivot, cell));
+    for (const a of wings) {
+      const aMask = cand[a.r][a.c];
+      // Pincer A shares x with the pivot, and its other digit z is not y.
+      if (!(aMask & (1 << x)) || aMask & (1 << y)) continue;
+      const zBit = aMask & ~(1 << x);
+      const yzMask = (1 << y) | zBit;
+      for (const b of wings) {
+        if (cand[b.r][b.c] !== yzMask) continue;
+        const z = maskDigits(zBit)[0];
+        const removals: Removal[] = [];
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const cell = { r, c };
+            if (grid[r][c] !== 0 || !(cand[r][c] & zBit)) continue;
+            if (sees(cell, a) && sees(cell, b) && (r !== pivot.r || c !== pivot.c)) removals.push({ ...cell, digit: z });
+          }
+        }
+        if (removals.length === 0) continue;
+        const allBut = (cell: Coord, mask: number) => maskDigits(ALL & ~mask).map((d) => key(cell.r, cell.c, d));
+        return {
+          technique: "xy-wing",
+          unit: null,
+          cells: [pivot, a, b],
+          digits: [x, y, z],
+          removals,
+          place: null,
+          relies: [...allBut(pivot, pivotMask), ...allBut(a, aMask), ...allBut(b, yzMask)],
+        };
+      }
+    }
+  }
+  return null;
+}
+
 // ---- Wording ---------------------------------------------------------------
 
 function cellName({ r, c }: Coord): string {
@@ -366,6 +485,11 @@ function placeIn(unit: Unit | null, cells: readonly Coord[]): string {
   return cellsName(cells);
 }
 
+/** "rows 2 and 7", or "columns 1, 4, and 9". */
+function linesName(kind: "row" | "column", indices: readonly number[]): string {
+  return `${kind}s ${andList([...indices].sort((a, b) => a - b).map((i) => i + 1))}`;
+}
+
 function describe(step: Found, usesEarlier: boolean): string {
   const [first] = step.cells;
   const digits = andList(step.digits);
@@ -396,6 +520,24 @@ function describe(step: Found, usesEarlier: boolean): string {
       const count = step.cells.length === 2 ? "two" : "three";
       return `In ${unit}, ${digits} can only go in ${placeIn(step.unit, step.cells)}. Those ${count} cells must hold them, so nothing else fits there: ${removalText(step.removals)}.${earlier}`;
     }
+    case "x-wing":
+    case "swordfish": {
+      // The pattern's cells all sit in the base lines; the removals sit in
+      // the cover lines, outside the base lines. A removal shares a column
+      // with the pattern when the base lines are rows.
+      const rowsBase = step.cells.some((cell) => cell.c === step.removals[0].c && cell.r !== step.removals[0].r);
+      const rows = [...new Set(step.cells.map((cell) => cell.r))];
+      const columns = [...new Set(step.cells.map((cell) => cell.c))];
+      const base = rowsBase ? linesName("row", rows) : linesName("column", columns);
+      const cover = rowsBase ? linesName("column", columns) : linesName("row", rows);
+      const count = step.technique === "x-wing" ? "two" : "three";
+      return `In ${base}, ${digits} can only go in ${cover}. Those ${count} ${rowsBase ? "rows" : "columns"} need their ${digits}s in those ${count} ${rowsBase ? "columns" : "rows"}, so ${cover} get their ${digits}s in ${base}. No other cell in ${cover} can be ${digits}: ${removalText(step.removals)}.${earlier}`;
+    }
+    case "xy-wing": {
+      const [pivot, a, b] = step.cells.map(cellName);
+      const [x, y, z] = step.digits;
+      return `${capitalize(pivot)} can only be ${x} or ${y}. It sees ${a}, which can only be ${x} or ${z}, and ${b}, which can only be ${y} or ${z}. If ${pivot} is ${x}, ${a} must be ${z}; if it is ${y}, ${b} must be ${z}. Either way one of those two is ${z}, so no cell that sees both of them can be ${z}: ${removalText(step.removals)}.${earlier}`;
+    }
   }
 }
 
@@ -408,6 +550,9 @@ const ELIMINATIONS: ((grid: Grid, cand: number[][]) => Found | null)[] = [
   (grid, cand) => hiddenSubset(grid, cand, 2),
   (grid, cand) => nakedSubset(grid, cand, 3),
   (grid, cand) => hiddenSubset(grid, cand, 3),
+  (grid, cand) => fish(grid, cand, 2),
+  (grid, cand) => fish(grid, cand, 3),
+  xyWing,
 ];
 
 /** Keeps only the eliminations the placement depends on, oldest first. */
@@ -471,9 +616,12 @@ export function nextStep(grid: Grid, solution: Grid, locked: boolean[][]): Advic
   }
   return {
     kind: "stuck",
-    text: "I can't find the next step with the techniques I know (singles, pointing, claiming, pairs, and triples). This puzzle needs a harder one. Hint can still fill in a cell.",
+    text: "I can't find the next step with the techniques I know (singles, pointing, claiming, pairs, triples, X-Wing, Swordfish, and XY-Wing). This puzzle needs a harder one. Hint can still fill in a cell.",
   };
 }
 
+/** The wording of a found pattern, exported for the unit tests. */
+export { describe as describeFound };
+
 /** The individual pattern finders, exported for the unit tests. */
-export const finders = { hiddenSingle, nakedSingle, pointing, claiming, nakedSubset, hiddenSubset };
+export const finders = { hiddenSingle, nakedSingle, pointing, claiming, nakedSubset, hiddenSubset, fish, xyWing };
