@@ -60,14 +60,14 @@ The digit keypad shows how many of that digit are still missing from a full nine
 
 A conflict is a filled cell whose digit also appears in the same row, column, or box. Empty cells are not conflicts.
 
-Conflicts are shown by default. Preferences can hide them. While they are shown, conflicting cells are marked on the board, and the status line reports “1 conflict” or “N conflicts”.
+Conflicts are shown by default. Preferences can hide them. While they are shown, conflicting cells are marked on the board, and the status line reports “N conflicting cells”. A repeat always involves at least two cells, so there is no singular form.
 
 While conflicts are shown, the game keeps an error count and shows it on the phase line as “0 errors”, “1 error”, or “N errors”. The count starts at 0. It increases by one when a digit is entered and that cell then conflicts. A digit that does not conflict leaves the count unchanged. Notes, erase, hint, and a press that clears the cell do not increase it. Replacing a conflicting digit with one that does not conflict does not lower it. Undo and redo leave the count unchanged, including when undo returns the grid to the original puzzle. While conflicts are hidden, the count is not shown and does not increase. Showing them again shows the count already kept. Check turns conflicts on and does not add existing repeats to the count. Clear entries sets the count to 0. A new puzzle starts at 0.
 
 Check reports:
 
 - Already solved: “This grid is already solved.”
-- Repeats: “One digit is repeated.” or “N cells repeat a digit.” Check says this whether conflicts were already shown or hidden. If they were hidden, Check turns them on and stores that choice. The status line then reports “1 conflict” or “N conflicts” for those same cells.
+- Repeats: “N cells repeat a digit.” Check says this whether conflicts were already shown or hidden. If they were hidden, Check turns them on and stores that choice. The status line then reports “N conflicting cells” for those same cells.
 - No repeats, grid full, but not the solution: “The grid is full, but it isn't the solution.”
 - No repeats, cells still open: “No repeats yet. One cell is still open.” or “No repeats yet. N cells are still open.”
 

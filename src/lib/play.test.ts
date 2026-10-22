@@ -103,8 +103,9 @@ describe("Conflicts: what Check reports", () => {
     one[0][0] = 3;
     one[0][1] = 3;
     assert.deepEqual(checkResult(one, false), { text: "2 cells repeat a digit.", revealConflicts: true });
-    // conflictCount counts cells, so a single repeat is always at least two
-    // cells; "One digit is repeated." is unreachable today.
+    // A third 3 in the same box clashes with both: three cells.
+    one[1][2] = 3;
+    assert.deepEqual(checkResult(one, false), { text: "3 cells repeat a digit.", revealConflicts: true });
   });
 
   it("full but not the solution", () => {
