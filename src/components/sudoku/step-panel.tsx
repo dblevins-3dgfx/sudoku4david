@@ -7,6 +7,11 @@ import type { CellMark } from "./board";
 
 type Shown = { advice: Advice; index: number };
 
+// The keys are the technique strings. A key needs quotes only when it isn't a
+// valid identifier: "x-wing" has a hyphen, so it is quoted; swordfish is not.
+// Both spellings make the same string key; this file leaves out quotes it
+// doesn't need. Record<K, V> requires an entry for every technique, so a new
+// one that is missing here fails to compile.
 const TECHNIQUE_NAMES: Record<Step["technique"], string> = {
   "hidden-single": "Hidden single",
   "naked-single": "Naked single",
@@ -16,6 +21,9 @@ const TECHNIQUE_NAMES: Record<Step["technique"], string> = {
   "hidden-pair": "Hidden pair",
   "naked-triple": "Naked triple",
   "hidden-triple": "Hidden triple",
+  "x-wing": "X-Wing",
+  swordfish: "Swordfish",
+  "xy-wing": "XY-Wing",
 };
 
 /** The board marks for the step on show, or null when there is nothing to point at. */
