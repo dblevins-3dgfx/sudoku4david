@@ -117,6 +117,42 @@ describe("play", () => {
     assert.equal(game.locked[game.selected.r][game.selected.c], true);
   });
 
+  // Puts a wrong digit in the last empty cell and selects a given, so Hint has
+  // to choose between that mistake and the empty cells above it.
+  function wrongDigitLate(): { game: GameState; wrong: { r: number; c: number } } {
+    let game = createGame("medium", mulberry32(21));
+    const cells = [...Array(81).keys()].map((i) => ({ r: (i / 9) | 0, c: i % 9 }));
+    const wrong = cells.filter(({ r, c }) => game.puzzle[r][c] === 0).at(-1)!;
+    const given = cells.find(({ r, c }) => game.puzzle[r][c] !== 0)!;
+    const digit = ((game.solution[wrong.r][wrong.c] % 9) + 1) as Digit;
+    game = inputDigit({ ...game, selected: wrong }, digit, false);
+    assert.equal(game.grid[wrong.r][wrong.c], digit);
+    return { game: { ...game, selected: given }, wrong };
+  }
+
+  it("hints a wrong digit before an empty cell", { timeout: 20_000 }, () => {
+    const { game, wrong } = wrongDigitLate();
+    const hinted = hint(game);
+    assert.deepEqual(hinted.selected, wrong, "the hint goes to the wrong digit");
+    assert.equal(hinted.grid[wrong.r][wrong.c], game.solution[wrong.r][wrong.c]);
+    assert.equal(hinted.locked[wrong.r][wrong.c], true);
+  });
+
+  it("hints the selected empty cell even when a digit elsewhere is wrong", { timeout: 20_000 }, () => {
+    const { game } = wrongDigitLate();
+    const fresh = createGame("medium", mulberry32(21));
+    const hinted = hint({ ...game, selected: fresh.selected });
+    assert.deepEqual(hinted.selected, fresh.selected);
+    assert.equal(hinted.grid[fresh.selected.r][fresh.selected.c], fresh.solution[fresh.selected.r][fresh.selected.c]);
+  });
+
+  it("hints the first empty cell when nothing is wrong", { timeout: 20_000 }, () => {
+    const fresh = createGame("medium", mulberry32(21));
+    const { game } = wrongDigitLate();
+    const clean = { ...fresh, selected: game.selected };
+    assert.deepEqual(hint(clean).selected, fresh.selected, "createGame selects the first empty cell");
+  });
+
   it("hints a cell, then restart clears entries", { timeout: 20_000 }, () => {
     let game = createGame("medium", mulberry32(21));
     const before = game.selected;

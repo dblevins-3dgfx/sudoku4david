@@ -75,7 +75,7 @@ Check reports:
 
 Hint fills one unlocked cell that is empty or wrong.
 
-It uses the selected cell when that cell qualifies. Otherwise it uses the first qualifying cell in reading order. The filled digit is the solution digit. The cell becomes locked, its notes are cleared, and that digit is cleared from notes in the same row, column, and box. If the hint leaves nine of that digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. The hint counts toward the hint total, and the selection moves to that cell. Undo takes back the digit a hint filled, but not the hint: the hint total stays the same.
+It uses the selected cell when that cell qualifies. Otherwise it fixes the first wrong digit in reading order, and only when no digit is wrong does it fill the first empty cell in reading order. The filled digit is the solution digit. The cell becomes locked, its notes are cleared, and that digit is cleared from notes in the same row, column, and box. If the hint leaves nine of that digit on the board, the digit is removed from every pencil mark. Undo puts those marks back. The hint counts toward the hint total, and the selection moves to that cell. Undo takes back the digit a hint filled, but not the hint: the hint total stays the same.
 
 Hint does nothing when the puzzle is already solved, while the grid is paused, or when every unlocked cell already matches the solution.
 
