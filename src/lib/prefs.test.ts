@@ -14,12 +14,31 @@ describe("preferences", () => {
     });
   });
 
-  it("rejects a partial or unknown record", () => {
+  it("rejects a record that is not an object", () => {
     assert.equal(parsePreferences(null), null);
-    assert.equal(parsePreferences({ entry: "tap" }), null);
-    assert.equal(parsePreferences({ showConflicts: true }), null);
-    assert.equal(parsePreferences({ entry: "pencil", showConflicts: true }), null);
-    assert.equal(parsePreferences({ entry: "button", showConflicts: "yes" }), null);
+    assert.equal(parsePreferences("tap"), null);
+    assert.equal(parsePreferences(3), null);
+  });
+
+  it("fills a missing or invalid field from the fallback and keeps the rest", () => {
+    assert.deepEqual(parsePreferences({ entry: "tap" }), { entry: "tap", showConflicts: true });
+    assert.deepEqual(parsePreferences({ showConflicts: false }), { entry: "button", showConflicts: false });
+    assert.deepEqual(parsePreferences({ entry: "pencil", showConflicts: false }), {
+      entry: "button",
+      showConflicts: false,
+    });
+    assert.deepEqual(parsePreferences({ entry: "tap", showConflicts: "yes" }), { entry: "tap", showConflicts: true });
+    assert.deepEqual(parsePreferences({ entry: "tap" }, { entry: "button", showConflicts: false }), {
+      entry: "tap",
+      showConflicts: false,
+    });
+  });
+
+  it("ignores fields it does not know", () => {
+    assert.deepEqual(parsePreferences({ entry: "tap", showConflicts: false, later: 1 }), {
+      entry: "tap",
+      showConflicts: false,
+    });
   });
 });
 
@@ -47,6 +66,13 @@ describe("stored preferences", () => {
 
   it("keep a saved game's conflict setting on a first visit with no preferences", () => {
     withStorage({}, () => assert.equal(loadPreferences(false).showConflicts, false));
+  });
+
+  it("take a field missing from stored preferences from the saved game's setting", () => {
+    const stored = JSON.stringify({ entry: "tap" });
+    withStorage({ [PREFS_STORAGE_KEY]: stored }, () =>
+      assert.deepEqual(loadPreferences(false), { entry: "tap", showConflicts: false }),
+    );
   });
 
   it("use stored preferences over the saved game's setting", () => {

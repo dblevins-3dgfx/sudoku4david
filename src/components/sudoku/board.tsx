@@ -2,14 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import type { GameState } from "@/lib/game";
-import { sameGroup } from "@/lib/sudoku";
-
-/**
- * How a cell takes part in the step being explained: the cell to fill, the
- * cells that make the pattern, cells losing a candidate, or the rest of the
- * row, column, or box the step is about.
- */
-export type CellMark = "target" | "pattern" | "removal" | "unit";
+import { cellTone, noteHighlighted, type CellMark, type CellTone } from "@/lib/tint";
 
 type BoardProps = {
   game: GameState;
@@ -23,11 +16,17 @@ type BoardProps = {
   onSelect: (r: number, c: number) => void;
 };
 
-const MARK_TONE: Record<CellMark, string> = {
+// The Tailwind class for each tone that cellTone in src/lib/tint.ts can pick.
+const TONE_CLASS: Record<CellTone, string> = {
+  conflict: "bg-cell-conflict",
   target: "bg-cell-note-hit",
   pattern: "bg-cell-same",
   removal: "bg-cell-peer",
   unit: "bg-cell-peer",
+  selected: "bg-cell-selected",
+  same: "bg-cell-same",
+  peer: "bg-cell-peer",
+  plain: "bg-board",
 };
 
 function noteDigits(mask: number): number[] {
@@ -84,26 +83,9 @@ export function Board({ game, conflicts, marks, flash, onFlashEnd, onSelect }: B
         const value = game.grid[r][c];
         const selected = game.selected.r === r && game.selected.c === c;
         const conflict = game.showMistakes && conflicts[r][c];
-        const peer = !selected && sameGroup(r, c, game.selected.r, game.selected.c);
-        const same =
-          !selected && value !== 0 && selectedValue !== 0 && value === selectedValue;
         const mark = marks?.[r][c] ?? null;
         const flashing = flash?.r === r && flash?.c === c;
-        // While a step is explained, its marks replace the usual peer and
-        // same-digit tints so only the cells it talks about stand out.
-        const tone = conflict
-          ? "bg-cell-conflict"
-          : mark
-            ? MARK_TONE[mark]
-            : selected
-              ? "bg-cell-selected"
-              : marks
-                ? "bg-board"
-                : same
-                  ? "bg-cell-same"
-                  : peer
-                    ? "bg-cell-peer"
-                    : "bg-board";
+        const tone = TONE_CLASS[cellTone({ grid: game.grid, selected: game.selected, conflict, marks: marks ?? null }, r, c)];
         const ink = conflict
           ? "text-cell-bad"
           : game.locked[r][c]
@@ -145,7 +127,7 @@ export function Board({ game, conflicts, marks, flash, onFlashEnd, onSelect }: B
                 {Array.from({ length: 9 }, (_, digit) => {
                   const n = digit + 1;
                   const on = (game.notes[r][c] & (1 << n)) !== 0;
-                  const marked = on && selectedValue !== 0 && n === selectedValue;
+                  const marked = noteHighlighted(game.grid, game.notes, game.selected, r, c, n);
                   return (
                     <span
                       key={n}

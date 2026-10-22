@@ -14,9 +14,11 @@ import {
   Settings,
   Trophy,
   Undo2,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { visibleControls, type ControlId } from "@/lib/controls";
 import { sourceLabel } from "@/lib/game";
 import { errorsText, keypadBadge, phaseText, statusText, winDetail } from "@/lib/labels";
 import { puzzleKey } from "@/lib/records";
@@ -26,6 +28,46 @@ import { PendingDialog, PrefsDialog } from "./dialogs";
 import { HighScoresDialog } from "./high-scores";
 import { adviceMarks, StepPanel } from "./step-panel";
 import { useGame } from "./use-game";
+
+const CONTROL_ICONS: Record<ControlId, LucideIcon> = {
+  notes: Pencil,
+  erase: Eraser,
+  undo: Undo2,
+  redo: Redo2,
+  hint: Lightbulb,
+  explain: GraduationCap,
+  check: SearchCheck,
+  clear: RotateCcw,
+};
+
+// From 720 pixels wide the controls sit in one row, one column each. Tailwind
+// only generates CSS for class names it finds spelled out in the source, so a
+// computed `grid-cols-${n}` would have no style; this table spells them out.
+const DESK_COLUMNS: Record<number, string> = {
+  1: "min-[720px]:grid-cols-1",
+  2: "min-[720px]:grid-cols-2",
+  3: "min-[720px]:grid-cols-3",
+  4: "min-[720px]:grid-cols-4",
+  5: "min-[720px]:grid-cols-5",
+  6: "min-[720px]:grid-cols-6",
+  7: "min-[720px]:grid-cols-7",
+  8: "min-[720px]:grid-cols-8",
+  9: "min-[720px]:grid-cols-9",
+  10: "min-[720px]:grid-cols-10",
+  11: "min-[720px]:grid-cols-11",
+  12: "min-[720px]:grid-cols-12",
+};
+
+/** The parts of a control that change with the game. */
+type ControlState = {
+  disabled: boolean;
+  onClick: () => void;
+  pressed?: boolean;
+  /** Replaces the table's label, e.g. "Hint, 2 used". */
+  label?: string;
+  /** A small count in the button's corner. */
+  badge?: number;
+};
 
 export function Game() {
   const desk = useGame();
@@ -90,6 +132,31 @@ export function Game() {
     !game.paused &&
     !game.won &&
     game.grid.some((row, r) => row.some((value, c) => !game.locked[r][c] && value !== game.solution[r][c]));
+
+  // What each control looks like right now. The table of controls itself,
+  // with their order and labels, is CONTROLS in src/lib/controls.ts; this
+  // supplies the parts that depend on the current game.
+  const hintsUsed = game?.hintsUsed ?? 0;
+  const controlState: Record<ControlId, ControlState> = {
+    notes: {
+      pressed: game?.notesMode ?? false,
+      disabled: !game || game.paused || game.won || busy,
+      onClick: toggleNotes,
+    },
+    erase: { disabled: lockedPlay, onClick: eraseCell },
+    undo: { disabled: !game || game.paused || busy || game.history.length === 0, onClick: undoMove },
+    redo: { disabled: !game || game.paused || busy || game.future.length === 0, onClick: redoMove },
+    hint: {
+      label: hintsUsed > 0 ? `Hint, ${hintsUsed} used` : undefined,
+      badge: hintsUsed > 0 ? hintsUsed : undefined,
+      disabled: !canHint || busy,
+      onClick: giveHint,
+    },
+    explain: { pressed: advice !== null, disabled: lockedPlay, onClick: advice ? closeAdvice : explain },
+    check: { disabled: !game || busy || game.paused, onClick: check },
+    clear: { disabled: !game || !game.started || busy, onClick: requestRestart },
+  };
+  const controls = visibleControls(prefs.entry);
 
   return (
     <div className="desk-page mx-auto flex min-h-0 w-full max-w-[1100px] flex-1 flex-col gap-1.5 px-1.5 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] min-[720px]:gap-3 min-[720px]:px-5 min-[720px]:py-3">
@@ -365,112 +432,36 @@ export function Game() {
             <div
               className={cn(
                 "grid h-full min-h-0 w-full min-w-0 auto-rows-fr grid-cols-2 gap-1 max-[719px]:min-w-[5.5rem] max-[719px]:flex-1 min-[720px]:h-auto min-[720px]:flex-none min-[720px]:auto-rows-auto min-[720px]:grid-rows-1",
-                prefs.entry === "button" ? "min-[720px]:grid-cols-8" : "min-[720px]:grid-cols-7",
+                DESK_COLUMNS[controls.length],
               )}
             >
-              {prefs.entry === "button" ? (
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={game?.notesMode ? "default" : "outline"}
-                  className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-                  aria-label="Notes"
-                  title="Notes"
-                  aria-pressed={game?.notesMode ?? false}
-                  disabled={!game || game.paused || game.won || busy}
-                  onClick={toggleNotes}
-                >
-                  <Pencil />
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-                aria-label="Erase"
-                title="Erase"
-                disabled={lockedPlay}
-                onClick={eraseCell}
-              >
-                <Eraser />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-                aria-label="Undo"
-                title="Undo"
-                disabled={!game || game.paused || busy || game.history.length === 0}
-                onClick={undoMove}
-              >
-                <Undo2 />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-                aria-label="Redo"
-                title="Redo"
-                disabled={!game || game.paused || busy || game.future.length === 0}
-                onClick={redoMove}
-              >
-                <Redo2 />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="relative w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-                aria-label={game && game.hintsUsed > 0 ? `Hint, ${game.hintsUsed} used` : "Hint"}
-                title={game && game.hintsUsed > 0 ? `Hint, ${game.hintsUsed} used` : "Hint"}
-                disabled={!canHint || busy}
-                onClick={giveHint}
-              >
-                <Lightbulb />
-                {game && game.hintsUsed > 0 ? (
-                  <span className="absolute top-0.5 right-0.5 text-[0.55rem] leading-none tabular-nums">{game.hintsUsed}</span>
-                ) : null}
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant={advice ? "default" : "outline"}
-                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-                aria-label="Explain the next step"
-                title="Explain the next step"
-                aria-pressed={advice !== null}
-                disabled={lockedPlay}
-                onClick={advice ? closeAdvice : explain}
-              >
-                <GraduationCap />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-                aria-label="Check"
-                title="Check"
-                disabled={!game || busy || game.paused}
-                onClick={check}
-              >
-                <SearchCheck />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="w-full px-0 max-[719px]:h-full min-[720px]:h-8"
-                aria-label="Clear entries"
-                title="Clear entries"
-                disabled={!game || !game.started || busy}
-                onClick={requestRestart}
-              >
-                <RotateCcw />
-              </Button>
+              {controls.map((control) => {
+                const live = controlState[control.id];
+                const Icon = CONTROL_ICONS[control.id];
+                const label = live.label ?? control.label;
+                return (
+                  <Button
+                    key={control.id}
+                    type="button"
+                    size="icon"
+                    variant={live.pressed ? "default" : "outline"}
+                    className={cn(
+                      "w-full px-0 max-[719px]:h-full min-[720px]:h-8",
+                      live.badge !== undefined && "relative",
+                    )}
+                    aria-label={label}
+                    title={label}
+                    aria-pressed={live.pressed}
+                    disabled={live.disabled}
+                    onClick={live.onClick}
+                  >
+                    <Icon />
+                    {live.badge !== undefined ? (
+                      <span className="absolute top-0.5 right-0.5 text-[0.55rem] leading-none tabular-nums">{live.badge}</span>
+                    ) : null}
+                  </Button>
+                );
+              })}
             </div>
           </div>
         </aside>
