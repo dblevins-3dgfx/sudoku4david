@@ -7,6 +7,8 @@ import {
   createGameFromPuzzle,
   erase,
   fillNotes,
+  restoreCheckpoint,
+  saveCheckpoint,
   hint,
   inputDigit,
   moveSelection,
@@ -41,6 +43,22 @@ function sameGroup(a: Coord, b: Coord): boolean {
 }
 
 const bit = (digit: number) => 1 << digit;
+
+function popcount(mask: number): number {
+  let n = 0;
+  for (let m = mask; m; m &= m - 1) n++;
+  return n;
+}
+
+/** Whether `digit` is a candidate for `cell` in the fresh puzzle. */
+function candidateMask(cell: Coord, digit: number): boolean {
+  return !puzzle.some((row, r) => row.some((v, c) => v === digit && sameGroup(cell, { r, c })));
+}
+
+/** The first candidate for `cell` in the fresh puzzle. */
+function candidate(cell: Coord): Digit {
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9].find((d) => candidateMask(cell, d)) as Digit;
+}
 
 describe("Board: a win is the generated solution, not just a legal grid", () => {
   it("does not count a different full, legal grid as solved", () => {
@@ -160,6 +178,31 @@ describe("Entering digits: Fill all notes", () => {
     let won = fresh();
     for (const cell of empties(fresh())) won = inputDigit(at(won, cell), solution[cell.r][cell.c] as Digit);
     assert.equal(fillNotes(won), won);
+  });
+});
+
+describe("Fill all notes: the time penalty", () => {
+  it("adds one second per mark added or removed, and none for a correct mark kept", () => {
+    const open = empties(fresh());
+    const cell = open[0];
+    const right = candidate(cell);
+    const wrong = [1, 2, 3, 4, 5, 6, 7, 8, 9].find((d) => !candidateMask(cell, d))!;
+    const marked = inputDigit(inputDigit(at(fresh(), cell), right, true), wrong as Digit, true);
+    const filled = fillNotes(marked);
+    // Every candidate mark is new except `right`, and `wrong` is removed.
+    const added = open.reduce((n, { r, c }) => n + popcount(filled.notes[r][c]), 0) - 1;
+    assert.equal(filled.elapsedMs - marked.elapsedMs, (added + 1) * 1000);
+  });
+
+  it("is not refunded by undo, redo, or Restore checkpoint", () => {
+    const cell = empties(fresh())[0];
+    const started = inputDigit(at(fresh(), cell), candidate(cell), true);
+    const saved = saveCheckpoint(started);
+    const filled = fillNotes(saved);
+    assert.ok(filled.elapsedMs > 0);
+    assert.equal(undo(filled).elapsedMs, filled.elapsedMs);
+    assert.equal(redo(undo(filled)).elapsedMs, filled.elapsedMs);
+    assert.equal(restoreCheckpoint(filled).elapsedMs, filled.elapsedMs);
   });
 });
 

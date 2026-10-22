@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { candidateNotes, cloneNotes, emptyNotes, notesAfterPlacing, notesAreEmpty, notesEqual } from "./notes";
+import {
+  candidateNotes,
+  cloneNotes,
+  emptyNotes,
+  fillPenaltySeconds,
+  notesAfterPlacing,
+  notesAreEmpty,
+  notesEqual,
+} from "./notes";
 import type { Grid } from "./sudoku";
 
 const ALL = 0b1111111110; // bits 1..9
@@ -118,5 +126,31 @@ describe("candidate notes for Fill all notes", () => {
     assert.equal(notesEqual(a, b), true);
     b[4][4] = 1 << 3;
     assert.equal(notesEqual(a, b), false);
+  });
+});
+
+describe("Fill all notes: the time penalty", () => {
+  const grid = emptyGrid();
+  grid[8][8] = 4;
+
+  it("charges one second per mark added or removed, and none for a mark kept", () => {
+    const before = emptyNotes();
+    const after = emptyNotes();
+    before[0][0] = (1 << 1) | (1 << 2); // 1 kept, 2 removed
+    after[0][0] = (1 << 1) | (1 << 3) | (1 << 4); // 3 and 4 added
+    after[4][4] = 1 << 9; // added
+    assert.equal(fillPenaltySeconds(grid, before, after), 4);
+  });
+
+  it("charges nothing when no mark changes", () => {
+    const notes = emptyNotes();
+    notes[2][2] = 1 << 5;
+    assert.equal(fillPenaltySeconds(grid, notes, cloneNotes(notes)), 0);
+  });
+
+  it("charges only for empty cells", () => {
+    const before = emptyNotes();
+    before[8][8] = 1 << 4;
+    assert.equal(fillPenaltySeconds(grid, before, emptyNotes()), 0);
   });
 });

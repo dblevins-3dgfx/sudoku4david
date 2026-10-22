@@ -1,4 +1,4 @@
-import { boardCandidates } from "./steps/board";
+import { bitCount, boardCandidates } from "./steps/board";
 import { digitCounts, type Digit, type Grid } from "./sudoku";
 
 /**
@@ -78,6 +78,20 @@ export function candidateNotes(grid: Grid): Notes {
   let full = 0;
   for (let digit = 1; digit <= 9; digit++) if ((counts[digit] ?? 0) >= 9) full |= 1 << digit;
   return boardCandidates(grid).map((row) => row.map((mask) => mask & ~full));
+}
+
+/**
+ * The time Fill all notes charges, in seconds: one per mark it adds or removes
+ * in an empty cell. A mark the player already had right costs nothing.
+ * `before ^ after` (XOR) leaves exactly the bits that changed, so the charge is
+ * the population count of that, summed over the empty cells.
+ */
+export function fillPenaltySeconds(grid: Grid, before: Notes, after: Notes): number {
+  let seconds = 0;
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) if (grid[r][c] === 0) seconds += bitCount(before[r][c] ^ after[r][c]);
+  }
+  return seconds;
 }
 
 export function notesEqual(a: Notes, b: Notes): boolean {
