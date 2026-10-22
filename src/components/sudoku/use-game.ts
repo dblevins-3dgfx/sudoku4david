@@ -27,6 +27,7 @@ import {
 } from "@/lib/prefs";
 import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
 import { importBackup } from "@/lib/backup";
+import { hintNotice } from "@/lib/labels";
 import type { Pending } from "@/lib/pending";
 import {
   checkResult,
@@ -78,6 +79,8 @@ export function useGame() {
   const [scoresOpen, setScoresOpen] = useState(false);
   const [lastWin, setLastWin] = useState<LastWin | null>(null);
   const [explained, setExplained] = useState<Explained | null>(null);
+  // The cell the last Hint filled, which the board pulses; null once it ends.
+  const [hintFlash, setHintFlash] = useState<{ r: number; c: number } | null>(null);
 
   const gameRef = useRef<GameState | null>(null);
   const dealingRef = useRef(false);
@@ -344,6 +347,23 @@ export function useGame() {
     apply((state) => pressDigit(state, digit, asNote));
   }, [apply]);
 
+  // Hint, plus the notice and pulse that show which cell it filled. hint() is
+  // run once here on the current state only to word the notice; apply() then
+  // runs it again inside React's state update, which is the copy that counts.
+  // apply() clears the notice first, and the later setNotice wins because
+  // React applies queued state updates in order.
+  const giveHint = useCallback(() => {
+    const current = gameRef.current;
+    if (!current) return;
+    const next = hint(current);
+    apply(hint);
+    const text = hintNotice(current, next);
+    if (text) {
+      setNotice(text);
+      setHintFlash({ ...next.selected });
+    }
+  }, [apply]);
+
   const openPrefs = useCallback(() => {
     if (dealingRef.current || pendingRef.current || !gameRef.current) return;
     setPrefsOpen(true);
@@ -434,14 +454,14 @@ export function useGame() {
           apply(redo);
           break;
         case "hint":
-          apply(hint);
+          giveHint();
           break;
       }
     };
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [apply, enterDigit]);
+  }, [apply, enterDigit, giveHint]);
 
   const check = useCallback(() => {
     const current = gameRef.current;
@@ -519,7 +539,9 @@ export function useGame() {
     redoMove: () => apply(redo),
     toggleNotes: () => apply(toggleNotesMode),
     pause: () => apply(togglePause),
-    giveHint: () => apply(hint),
+    giveHint,
+    hintFlash,
+    clearHintFlash: () => setHintFlash(null),
     advice,
     explain,
     closeAdvice: () => setExplained(null),

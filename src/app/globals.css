@@ -95,6 +95,28 @@
   line-height: 1;
 }
 
+/* The cell Hint just filled pulses twice so the eye finds it. The tint and
+   ring come from the theme's colours; when the pulse ends the board's own
+   tint shows again. Skipped when the device asks for reduced motion. */
+@keyframes hint-flash {
+  0%,
+  30%,
+  60% {
+    background-color: var(--cell-note-hit);
+    box-shadow: inset 0 0 0 3px var(--primary);
+  }
+  15%,
+  45% {
+    box-shadow: inset 0 0 0 3px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hint-flash {
+    animation: hint-flash 1.6s ease-out;
+  }
+}
+
 /* Nine pencil marks, as large as the cell allows. Caveat is a handwriting
    face, so the size is tuned to its ink rather than to the printed digits. */
 .cell-notes {
