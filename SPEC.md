@@ -79,6 +79,8 @@ It uses the selected cell when that cell qualifies. Otherwise it fixes the first
 
 Hint does nothing when the puzzle is already solved, while the grid is paused, or when every unlocked cell already matches the solution.
 
+After Hint fills a cell, the status line says which: “Hint: 7 in row 3, column 5.”, or “Hint: fixed row 6, column 2 from 4 to 9.” when it replaced a wrong digit. Screen readers announce it. It stays until the next key, tap, or selection on the board. The filled cell also pulses twice, unless the device asks for reduced motion. Fill it in, from an explanation, shows neither, because the player already chose that cell.
+
 ## Explaining the next step
 
 Explain works out the next logical step from the digits on the board and says why in plain words. It ignores pencil marks, which may be incomplete. It does not change the board. An explanation counts as a hint and starts the clock, unless Explain finds nothing it can explain. Asking again about the same board does not count again, and undo does not take the hint back.

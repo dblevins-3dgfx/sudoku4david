@@ -67,6 +67,8 @@ export function Game() {
     toggleNotes,
     pause,
     giveHint,
+    hintFlash,
+    clearHintFlash,
     advice,
     explain,
     closeAdvice,
@@ -192,6 +194,8 @@ export function Game() {
                     game={game}
                     conflicts={conflicts}
                     marks={advice ? adviceMarks(advice) : null}
+                    flash={hintFlash}
+                    onFlashEnd={clearHintFlash}
                     onSelect={select}
                   />
                 </div>

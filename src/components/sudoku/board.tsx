@@ -16,6 +16,10 @@ type BoardProps = {
   conflicts: boolean[][];
   /** A 9×9 map of marks for the explained step; omitted when none is shown. */
   marks?: (CellMark | null)[][] | null;
+  /** The cell Hint just filled, which pulses once; null when none. */
+  flash?: { r: number; c: number } | null;
+  /** Called when the pulse has finished, so the caller can clear `flash`. */
+  onFlashEnd?: () => void;
   onSelect: (r: number, c: number) => void;
 };
 
@@ -65,7 +69,7 @@ function lineClass(r: number, c: number): string {
   );
 }
 
-export function Board({ game, conflicts, marks, onSelect }: BoardProps) {
+export function Board({ game, conflicts, marks, flash, onFlashEnd, onSelect }: BoardProps) {
   const selectedValue = game.grid[game.selected.r][game.selected.c];
 
   return (
@@ -84,6 +88,7 @@ export function Board({ game, conflicts, marks, onSelect }: BoardProps) {
         const same =
           !selected && value !== 0 && selectedValue !== 0 && value === selectedValue;
         const mark = marks?.[r][c] ?? null;
+        const flashing = flash?.r === r && flash?.c === c;
         // While a step is explained, its marks replace the usual peer and
         // same-digit tints so only the cells it talks about stand out.
         const tone = conflict
@@ -117,6 +122,9 @@ export function Board({ game, conflicts, marks, onSelect }: BoardProps) {
             aria-label={cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict, selectedValue)}
             tabIndex={selected ? 0 : -1}
             onClick={() => onSelect(r, c)}
+            // The browser fires animationend when a CSS animation finishes.
+            // Removing the class then lets a later hint on the same cell pulse again.
+            onAnimationEnd={flashing ? onFlashEnd : undefined}
             className={cn(
               "cell-face relative flex min-h-0 min-w-0 cursor-pointer items-center justify-center tabular-nums transition-colors outline-none",
               "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
@@ -127,6 +135,7 @@ export function Board({ game, conflicts, marks, onSelect }: BoardProps) {
               selected && "ring-2 ring-primary ring-inset",
               // A dashed outline drawn just inside the cell marks a candidate being removed.
               mark === "removal" && "outline-2 outline-dashed outline-destructive -outline-offset-4",
+              flashing && "hint-flash",
             )}
           >
             {value !== 0 ? (

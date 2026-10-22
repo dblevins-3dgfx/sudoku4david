@@ -33,6 +33,22 @@ export function winDetail(hintsUsed: number, elapsedMs: number, difficulty: stri
   return `${formatTime(elapsedMs)} on ${difficulty}, ${hintsText(hintsUsed)}.`;
 }
 
+/**
+ * The notice after Hint, saying which cell it filled, e.g. "Hint: 7 in row 3,
+ * column 5." or, when it replaced a wrong digit, "Hint: fixed row 6, column 2
+ * from 4 to 9." Null when Hint changed nothing (`after` is then the very same
+ * object as `before`, because game functions return their input unchanged
+ * when they do nothing). Hint leaves the selection on the cell it filled.
+ */
+export function hintNotice(before: GameState, after: GameState): string | null {
+  if (after === before) return null;
+  const { r, c } = after.selected;
+  const place = `row ${r + 1}, column ${c + 1}`;
+  const was = before.grid[r][c];
+  const now = after.grid[r][c];
+  return was === 0 ? `Hint: ${now} in ${place}.` : `Hint: fixed ${place} from ${was} to ${now}.`;
+}
+
 /** What the new-puzzle or Clear entries dialog asks. */
 export function pendingCopy(pending: Pending, started: boolean): string {
   if (pending.kind === "restart") return "Clear every number you wrote? The given digits stay.";

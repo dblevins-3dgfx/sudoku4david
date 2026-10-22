@@ -14,6 +14,7 @@ The tests only reach plain functions in `src/lib`. Code inside a React hook (suc
 | Conflicts | Hiding or showing conflicts takes effect at once, is stored, and is not an undo step; Check stores "shown" | `applyShowConflicts()` in `use-game.ts` | Hook state and storage wiring. |
 | Timer and pause | The clock ticks while running; the game is written every five seconds and when the page is hidden or closed | effects in `use-game.ts` | Timers and page events. Needs a browser test. |
 | Sync | When sync runs: sign-in, page shown or hidden, back online, every 30 seconds, after a win, a reset, or a backup load | `use-sync.ts` | Timers, page events, and the network. What a sync decides (`planSync`) is tested. |
+| Hints | The notice shows after Hint and clears on the next action; the filled cell pulses twice, not at all with reduced motion; Fill it in shows neither | `giveHint` in `use-game.ts`, the `flash` prop in `board.tsx`, `.hint-flash` in `globals.css` | Hook state and a CSS animation. The wording (`hintNotice`) is tested. |
 | Screen | Layout and sizes, cell tints and their precedence, note highlighting, the handwritten pencil marks | CSS and the components | Visual. Screenshots are the practical check. |
 
 ## Known problems found by testing

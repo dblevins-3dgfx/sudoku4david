@@ -1,9 +1,9 @@
 // The screen's wording from SPEC.md.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { createGameFromPuzzle, hint, togglePause } from "./game";
-import { errorsText, hintsText, keypadBadge, pendingCopy, phaseText, statusText, winDetail } from "./labels";
-import { createPuzzle, mulberry32 } from "./sudoku";
+import { createGameFromPuzzle, hint, inputDigit, togglePause } from "./game";
+import { errorsText, hintNotice, hintsText, keypadBadge, pendingCopy, phaseText, statusText, winDetail } from "./labels";
+import { createPuzzle, mulberry32, type Digit } from "./sudoku";
 
 const { puzzle, solution } = createPuzzle("easy", mulberry32(8));
 const fresh = () => createGameFromPuzzle("easy", puzzle, solution, "generated");
@@ -47,5 +47,32 @@ describe("Entering digits: keypad badges", () => {
     assert.deepEqual(keypadBadge(3), { remaining: 6, exhausted: false, over: false });
     assert.deepEqual(keypadBadge(9), { remaining: 0, exhausted: true, over: false });
     assert.deepEqual(keypadBadge(10), { remaining: 0, exhausted: true, over: true });
+  });
+});
+
+describe("Hints: the notice after Hint", () => {
+  it("names the digit and the cell Hint filled", () => {
+    const before = fresh();
+    const { r, c } = before.selected;
+    const after = hint(before);
+    assert.deepEqual(after.selected, { r, c }, "createGame selects an empty cell, so Hint fills it");
+    assert.equal(hintNotice(before, after), `Hint: ${solution[r][c]} in row ${r + 1}, column ${c + 1}.`);
+  });
+
+  it("says what Hint fixed when it replaced a wrong digit", () => {
+    const start = fresh();
+    const { r, c } = start.selected;
+    const wrong = (solution[r][c] % 9) + 1;
+    const before = inputDigit(start, wrong as Digit, false);
+    const after = hint(before);
+    assert.equal(
+      hintNotice(before, after),
+      `Hint: fixed row ${r + 1}, column ${c + 1} from ${wrong} to ${solution[r][c]}.`,
+    );
+  });
+
+  it("says nothing when Hint did nothing", () => {
+    const paused = togglePause(fresh());
+    assert.equal(hintNotice(paused, hint(paused)), null);
   });
 });
