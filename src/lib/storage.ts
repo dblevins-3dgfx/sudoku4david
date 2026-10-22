@@ -4,14 +4,8 @@ import {
   type Difficulty,
   type Grid,
 } from "./sudoku";
-import {
-  cloneNotes,
-  emptyNotes,
-  HISTORY_LIMIT,
-  type GameState,
-  type Notes,
-  type Snapshot,
-} from "./game";
+import { HISTORY_LIMIT, type GameState, type Snapshot } from "./game";
+import { cloneNotes, emptyNotes, type Notes } from "./notes";
 
 export const GAME_STORAGE_KEY = "sudoku.desk.v1";
 export const THEME_STORAGE_KEY = "sudoku.theme";

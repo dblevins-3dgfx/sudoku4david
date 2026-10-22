@@ -8,10 +8,9 @@ import {
   type Digit,
   type Grid,
 } from "./sudoku";
+import { cloneNotes, emptyNotes, notesAreEmpty, notesAfterPlacing, type Notes } from "./notes";
 
 export type Coord = { r: number; c: number };
-
-export type Notes = number[][];
 
 export type Snapshot = {
   grid: Grid;
@@ -50,14 +49,6 @@ export type GameState = {
 
 /** Undo and redo steps kept in play, in saves, and on load. */
 export const HISTORY_LIMIT = 100;
-
-export function emptyNotes(): Notes {
-  return Array.from({ length: 9 }, () => Array<number>(9).fill(0));
-}
-
-export function cloneNotes(notes: Notes): Notes {
-  return notes.map((row) => row.slice());
-}
 
 function cloneLocked(locked: boolean[][]): boolean[][] {
   return locked.map((row) => row.slice());
@@ -112,45 +103,6 @@ function pushHistory(state: GameState): Pick<GameState, "history" | "future"> {
   const history = [...state.history, snapshot(state)];
   if (history.length > HISTORY_LIMIT) history.shift();
   return { history, future: [] };
-}
-
-function clearDigitNotes(notes: Notes, r: number, c: number, digit: Digit) {
-  const bit = 1 << digit;
-  for (let i = 0; i < 9; i++) {
-    notes[r][i] &= ~bit;
-    notes[i][c] &= ~bit;
-  }
-  const br = ((r / 3) | 0) * 3;
-  const bc = ((c / 3) | 0) * 3;
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; j++) notes[br + i][bc + j] &= ~bit;
-  }
-}
-
-function countDigit(grid: Grid, digit: number): number {
-  let count = 0;
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) if (grid[r][c] === digit) count++;
-  }
-  return count;
-}
-
-function clearDigitEverywhere(notes: Notes, digit: Digit) {
-  const mask = ~(1 << digit);
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) notes[r][c] &= mask;
-  }
-}
-
-function settleLockedDigit(grid: Grid, notes: Notes, digit: Digit) {
-  if (countDigit(grid, digit) >= 9) clearDigitEverywhere(notes, digit);
-}
-
-function notesAreEmpty(notes: Notes): boolean {
-  for (let r = 0; r < 9; r++) {
-    for (let c = 0; c < 9; c++) if (notes[r][c] !== 0) return false;
-  }
-  return true;
 }
 
 function lockedFromPuzzle(puzzle: Grid): boolean[][] {
@@ -253,9 +205,7 @@ export function inputDigit(state: GameState, digit: Digit, asNote = state.notesM
     nextGrid[r][c] = 0;
   } else {
     nextGrid[r][c] = digit;
-    nextNotes[r][c] = 0;
-    clearDigitNotes(nextNotes, r, c, digit);
-    settleLockedDigit(nextGrid, nextNotes, digit);
+    notesAfterPlacing(nextGrid, nextNotes, r, c, digit);
   }
 
   const won = gridsEqual(nextGrid, state.solution);
@@ -328,9 +278,7 @@ export function hint(state: GameState, counted = true): GameState {
   const nextLocked = cloneLocked(state.locked);
   nextGrid[target.r][target.c] = digit;
   nextLocked[target.r][target.c] = true;
-  nextNotes[target.r][target.c] = 0;
-  clearDigitNotes(nextNotes, target.r, target.c, digit);
-  settleLockedDigit(nextGrid, nextNotes, digit);
+  notesAfterPlacing(nextGrid, nextNotes, target.r, target.c, digit);
   const won = gridsEqual(nextGrid, state.solution);
   // The step saved here holds the board before the fill. When the hint counts,
   // countHint adds it to that step too, so undoing the fill keeps the count.
