@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createGameFromPuzzle, hint, inputDigit, togglePause } from "./game";
 import { errorsText, hintNotice, hintsText, keypadBadge, pendingCopy, phaseText, statusText, winDetail } from "./labels";
-import { createPuzzle, mulberry32, type Digit } from "./sudoku";
+import { conflictCount, createPuzzle, emptyGrid, mulberry32, type Digit } from "./sudoku";
 
 const { puzzle, solution } = createPuzzle("easy", mulberry32(8));
 const fresh = () => createGameFromPuzzle("easy", puzzle, solution, "generated");
@@ -13,8 +13,13 @@ describe("Screen: the status line", () => {
     assert.equal(statusText(null, 0, 81), "Preparing a grid");
     assert.equal(statusText({ ...fresh(), won: true }, 0, 0), "Solved");
     assert.equal(statusText(togglePause(fresh()), 2, 40), "Paused");
-    assert.equal(statusText(fresh(), 1, 40), "1 conflict");
-    assert.equal(statusText(fresh(), 3, 40), "3 conflicts");
+    // The count comes from a real board: one repeated pair is two cells.
+    const pair = emptyGrid();
+    pair[0][0] = 5;
+    pair[0][1] = 5;
+    assert.equal(conflictCount(pair), 2);
+    assert.equal(statusText(fresh(), conflictCount(pair), 40), "2 conflicting cells");
+    assert.equal(statusText(fresh(), 3, 40), "3 conflicting cells");
     assert.equal(statusText({ ...fresh(), showMistakes: false }, 3, 40), "40 cells open", "hidden conflicts are not reported");
     assert.equal(statusText(fresh(), 0, 1), "1 cell open");
   });

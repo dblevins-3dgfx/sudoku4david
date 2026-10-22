@@ -11,7 +11,8 @@ export function statusText(game: GameState | null, conflictTotal: number, open: 
   if (!game) return "Preparing a grid";
   if (game.won) return "Solved";
   if (game.paused) return "Paused";
-  if (game.showMistakes && conflictTotal > 0) return conflictTotal === 1 ? "1 conflict" : `${conflictTotal} conflicts`;
+  // conflictTotal counts cells and is never 1 (a repeat needs two cells).
+  if (game.showMistakes && conflictTotal > 0) return `${conflictTotal} conflicting cells`;
   return open === 1 ? "1 cell open" : `${open} cells open`;
 }
 

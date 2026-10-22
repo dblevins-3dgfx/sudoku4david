@@ -29,7 +29,9 @@ export function checkResult(grid: Grid, won: boolean): { text: string; revealCon
   const conflicts = conflictCount(grid);
   if (conflicts > 0) {
     return {
-      text: conflicts === 1 ? "One digit is repeated." : `${conflicts} cells repeat a digit.`,
+      // conflictCount counts cells, and a repeat always involves at least two,
+      // so there is no singular case.
+      text: `${conflicts} cells repeat a digit.`,
       revealConflicts: true,
     };
   }
