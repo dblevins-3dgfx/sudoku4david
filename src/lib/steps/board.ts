@@ -3,7 +3,7 @@
 // digit d, the same layout the notes use (bit 0 unused).
 
 import type { Coord } from "../game";
-import type { Digit, Grid } from "../sudoku";
+import { sameGroup, type Digit, type Grid } from "../sudoku";
 import type { Unit } from "./types";
 
 export const ALL = 0b11_1111_1110;
@@ -83,4 +83,9 @@ export function boardCandidates(grid: Grid): number[][] {
 
 export function open(grid: Grid, unit: Unit): Coord[] {
   return unit.cells.filter(({ r, c }) => grid[r][c] === 0);
+}
+
+/** Two different cells that share a row, column, or box. */
+export function sees(a: Coord, b: Coord): boolean {
+  return (a.r !== b.r || a.c !== b.c) && sameGroup(a.r, a.c, b.r, b.c);
 }
