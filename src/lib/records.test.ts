@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import { createGame, type GameState } from "./game";
 import {
   addRecord,
+  createRecord,
   emptyStore,
   loadRecords,
   mergeRecords,
@@ -33,6 +34,7 @@ function rec(overrides: Partial<ScoreRecord> & Pick<ScoreRecord, "id">): ScoreRe
     finishedAt: 1_000,
     difficulty: "hard",
     elapsedMs: 60_000,
+    penaltyMs: 0,
     hintsUsed: 0,
     source: "generated",
     deviceId: "dev-1",
@@ -102,6 +104,27 @@ describe("records store", () => {
       ],
     });
     assert.deepEqual(parsed, store([rec({ id: "ok" })], 500));
+  });
+
+  it("reads a record saved before penalties were kept apart as having none", () => {
+    const old: Partial<ScoreRecord> = rec({ id: "old" });
+    delete old.penaltyMs;
+    assert.deepEqual(parseRecordStore({ version: 1, records: [old] })?.records[0].penaltyMs, 0);
+  });
+
+  it("keeps a record's penalty, and skips one whose penalty is more than its time", () => {
+    const parsed = parseRecordStore({
+      version: 1,
+      records: [rec({ id: "fined", penaltyMs: 5_000 }), rec({ id: "over", puzzleKey: KEY_B, penaltyMs: 61_000 })],
+    });
+    assert.deepEqual(parsed?.records.map((r) => [r.id, r.penaltyMs]), [["fined", 5_000]]);
+  });
+
+  it("ranks a win on play time plus penalty, and keeps the penalty", () => {
+    const game: GameState = { ...createGame("easy", mulberry32(3)), won: true, elapsedMs: 60_000, penaltyMs: 30_000 };
+    const record = createRecord(game, { id: "w", deviceId: "dev", finishedAt: 1 });
+    assert.equal(record.elapsedMs, 90_000);
+    assert.equal(record.penaltyMs, 30_000);
   });
 });
 

@@ -29,9 +29,26 @@ export function hintsText(hints: number): string {
   return hints === 0 ? "no hints" : hints === 1 ? "1 hint" : `${hints} hints`;
 }
 
-/** The solved panel's line, e.g. "4:05 on hard, 1 hint." */
-export function winDetail(hintsUsed: number, elapsedMs: number, difficulty: string): string {
-  return `${formatTime(elapsedMs)} on ${difficulty}, ${hintsText(hintsUsed)}.`;
+/**
+ * The solved panel's line, e.g. "4:05 on hard, 1 hint.", or with a penalty
+ * "14:36 (12:34 + 2:02 penalty) on medium, no hints."
+ */
+export function winDetail(hintsUsed: number, elapsedMs: number, penaltyMs: number, difficulty: string): string {
+  const time =
+    penaltyMs > 0
+      ? `${formatTime(elapsedMs + penaltyMs)} (${formatTime(elapsedMs)} + ${formatTime(penaltyMs)} penalty)`
+      : formatTime(elapsedMs);
+  return `${time} on ${difficulty}, ${hintsText(hintsUsed)}.`;
+}
+
+/** The penalty beside the header clock, e.g. "+ 2:02", or null when there is none. */
+export function clockPenalty(penaltyMs: number): string | null {
+  return penaltyMs > 0 ? `+ ${formatTime(penaltyMs)}` : null;
+}
+
+/** The penalty beside a high-score time, e.g. "incl. 2:02 penalty", or null when there is none. */
+export function recordPenalty(penaltyMs: number): string | null {
+  return penaltyMs > 0 ? `incl. ${formatTime(penaltyMs)} penalty` : null;
 }
 
 /**
@@ -53,7 +70,7 @@ export function hintNotice(before: GameState, after: GameState): string | null {
 /** The status-line notice after Fill all notes: the seconds it added. */
 export function fillNotice(before: GameState, after: GameState): string | null {
   if (after === before) return null;
-  return `Fill all notes: +${Math.round((after.elapsedMs - before.elapsedMs) / 1000)} s.`;
+  return `Fill all notes: +${Math.round((after.penaltyMs - before.penaltyMs) / 1000)} s.`;
 }
 
 /** What the new-puzzle or Clear entries dialog asks. */

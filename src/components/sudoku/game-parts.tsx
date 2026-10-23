@@ -38,7 +38,7 @@ import {
 } from "@/lib/controls";
 import { deadEndCells, hasDeadEnd } from "@/lib/deadends";
 import { sourceLabel, type GameState } from "@/lib/game";
-import { errorsText, phaseText, winDetail } from "@/lib/labels";
+import { clockPenalty, errorsText, phaseText, winDetail } from "@/lib/labels";
 import { puzzleKey } from "@/lib/records";
 import { formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
@@ -93,6 +93,7 @@ const HEADER_BUTTON = "size-8 min-[400px]:size-9";
 export function GameHeader({ desk, busy }: { desk: Desk; busy: boolean }) {
   const { game } = desk;
   const status = headerStatus(game, busy, desk.pending !== null);
+  const penalty = clockPenalty(game?.penaltyMs ?? 0);
   return (
     <header className="flex shrink-0 items-center justify-between gap-3">
       <div className="min-w-0">
@@ -105,9 +106,19 @@ export function GameHeader({ desk, busy }: { desk: Desk; busy: boolean }) {
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1.5 min-[400px]:gap-2">
-        <p className="min-w-[3.5rem] text-right font-heading text-2xl tabular-nums leading-none min-[720px]:min-w-[4.25rem] min-[720px]:text-3xl" aria-label="Elapsed time">
-          {formatTime(game?.elapsedMs ?? 0)}
-        </p>
+        {/* Penalty time sits beside the play time, never folded into it:
+            under it on a phone, where the header is narrow, and to its right
+            from 720 pixels wide. */}
+        <div className="flex flex-col items-end gap-0.5 min-[720px]:flex-row min-[720px]:items-baseline min-[720px]:gap-1.5">
+          <p className="min-w-[3.5rem] text-right font-heading text-2xl tabular-nums leading-none min-[720px]:min-w-[4.25rem] min-[720px]:text-3xl" aria-label="Elapsed time">
+            {formatTime(game?.elapsedMs ?? 0)}
+          </p>
+          {penalty ? (
+            <p className="font-heading text-xs tabular-nums leading-none text-muted-foreground min-[720px]:text-base" aria-label="Penalty time">
+              {penalty}
+            </p>
+          ) : null}
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -233,7 +244,7 @@ function SolvedCard({ desk, game }: { desk: Desk; game: GameState }) {
     <div className="absolute inset-0 z-20 flex items-end justify-center bg-gradient-to-t from-background via-background/85 to-background/25 p-3 sm:items-center">
       <div className="w-full max-w-sm rounded-xl border border-border bg-card px-4 py-4 text-center shadow-lg">
         <p className="font-heading text-3xl tracking-tight">Solved</p>
-        <p className="mt-2 text-sm text-muted-foreground">{winDetail(game.hintsUsed, game.elapsedMs, game.difficulty)}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{winDetail(game.hintsUsed, game.elapsedMs, game.penaltyMs, game.difficulty)}</p>
         {/* Only for the win just played: after a reload, lastWin is empty. */}
         {lastWin && lastWin.puzzle === puzzleKey(game.puzzle) ? (
           <p className="mt-1 flex items-center justify-center gap-1 text-sm font-medium">

@@ -59,7 +59,13 @@ export type GameState = {
   showMistakes: boolean;
   errors: number;
   hintsUsed: number;
+  /** Time spent playing: what the running clock counts. */
   elapsedMs: number;
+  /**
+   * Time added as penalties (Fill all notes), kept apart from elapsedMs so it
+   * can be shown on its own. The time that ranks is the sum (see totalMs).
+   */
+  penaltyMs: number;
   timerOn: boolean;
   won: boolean;
   paused: boolean;
@@ -157,6 +163,7 @@ export function createGameFromPuzzle(
     errors: 0,
     hintsUsed: 0,
     elapsedMs: 0,
+    penaltyMs: 0,
     timerOn: false,
     won: false,
     paused: false,
@@ -271,30 +278,36 @@ export function erase(state: GameState): GameState {
   };
 }
 
+/** The time that counts: play time plus penalties. */
+export function totalMs(game: Pick<GameState, "elapsedMs" | "penaltyMs">): number {
+  return game.elapsedMs + game.penaltyMs;
+}
+
 /**
  * Fill all notes: replaces the marks in every empty cell, as one undo step.
  * The "plain" style writes each cell's candidates (see candidateNotes); the
  * "pointing" style trusts the player's marks and applies pointing and
  * claiming (see pointingNotes). It is not a hint and does not touch the error
- * count, but it adds one second to the clock for each mark it adds or removes
+ * count, but it adds a penalty of one second for each mark it adds or removes
  * (see fillPenaltySeconds), plus, in the "pointing" style, one for each
- * candidate pointing and claiming took off. Returns the same state, recording
- * no step, when paused, after a win, or when the marks already match.
+ * candidate pointing and claiming took off. The penalty goes into penaltyMs.
+ * Returns the same state, recording no step, when paused, after a win, or
+ * when the marks already match.
  */
 export function fillNotes(state: GameState, style: FillStyle = "plain"): GameState {
   if (state.paused || state.won) return state;
   const { notes, eliminated } =
     style === "pointing" ? pointingNotes(state.grid, state.notes) : { notes: candidateNotes(state.grid), eliminated: 0 };
   if (notesEqual(notes, state.notes)) return state;
-  // The penalty goes straight onto elapsedMs. Snapshots don't hold the clock,
-  // so undo, redo, and Restore checkpoint never give the time back.
+  // Snapshots don't hold the clock or the penalty, so undo, redo, and
+  // Restore checkpoint never give the time back.
   const penaltyMs = (fillPenaltySeconds(state.grid, state.notes, notes) + eliminated) * 1000;
   return {
     ...state,
     ...pushHistory(state),
     ...begin(state, false),
     notes,
-    elapsedMs: state.elapsedMs + penaltyMs,
+    penaltyMs: state.penaltyMs + penaltyMs,
   };
 }
 
@@ -389,6 +402,7 @@ function restore(state: GameState, snap: Snapshot, history: Snapshot[], future: 
     started: pristine ? false : true,
     timerOn: pristine ? false : !won && !state.paused,
     elapsedMs: pristine ? 0 : state.elapsedMs,
+    penaltyMs: pristine ? 0 : state.penaltyMs,
   };
 }
 
@@ -469,6 +483,7 @@ export function restart(state: GameState): GameState {
     hintsUsed: 0,
     errors: 0,
     elapsedMs: 0,
+    penaltyMs: 0,
     timerOn: false,
     won: false,
     paused: false,

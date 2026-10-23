@@ -54,6 +54,10 @@ export function isDifficulty(value: unknown): value is Difficulty {
   );
 }
 
+function isTime(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
 function readErrors(value: unknown): number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0;
 }
@@ -133,9 +137,7 @@ export function deserializeGame(raw: unknown): GameState | null {
     return null;
   }
 
-  if (typeof data.elapsedMs !== "number" || !Number.isFinite(data.elapsedMs) || data.elapsedMs < 0) {
-    return null;
-  }
+  if (!isTime(data.elapsedMs)) return null;
 
   const solution = data.solution;
   const steps = (list: unknown) =>
@@ -166,6 +168,9 @@ export function deserializeGame(raw: unknown): GameState | null {
     errors: readErrors(data.errors),
     hintsUsed: data.hintsUsed,
     elapsedMs: data.elapsedMs,
+    // A game saved before penalties were kept apart has none; its old
+    // penalties, if any, are already inside elapsedMs.
+    penaltyMs: isTime(data.penaltyMs) ? data.penaltyMs : 0,
     timerOn: Boolean(data.timerOn) && !data.won && !data.paused,
     won: Boolean(data.won),
     paused: Boolean(data.paused) && !data.won,

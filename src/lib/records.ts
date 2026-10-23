@@ -13,7 +13,7 @@
  * - Everything is a pure function of its inputs except the few functions at
  *   the bottom that read and write localStorage.
  */
-import type { GameSource, GameState } from "./game";
+import { totalMs, type GameSource, type GameState } from "./game";
 import { isDifficulty } from "./storage";
 import type { Difficulty, Grid } from "./sudoku";
 
@@ -35,7 +35,13 @@ export type ScoreRecord = {
    */
   finishedAt: number;
   difficulty: Difficulty;
+  /** The time that ranks: play time plus penalties. */
   elapsedMs: number;
+  /**
+   * The part of elapsedMs that was penalties. Records saved before penalties
+   * were kept apart read as 0.
+   */
+  penaltyMs: number;
   hintsUsed: number;
   source: GameSource;
   deviceId: string;
@@ -66,13 +72,16 @@ function isTime(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
+/** A record as storage may hold it: one saved before penaltyMs existed lacks it. */
+type StoredRecord = Omit<ScoreRecord, "penaltyMs"> & { penaltyMs?: number };
+
 /**
  * Validates one record read back from storage. Stored data is untyped JSON
  * that could be old or hand-edited, so every field is checked. The
- * `value is ScoreRecord` return type tells the compiler that a `true` result
+ * `value is StoredRecord` return type tells the compiler that a `true` result
  * means it may treat `value` as a ScoreRecord from then on.
  */
-function isRecord(value: unknown): value is ScoreRecord {
+function isRecord(value: unknown): value is StoredRecord {
   if (!value || typeof value !== "object") return false;
   const data = value as Partial<ScoreRecord>;
   return (
@@ -83,6 +92,7 @@ function isRecord(value: unknown): value is ScoreRecord {
     isTime(data.finishedAt) &&
     isDifficulty(data.difficulty) &&
     isTime(data.elapsedMs) &&
+    (data.penaltyMs === undefined || (isTime(data.penaltyMs) && data.penaltyMs <= data.elapsedMs)) &&
     typeof data.hintsUsed === "number" &&
     Number.isInteger(data.hintsUsed) &&
     data.hintsUsed >= 0 &&
@@ -93,13 +103,14 @@ function isRecord(value: unknown): value is ScoreRecord {
 }
 
 /** Copies only the known fields, dropping any extra properties in stored data. */
-function copyRecord(record: ScoreRecord): ScoreRecord {
+function copyRecord(record: StoredRecord): ScoreRecord {
   return {
     id: record.id,
     puzzleKey: record.puzzleKey,
     finishedAt: record.finishedAt,
     difficulty: record.difficulty,
     elapsedMs: record.elapsedMs,
+    penaltyMs: record.penaltyMs ?? 0,
     hintsUsed: record.hintsUsed,
     source: record.source,
     deviceId: record.deviceId,
@@ -184,7 +195,8 @@ export function createRecord(
     puzzleKey: puzzleKey(game.puzzle),
     finishedAt: options.finishedAt,
     difficulty: game.difficulty,
-    elapsedMs: game.elapsedMs,
+    elapsedMs: totalMs(game),
+    penaltyMs: game.penaltyMs,
     hintsUsed: game.hintsUsed,
     source: game.source,
     deviceId: options.deviceId,

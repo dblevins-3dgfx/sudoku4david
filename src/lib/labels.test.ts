@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createGameFromPuzzle, fillNotes, hint, inputDigit, togglePause } from "./game";
-import { errorsText, fillNotice, hintNotice, hintsText, keypadBadge, pendingCopy, phaseText, statusText, winDetail } from "./labels";
+import { clockPenalty, errorsText, fillNotice, hintNotice, hintsText, keypadBadge, pendingCopy, phaseText, recordPenalty, statusText, winDetail } from "./labels";
 import { conflictCount, createPuzzle, emptyGrid, mulberry32, type Digit } from "./sudoku";
 
 const { puzzle, solution } = createPuzzle("easy", mulberry32(8));
@@ -35,7 +35,20 @@ describe("Screen: the status line", () => {
 describe("Winning: the solved panel", () => {
   it("shows the time, difficulty, and hint count", () => {
     assert.deepEqual([0, 1, 3].map(hintsText), ["no hints", "1 hint", "3 hints"]);
-    assert.equal(winDetail(1, 245_000, "hard"), "4:05 on hard, 1 hint.");
+    assert.equal(winDetail(1, 245_000, 0, "hard"), "4:05 on hard, 1 hint.");
+  });
+
+  it("splits out a penalty: the total, then play time plus penalty", () => {
+    assert.equal(winDetail(0, 754_000, 122_000, "medium"), "14:36 (12:34 + 2:02 penalty) on medium, no hints.");
+  });
+});
+
+describe("Timer and pause: the penalty beside the clock and in high scores", () => {
+  it("shows the penalty only when there is one", () => {
+    assert.equal(clockPenalty(0), null);
+    assert.equal(clockPenalty(122_000), "+ 2:02");
+    assert.equal(recordPenalty(0), null);
+    assert.equal(recordPenalty(42_000), "incl. 0:42 penalty");
   });
 });
 
@@ -86,7 +99,7 @@ describe("Entering digits: the notice after Fill all notes", () => {
   it("names the seconds the fill added", () => {
     const before = fresh();
     const after = fillNotes(before);
-    const seconds = (after.elapsedMs - before.elapsedMs) / 1000;
+    const seconds = (after.penaltyMs - before.penaltyMs) / 1000;
     assert.ok(seconds > 0);
     assert.equal(fillNotice(before, after), `Fill all notes: +${seconds} s.`);
   });
