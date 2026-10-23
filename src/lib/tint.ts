@@ -67,3 +67,12 @@ export function noteHighlighted(
   const selectedValue = grid[selected.r][selected.c];
   return highlighting && selectedValue !== 0 && digit === selectedValue && (notes[r][c] & (1 << digit)) !== 0;
 }
+
+/** The color a placed digit is drawn in. */
+export type CellInk = "conflict" | "given" | "entered";
+
+/** A shown conflict wins over everything; otherwise a given digit and the player's own are drawn differently. */
+export function cellInk(conflict: boolean, given: boolean): CellInk {
+  if (conflict) return "conflict";
+  return given ? "given" : "entered";
+}
