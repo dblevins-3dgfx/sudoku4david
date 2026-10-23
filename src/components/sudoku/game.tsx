@@ -110,6 +110,7 @@ export function Game() {
     restoreBackup,
     sync,
     setEntry,
+    setFillStyle,
     setHelper,
     select,
     input,
@@ -505,6 +506,7 @@ export function Game() {
         open={prefsOpen}
         prefs={prefs}
         onEntry={setEntry}
+        onFillStyle={setFillStyle}
         onHelper={setHelper}
         onResetRecords={resetRecords}
         onRestoreBackup={restoreBackup}

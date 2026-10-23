@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  applyClaims,
   candidateNotes,
   cloneNotes,
   emptyNotes,
@@ -8,8 +9,10 @@ import {
   notesAfterPlacing,
   notesAreEmpty,
   notesEqual,
+  noteClaims,
+  pointingNotes,
 } from "./notes";
-import type { Grid } from "./sudoku";
+import type { Digit, Grid } from "./sudoku";
 
 const ALL = 0b1111111110; // bits 1..9
 
@@ -152,5 +155,87 @@ describe("Fill all notes: the time penalty", () => {
     const before = emptyNotes();
     before[8][8] = 1 << 4;
     assert.equal(fillPenaltySeconds(grid, before, emptyNotes()), 0);
+  });
+});
+
+describe("Fill style With pointing: reading the player's marks", () => {
+  it("confines a marked digit to its marked cells in that box", () => {
+    const grid = emptyGrid();
+    const notes = emptyNotes();
+    notes[0][0] = 1 << 5;
+    notes[1][1] = 1 << 5;
+    const claims = noteClaims(grid, notes);
+    assert.deepEqual(claims, [{ box: 0, digit: 5, cells: [{ r: 0, c: 0 }, { r: 1, c: 1 }] }]);
+    const cand = applyClaims(candidateNotes(grid), claims);
+    assert.equal(cand[0][0] & (1 << 5), 1 << 5);
+    assert.equal(cand[2][2] & (1 << 5), 0, "another cell of the box");
+    assert.equal(cand[0][3] & (1 << 5), 1 << 5, "outside the box");
+  });
+
+  it("drops a mark where the digit can't go", () => {
+    const grid = emptyGrid();
+    grid[0][5] = 5;
+    const notes = emptyNotes();
+    notes[0][0] = 1 << 5;
+    notes[1][1] = 1 << 5;
+    assert.deepEqual(noteClaims(grid, notes), [{ box: 0, digit: 5, cells: [{ r: 1, c: 1 }] }]);
+  });
+
+  it("makes no claim for a digit not marked in a box", () => {
+    const notes = emptyNotes();
+    notes[4][4] = 1 << 2;
+    assert.deepEqual(noteClaims(emptyGrid(), notes), [{ box: 4, digit: 2, cells: [{ r: 4, c: 4 }] }]);
+  });
+});
+
+describe("Fill style With pointing: pointing and claiming", () => {
+  const bit5 = 1 << 5;
+
+  it("clears a row from a marked pair", () => {
+    const notes = emptyNotes();
+    notes[0][0] = bit5;
+    notes[0][1] = bit5;
+    const result = pointingNotes(emptyGrid(), notes);
+    for (let c = 3; c < 9; c++) assert.equal(result.notes[0][c] & bit5, 0, `column ${c}`);
+    assert.equal(result.notes[1][3] & bit5, bit5);
+    assert.equal(result.eliminated, 6);
+  });
+
+  it("clears a row from an implicit triple the board makes", () => {
+    const grid = emptyGrid();
+    // Rows 1 and 2 of the top-left box are full, so its 1, 8, and 9 can only go in row 0.
+    [[2, 3, 4], [5, 6, 7]].forEach((digits, i) => digits.forEach((d, c) => (grid[i + 1][c] = d as Digit)));
+    const result = pointingNotes(grid, emptyNotes());
+    for (const d of [1, 8, 9]) assert.equal(result.notes[0][4] & (1 << d), 0, `digit ${d}`);
+    assert.equal(result.notes[1][4] & (1 << 1), 1 << 1);
+    assert.equal(result.eliminated, 18);
+  });
+
+  it("clears a box from a line confined to it", () => {
+    const grid = emptyGrid();
+    // Row 0 outside the top-left box is full, so row 0's 1, 8, and 9 sit in that box.
+    [2, 3, 4, 5, 6, 7].forEach((d, i) => (grid[0][i + 3] = d as Digit));
+    const result = pointingNotes(grid, emptyNotes());
+    for (const d of [1, 8, 9]) assert.equal(result.notes[2][2] & (1 << d), 0, `digit ${d}`);
+    assert.equal(result.notes[0][0] & (1 << 1), 1 << 1);
+    assert.equal(result.eliminated, 18);
+  });
+
+  it("repeats until a removal exposes no more", () => {
+    const notes = emptyNotes();
+    // A 5 pair in row 0 of the top-left box, and 5s in three cells of the top-right box.
+    for (const [r, c] of [[0, 0], [0, 1], [0, 6], [1, 6], [1, 7]]) notes[r][c] = bit5;
+    const result = pointingNotes(emptyGrid(), notes);
+    // The pair clears (0,6), which leaves the top-right box's 5s in row 1, which then clears row 1 of the top-middle box.
+    assert.equal(result.notes[0][6] & bit5, 0);
+    assert.equal(result.notes[1][4] & bit5, 0);
+    assert.equal(result.notes[2][4] & bit5, bit5);
+    assert.equal(result.eliminated, 7);
+  });
+
+  it("removes nothing when nothing points or claims", () => {
+    const result = pointingNotes(emptyGrid(), emptyNotes());
+    assert.equal(result.eliminated, 0);
+    assert.deepEqual(result.notes, candidateNotes(emptyGrid()));
   });
 });

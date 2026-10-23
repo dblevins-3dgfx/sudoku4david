@@ -4,6 +4,8 @@ import { Select } from "@base-ui/react/select";
 import { Check, ChevronsUpDown } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { cn } from "@/lib/utils";
+
 export type PrefOption<T extends string> = {
   value: T;
   label: string;
@@ -29,16 +31,23 @@ export function PrefSelect<T extends string>({
   value,
   options,
   onChange,
+  inset = false,
+  disabled = false,
 }: {
   label: string;
   value: T;
   options: readonly PrefOption<T>[];
   onChange: (value: T) => void;
+  /** Shown as a row inside a group (indented, plain label), not as a section. */
+  inset?: boolean;
+  /** Grayed out and unclickable, keeping its value. */
+  disabled?: boolean;
 }) {
   const current = options.find((option) => option.value === value);
   return (
     <Select.Root
       value={value}
+      disabled={disabled}
       // The Select can report null (nothing chosen); every setting here always
       // has a value, so null is ignored.
       onValueChange={(next) => {
@@ -46,8 +55,18 @@ export function PrefSelect<T extends string>({
       }}
       items={options.map((option) => ({ value: option.value, label: option.label }))}
     >
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <Select.Label className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-3",
+          inset ? "py-1.5 pl-4" : "mt-3",
+          disabled && "opacity-50",
+        )}
+      >
+        <Select.Label
+          className={
+            inset ? "text-sm" : "text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase"
+          }
+        >
           {label}
         </Select.Label>
         <Select.Trigger className="flex h-10 min-w-[11rem] cursor-pointer items-center justify-between gap-2 rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50">

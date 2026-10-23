@@ -4,7 +4,6 @@
 
 import type { GameState } from "./game";
 import type { Pending } from "./pending";
-import { fillPenaltySeconds } from "./notes";
 import { formatTime } from "./sudoku";
 
 /** The status line: the phase, or the conflict or open-cell count. */
@@ -54,7 +53,7 @@ export function hintNotice(before: GameState, after: GameState): string | null {
 /** The status-line notice after Fill all notes: the seconds it added. */
 export function fillNotice(before: GameState, after: GameState): string | null {
   if (after === before) return null;
-  return `Fill all notes: +${fillPenaltySeconds(before.grid, before.notes, after.notes)} s.`;
+  return `Fill all notes: +${Math.round((after.elapsedMs - before.elapsedMs) / 1000)} s.`;
 }
 
 /** What the new-puzzle or Clear entries dialog asks. */
