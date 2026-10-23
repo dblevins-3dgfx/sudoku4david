@@ -16,8 +16,10 @@ import {
   notesAfterPlacing,
   notesAreEmpty,
   notesEqual,
+  pointingNotes,
   type Notes,
 } from "./notes";
+import type { FillStyle } from "./prefs";
 
 import { CHECKPOINT_LIMIT, checkpointsEqual, withoutLast, type Checkpoint } from "./checkpoints";
 
@@ -270,19 +272,23 @@ export function erase(state: GameState): GameState {
 }
 
 /**
- * Fill all notes: replaces the marks in every empty cell with that cell's
- * candidates (see candidateNotes), as one undo step. It is not a hint and
- * does not touch the error count, but it adds one second to the clock for each
- * mark it adds or removes (see fillPenaltySeconds). Returns the same state, recording no step,
- * when paused, after a win, or when the marks already match.
+ * Fill all notes: replaces the marks in every empty cell, as one undo step.
+ * The "plain" style writes each cell's candidates (see candidateNotes); the
+ * "pointing" style trusts the player's marks and applies pointing and
+ * claiming (see pointingNotes). It is not a hint and does not touch the error
+ * count, but it adds one second to the clock for each mark it adds or removes
+ * (see fillPenaltySeconds), plus, in the "pointing" style, one for each
+ * candidate pointing and claiming took off. Returns the same state, recording
+ * no step, when paused, after a win, or when the marks already match.
  */
-export function fillNotes(state: GameState): GameState {
+export function fillNotes(state: GameState, style: FillStyle = "plain"): GameState {
   if (state.paused || state.won) return state;
-  const notes = candidateNotes(state.grid);
+  const { notes, eliminated } =
+    style === "pointing" ? pointingNotes(state.grid, state.notes) : { notes: candidateNotes(state.grid), eliminated: 0 };
   if (notesEqual(notes, state.notes)) return state;
   // The penalty goes straight onto elapsedMs. Snapshots don't hold the clock,
   // so undo, redo, and Restore checkpoint never give the time back.
-  const penaltyMs = fillPenaltySeconds(state.grid, state.notes, notes) * 1000;
+  const penaltyMs = (fillPenaltySeconds(state.grid, state.notes, notes) + eliminated) * 1000;
   return {
     ...state,
     ...pushHistory(state),

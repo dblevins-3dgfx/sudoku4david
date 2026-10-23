@@ -2,6 +2,13 @@ export const PREFS_STORAGE_KEY = "sudoku.prefs.v1";
 
 export type EntryMethod = "button" | "tap";
 
+/**
+ * How Fill all notes fills: "plain" writes every candidate; "pointing" also
+ * trusts the player's marks and applies pointing and claiming (see
+ * pointingNotes in notes.ts).
+ */
+export type FillStyle = "plain" | "pointing";
+
 export type Preferences = {
   entry: EntryMethod;
   /**
@@ -20,6 +27,8 @@ export type Preferences = {
   guessingTools: boolean;
   /** The dead-end warning; it works only while guessingTools is on. */
   deadEndWarning: boolean;
+  /** How Fill all notes fills; it is offered only while noteHelpers is on. */
+  fillStyle: FillStyle;
 };
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -30,6 +39,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   highlighting: true,
   guessingTools: true,
   deadEndWarning: false,
+  fillStyle: "plain",
 };
 
 function flag(value: unknown, fallback: boolean): boolean {
@@ -54,6 +64,7 @@ export function parsePreferences(raw: unknown, fallback: Preferences = DEFAULT_P
     highlighting: flag(data.highlighting, fallback.highlighting),
     guessingTools: flag(data.guessingTools, fallback.guessingTools),
     deadEndWarning: flag(data.deadEndWarning, fallback.deadEndWarning),
+    fillStyle: data.fillStyle === "plain" || data.fillStyle === "pointing" ? data.fillStyle : fallback.fillStyle,
   };
 }
 

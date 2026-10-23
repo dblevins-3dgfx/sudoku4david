@@ -20,6 +20,7 @@ import {
   type Coord,
   type GameState,
 } from "./game";
+import { fillPenaltySeconds, pointingNotes } from "./notes";
 import { deserializeGame } from "./storage";
 import { cloneGrid, createPuzzle, emptyGrid, mulberry32, type Digit, type Grid } from "./sudoku";
 
@@ -53,6 +54,10 @@ function popcount(mask: number): number {
 /** Whether `digit` is a candidate for `cell` in the fresh puzzle. */
 function candidateMask(cell: Coord, digit: number): boolean {
   return !puzzle.some((row, r) => row.some((v, c) => v === digit && sameGroup(cell, { r, c })));
+}
+
+function boxIndex({ r, c }: Coord): number {
+  return Math.floor(r / 3) * 3 + Math.floor(c / 3);
 }
 
 /** The first candidate for `cell` in the fresh puzzle. */
@@ -203,6 +208,41 @@ describe("Fill all notes: the time penalty", () => {
     assert.equal(undo(filled).elapsedMs, filled.elapsedMs);
     assert.equal(redo(undo(filled)).elapsedMs, filled.elapsedMs);
     assert.equal(restoreCheckpoint(filled).elapsedMs, filled.elapsedMs);
+  });
+});
+
+describe("Fill style With pointing", () => {
+  it("charges a second per mark changed plus one per candidate pointing or claiming took off", () => {
+    const before = fresh();
+    const plain = fillNotes(before, "plain");
+    const pointed = fillNotes(before, "pointing");
+    const { eliminated } = pointingNotes(before.grid, before.notes);
+    assert.ok(eliminated > 0, "this puzzle has pointing to do");
+    const changed = fillPenaltySeconds(before.grid, before.notes, pointed.notes);
+    assert.equal(pointed.elapsedMs - before.elapsedMs, (changed + eliminated) * 1000);
+    assert.equal(pointed.history.length, before.history.length + 1);
+    assert.deepEqual(fillNotes(before).notes, plain.notes, "Plain is the default");
+  });
+
+  it("trusts a wrong mark, so the fill leaves out where the digit really goes", () => {
+    const game = fresh();
+    // Find an empty cell and a decoy in its box where the cell's answer is also a candidate.
+    const open = empties(game);
+    const pair = open
+      .map((truth) => {
+        const digit = solution[truth.r][truth.c] as Digit;
+        const decoy = open.find(
+          (cell) => cell !== truth && boxIndex(cell) === boxIndex(truth) && candidateMask(cell, digit),
+        );
+        return decoy ? { truth, digit, decoy } : null;
+      })
+      .find((found) => found !== null);
+    assert.ok(pair, "some box has a decoy cell for its digit");
+    const { truth, digit, decoy } = pair;
+    const marked = inputDigit(at(game, decoy), digit, true);
+    const filled = fillNotes(marked, "pointing");
+    assert.equal(filled.notes[truth.r][truth.c] & bit(digit), 0);
+    assert.equal(filled.notes[decoy.r][decoy.c] & bit(digit), bit(digit));
   });
 });
 
