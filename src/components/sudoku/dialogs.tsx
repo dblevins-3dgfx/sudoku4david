@@ -2,7 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Switch } from "@base-ui/react/switch";
-import { useRef, useState, type ReactNode } from "react";
+import { Fragment, useRef, useState, type ReactNode } from "react";
 import { backupFileName, exportBackup } from "@/lib/backup";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -52,10 +52,20 @@ const ENTRY_OPTIONS: PrefOption<Preferences["entry"]>[] = [
   { value: "tap", label: "One tap, two taps", detail: "One tap marks the cell. A second tap writes the digit." },
 ];
 
+const FILL_OPTIONS: PrefOption<Preferences["fillStyle"]>[] = [
+  { value: "plain", label: "Plain", detail: "Every candidate the board allows." },
+  {
+    value: "pointing",
+    label: "With pointing",
+    detail: "Trusts the boxes you have marked a digit in, then applies pointing and claiming. +1 s for each candidate they remove.",
+  },
+];
+
 export function PrefsDialog({
   open,
   prefs,
   onEntry,
+  onFillStyle,
   onHelper,
   onResetRecords,
   onRestoreBackup,
@@ -65,6 +75,7 @@ export function PrefsDialog({
   open: boolean;
   prefs: Preferences;
   onEntry: (entry: Preferences["entry"]) => void;
+  onFillStyle: (style: Preferences["fillStyle"]) => void;
   onHelper: (group: HelperSwitch, on: boolean) => void;
   onResetRecords: () => void;
   onRestoreBackup: (text: string) => boolean;
@@ -80,7 +91,7 @@ export function PrefsDialog({
         options={ENTRY_OPTIONS}
         onChange={onEntry}
       />
-      <HelperSwitches prefs={prefs} onHelper={onHelper} />
+      <HelperSwitches prefs={prefs} onHelper={onHelper} onFillStyle={onFillStyle} />
       <ThemePicker />
       <RecordsReset onReset={onResetRecords} />
       <BackupRow onRestore={onRestoreBackup} />
@@ -101,9 +112,11 @@ export function PrefsDialog({
 function HelperSwitches({
   prefs,
   onHelper,
+  onFillStyle,
 }: {
   prefs: Preferences;
   onHelper: (group: HelperSwitch, on: boolean) => void;
+  onFillStyle: (style: Preferences["fillStyle"]) => void;
 }) {
   return (
     <div role="group" aria-labelledby="helpers-heading" className="mt-3">
@@ -115,9 +128,11 @@ function HelperSwitches({
           // A switch inside another (the dead-end warning) is indented, and
           // grayed out while its parent is off.
           const blocked = parent !== undefined && !helperOn(prefs, parent);
+          // A Fragment groups the switch with the row under it without adding
+          // an element to the page; React's list key goes on it, the outermost.
           return (
+          <Fragment key={key}>
           <label
-            key={key}
             className={cn(
               "flex cursor-pointer items-center justify-between gap-3 py-1.5",
               parent && "pl-4",
@@ -137,6 +152,18 @@ function HelperSwitches({
               <Switch.Thumb className="block size-[1.125rem] rounded-full bg-background shadow-sm transition-transform data-[checked]:translate-x-4" />
             </Switch.Root>
           </label>
+          {/* Fill style sits inside Note helpers, grayed out while that is off. */}
+          {key === "notes" ? (
+            <PrefSelect
+              label="Fill style"
+              value={prefs.fillStyle}
+              options={FILL_OPTIONS}
+              onChange={onFillStyle}
+              inset
+              disabled={!prefs.noteHelpers}
+            />
+          ) : null}
+          </Fragment>
           );
         })}
       </div>

@@ -26,6 +26,7 @@ import {
   loadPreferences,
   savePreferences,
   type EntryMethod,
+  type FillStyle,
   type Preferences,
 } from "@/lib/prefs";
 import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
@@ -389,8 +390,9 @@ export function useGame() {
   const fillAllNotes = useCallback(() => {
     const current = gameRef.current;
     if (!current) return;
-    const text = fillNotice(current, fillNotes(current));
-    apply(fillNotes);
+    const style = prefsRef.current.fillStyle;
+    const text = fillNotice(current, fillNotes(current, style));
+    apply((state) => fillNotes(state, style));
     if (text) setNotice(text);
   }, [apply]);
 
@@ -431,6 +433,11 @@ export function useGame() {
       tapRef.current = null;
       commitPrefs({ ...prefsRef.current, entry });
     },
+    [commitPrefs],
+  );
+
+  const setFillStyle = useCallback(
+    (fillStyle: FillStyle) => commitPrefs({ ...prefsRef.current, fillStyle }),
     [commitPrefs],
   );
 
@@ -579,6 +586,7 @@ export function useGame() {
     restoreBackup,
     sync,
     setEntry,
+    setFillStyle,
     setHelper,
     select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),
     input: enterDigit,
