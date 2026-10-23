@@ -35,6 +35,7 @@ function rec(id: string, key: string, finishedAt: number): ScoreRecord {
     finishedAt,
     difficulty: "easy",
     elapsedMs: 60_000,
+    penaltyMs: 0,
     hintsUsed: 0,
     source: "generated",
     deviceId: "dev",
