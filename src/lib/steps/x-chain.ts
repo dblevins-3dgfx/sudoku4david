@@ -1,13 +1,13 @@
 // X-chains: one digit followed through a chain of strong and weak links.
 
 import type { Coord } from "../game";
-import { sameGroup, type Digit, type Grid } from "../sudoku";
-import { key, open, UNITS } from "./board";
+import type { Digit, Grid } from "../sudoku";
+import { key, open, sees, UNITS } from "./board";
+import { searchChains, unwindChain, type ChainGraph, type ChainPath, type StrongOut } from "./chain";
 import type { Found, Phrase, Unit } from "./types";
 import { capitalize, cellName, removalText, unitName } from "./wording";
 
-/** One strong link of an X-chain: `from` and `to` are the only places left for the digit in `unit`. */
-type Link = { unit: Unit; from: Coord; to: Coord };
+const cellId = (cell: Coord) => cell.r * 9 + cell.c;
 
 /**
  * X-chain, for one digit. A strong link is a unit where the digit has exactly
@@ -23,88 +23,75 @@ type Link = { unit: Unit; from: Coord; to: Coord };
  * cells[2i+1], and `links` names the unit of each; the weak links join each
  * strong link to the next.
  */
-/* eslint-disable max-depth -- deep nesting tracked in #80 */
-// eslint-disable-next-line complexity -- tracked in #80
 export function xChain(grid: Grid, cand: number[][]): Found | null {
-  const sees = (a: Coord, b: Coord) => (a.r !== b.r || a.c !== b.c) && sameGroup(a.r, a.c, b.r, b.c);
   let best: Found | null = null;
   for (let d = 1; d <= 9; d++) {
-    const bit = 1 << d;
     const nodes: Coord[] = [];
-    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (grid[r][c] === 0 && cand[r][c] & bit) nodes.push({ r, c });
-    const id = (cell: Coord) => cell.r * 9 + cell.c;
-    // strong[i] lists the strong links out of cell i: the partner and the unit.
-    const strong = new Map<number, { to: Coord; unit: Unit }[]>();
-    for (const unit of UNITS) {
-      const spots = open(grid, unit).filter(({ r, c }) => cand[r][c] & bit);
-      if (spots.length !== 2) continue;
-      const [a, b] = spots;
-      for (const [x, y] of [[a, b], [b, a]]) {
-        const list = strong.get(id(x)) ?? [];
-        // A pair of cells can share a line and a box; one unit names the link.
-        if (!list.some((link) => id(link.to) === id(y))) list.push({ to: y, unit });
-        strong.set(id(x), list);
-      }
-    }
-    for (const start of nodes) {
-      // Breadth-first search, so each end is first reached by a shortest
-      // chain. A path is a linked list through `back`, like a C struct with a
-      // parent pointer; `on` is the far end of a strong link.
-      type Path = { cell: Coord; on: boolean; link: Link | null; back: Path | null; length: number };
-      const seen = new Set<string>([`${id(start)}off`]);
-      let frontier: Path[] = [{ cell: start, on: false, link: null, back: null, length: 0 }];
-      while (frontier.length > 0) {
-        const next: Path[] = [];
-        for (const path of frontier) {
-          // Nothing longer than the best chain so far can beat it.
-          if (best && path.length + 1 >= best.cells.length - 1) continue;
-          const steps = path.on
-            ? nodes.filter((cell) => sees(path.cell, cell)).map((cell) => ({ cell, link: null }))
-            : (strong.get(id(path.cell)) ?? []).map(({ to, unit }) => ({ cell: to, link: { unit, from: path.cell, to } }));
-          for (const step of steps) {
-            const tag = `${id(step.cell)}${path.on ? "off" : "on"}`;
-            if (seen.has(tag)) continue;
-            seen.add(tag);
-            const grown: Path = { cell: step.cell, on: !path.on, link: step.link, back: path, length: path.length + 1 };
-            next.push(grown);
-            if (!grown.on || grown.length < 3) continue;
-            const cells: Coord[] = [];
-            const chain: Link[] = [];
-            for (let p: Path | null = grown; p; p = p.back) {
-              cells.unshift(p.cell);
-              if (p.link) chain.unshift(p.link);
-            }
-            if (new Set(cells.map(id)).size !== cells.length) continue;
-            const end = grown.cell;
-            const removals = nodes
-              .filter((cell) => !cells.some((x) => id(x) === id(cell)) && sees(cell, start) && sees(cell, end))
-              .map((cell) => ({ ...cell, digit: d as Digit }));
-            if (removals.length === 0) continue;
-            if (best && cells.length >= best.cells.length) continue;
-            best = {
-              technique: "x-chain",
-              unit: null,
-              cells,
-              digits: [d as Digit],
-              removals,
-              place: null,
-              // Each strong link needs the digit gone from the rest of its unit.
-              relies: chain.flatMap((link) =>
-                open(grid, link.unit)
-                  .filter((cell) => id(cell) !== id(link.from) && id(cell) !== id(link.to))
-                  .map(({ r, c }) => key(r, c, d)),
-              ),
-              links: chain.map((link) => link.unit),
-            };
-          }
-        }
-        frontier = next;
-      }
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (grid[r][c] === 0 && cand[r][c] & (1 << d)) nodes.push({ r, c });
+    const graph = digitGraph(grid, cand, d, nodes);
+    for (let start = 0; start < nodes.length; start++) {
+      searchChains(
+        graph,
+        start,
+        () => (best ? best.cells.length - 1 : Infinity),
+        (path) => {
+          const found = chainStep(grid, d, nodes, path);
+          if (found && (!best || found.cells.length < best.cells.length)) best = found;
+        },
+      );
     }
   }
   return best;
 }
-/* eslint-enable max-depth */
+
+/**
+ * Digit d's links among `nodes`, the open cells where d is still possible. A
+ * strong link is a unit with exactly two places for d, labelled with that
+ * unit; a weak link is two cells that see each other.
+ */
+function digitGraph(grid: Grid, cand: number[][], d: number, nodes: readonly Coord[]): ChainGraph<Unit> {
+  const index = new Map(nodes.map((cell, i) => [cellId(cell), i]));
+  const strong: StrongOut<Unit>[][] = nodes.map(() => []);
+  for (const unit of UNITS) {
+    const spots = open(grid, unit).filter(({ r, c }) => cand[r][c] & (1 << d));
+    if (spots.length !== 2) continue;
+    const [a, b] = spots.map((cell) => index.get(cellId(cell))!);
+    for (const [x, y] of [[a, b], [b, a]]) {
+      // A pair of cells can share a line and a box; one unit names the link.
+      if (!strong[x].some((link) => link.to === y)) strong[x].push({ to: y, label: unit });
+    }
+  }
+  const weak = nodes.map((a) => nodes.flatMap((b, j) => (sees(a, b) ? [j] : [])));
+  return { strong, weak };
+}
+
+/** The X-chain that `path` ends, or null when no cell sees both of its ends. */
+function chainStep(grid: Grid, d: number, nodes: readonly Coord[], path: ChainPath<Unit>): Found | null {
+  const chain = unwindChain(path);
+  if (!chain) return null;
+  const cells = chain.nodes.map((i) => nodes[i]);
+  const [start, end] = [cells[0], cells[cells.length - 1]];
+  const removals = nodes
+    .filter((cell, i) => !chain.nodes.includes(i) && sees(cell, start) && sees(cell, end))
+    .map((cell) => ({ ...cell, digit: d as Digit }));
+  if (removals.length === 0) return null;
+  return {
+    technique: "x-chain",
+    unit: null,
+    cells,
+    digits: [d as Digit],
+    removals,
+    place: null,
+    // Each strong link needs the digit gone from the rest of its unit.
+    relies: chain.labels.flatMap((unit, i) => {
+      const [from, to] = [cellId(cells[2 * i]), cellId(cells[2 * i + 1])];
+      return open(grid, unit)
+        .filter((cell) => cellId(cell) !== from && cellId(cell) !== to)
+        .map(({ r, c }) => key(r, c, d));
+    }),
+    links: chain.labels,
+  };
+}
 
 export const xChainPhrase: Phrase = (step) => {
   // Strong link i runs from cells[2i] to cells[2i+1] in links[i].
