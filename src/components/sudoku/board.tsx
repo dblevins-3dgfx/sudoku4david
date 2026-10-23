@@ -83,6 +83,7 @@ export function Board({ game, conflicts, marks, flash, onFlashEnd, highlighting,
       aria-label="Sudoku grid"
       className="grid h-full w-full grid-cols-9 grid-rows-9 border-4 border-board-line bg-board shadow-[0_18px_40px_-24px_oklch(0.28_0.04_55/0.55)]"
     >
+      {/* eslint-disable-next-line complexity -- tracked in #81 */}
       {Array.from({ length: 81 }, (_, index) => {
         const r = (index / 9) | 0;
         const c = index % 9;

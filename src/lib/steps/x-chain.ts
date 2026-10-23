@@ -23,6 +23,8 @@ type Link = { unit: Unit; from: Coord; to: Coord };
  * cells[2i+1], and `links` names the unit of each; the weak links join each
  * strong link to the next.
  */
+/* eslint-disable max-depth -- deep nesting tracked in #80 */
+// eslint-disable-next-line complexity -- tracked in #80
 export function xChain(grid: Grid, cand: number[][]): Found | null {
   const sees = (a: Coord, b: Coord) => (a.r !== b.r || a.c !== b.c) && sameGroup(a.r, a.c, b.r, b.c);
   let best: Found | null = null;
@@ -102,6 +104,7 @@ export function xChain(grid: Grid, cand: number[][]): Found | null {
   }
   return best;
 }
+/* eslint-enable max-depth */
 
 export const xChainPhrase: Phrase = (step) => {
   // Strong link i runs from cells[2i] to cells[2i+1] in links[i].

@@ -14,6 +14,7 @@ import { andList, linesName, removalText } from "./wording";
  * the digit in every one of those columns. No other cell in those columns can
  * hold it. The same works with rows and columns swapped.
  */
+/* eslint-disable max-depth -- deep nesting tracked in #80 */
 export function fish(grid: Grid, cand: number[][], size: 2 | 3): Found | null {
   for (let d = 1; d <= 9; d++) {
     const bit = 1 << d;
@@ -68,6 +69,7 @@ export function fish(grid: Grid, cand: number[][], size: 2 | 3): Found | null {
   }
   return null;
 }
+/* eslint-enable max-depth */
 
 const phrase: Phrase = (step) => {
   // The pattern's cells all sit in the base lines; the removals sit in the

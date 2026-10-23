@@ -37,6 +37,8 @@ function weak(a: Node, b: Node): boolean {
  * `nodes` is the chain in order; strong link i runs from nodes[2i] to
  * nodes[2i+1], and `links[i]` is its unit, or null for a cell link.
  */
+/* eslint-disable max-depth -- deep nesting tracked in #80 */
+// eslint-disable-next-line complexity -- tracked in #80
 export function aic(grid: Grid, cand: number[][]): Found | null {
   const nodes: Node[] = [];
   for (let r = 0; r < 9; r++) {
@@ -145,6 +147,7 @@ export function aic(grid: Grid, cand: number[][]): Found | null {
   }
   return best;
 }
+/* eslint-enable max-depth */
 
 /**
  * Names the chain when it has a well-known shape. An XY-chain uses only

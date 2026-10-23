@@ -72,6 +72,7 @@ type Explained = { grid: Grid; advice: Advice; index: number };
  */
 export type LastWin = { puzzle: string; recordId: string | null; placement: string | null; hinted: boolean };
 
+// eslint-disable-next-line max-lines-per-function -- one hook owns all game state and its actions; splitting it is its own job
 export function useGame() {
   const [game, setGame] = useState<GameState | null>(null);
   const [booting, setBooting] = useState(true);
@@ -444,6 +445,7 @@ export function useGame() {
   const cancelPending = useCallback(() => setPending(null), []);
 
   useEffect(() => {
+    // eslint-disable-next-line complexity -- a flat switch over keyCommand's result; the decisions live in keyCommand
     const onKey = (event: KeyboardEvent) => {
       const current = gameRef.current;
       if (!current || dealingRef.current) return;
