@@ -9,6 +9,7 @@ import {
   fillNotes,
   restoreCheckpoint,
   saveCheckpoint,
+  totalMs,
   hint,
   inputDigit,
   moveSelection,
@@ -196,7 +197,21 @@ describe("Fill all notes: the time penalty", () => {
     const filled = fillNotes(marked);
     // Every candidate mark is new except `right`, and `wrong` is removed.
     const added = open.reduce((n, { r, c }) => n + popcount(filled.notes[r][c]), 0) - 1;
-    assert.equal(filled.elapsedMs - marked.elapsedMs, (added + 1) * 1000);
+    assert.equal(filled.penaltyMs - marked.penaltyMs, (added + 1) * 1000);
+  });
+
+  it("keeps the penalty apart from play time, and counts both", () => {
+    const before = { ...fresh(), elapsedMs: 5_000 };
+    const filled = fillNotes(before);
+    assert.equal(filled.elapsedMs, 5_000, "play time is untouched");
+    assert.ok(filled.penaltyMs > 0);
+    assert.equal(totalMs(filled), filled.elapsedMs + filled.penaltyMs);
+  });
+
+  it("is cleared with the clock by Clear entries and by undo back to the original puzzle", () => {
+    const filled = fillNotes(fresh());
+    assert.equal(restart(filled).penaltyMs, 0);
+    assert.equal(undo(filled).penaltyMs, 0);
   });
 
   it("is not refunded by undo, redo, or Restore checkpoint", () => {
@@ -204,10 +219,10 @@ describe("Fill all notes: the time penalty", () => {
     const started = inputDigit(at(fresh(), cell), candidate(cell), true);
     const saved = saveCheckpoint(started);
     const filled = fillNotes(saved);
-    assert.ok(filled.elapsedMs > 0);
-    assert.equal(undo(filled).elapsedMs, filled.elapsedMs);
-    assert.equal(redo(undo(filled)).elapsedMs, filled.elapsedMs);
-    assert.equal(restoreCheckpoint(filled).elapsedMs, filled.elapsedMs);
+    assert.ok(filled.penaltyMs > 0);
+    assert.equal(undo(filled).penaltyMs, filled.penaltyMs);
+    assert.equal(redo(undo(filled)).penaltyMs, filled.penaltyMs);
+    assert.equal(restoreCheckpoint(filled).penaltyMs, filled.penaltyMs);
   });
 });
 
@@ -219,7 +234,7 @@ describe("Fill style With pointing", () => {
     const { eliminated } = pointingNotes(before.grid, before.notes);
     assert.ok(eliminated > 0, "this puzzle has pointing to do");
     const changed = fillPenaltySeconds(before.grid, before.notes, pointed.notes);
-    assert.equal(pointed.elapsedMs - before.elapsedMs, (changed + eliminated) * 1000);
+    assert.equal(pointed.penaltyMs - before.penaltyMs, (changed + eliminated) * 1000);
     assert.equal(pointed.history.length, before.history.length + 1);
     assert.deepEqual(fillNotes(before).notes, plain.notes, "Plain is the default");
   });
@@ -370,6 +385,14 @@ describe("Timer and pause", () => {
 
 describe("What is remembered: a saved game is checked before it is used", () => {
   const saved = () => JSON.parse(JSON.stringify(fresh())) as Record<string, unknown> & GameState;
+
+  it("reads a game saved before penalties were kept apart as having none, and keeps a valid one", () => {
+    const raw = saved();
+    delete (raw as Partial<GameState>).penaltyMs;
+    assert.equal(deserializeGame(raw)?.penaltyMs, 0);
+    assert.equal(deserializeGame({ ...saved(), penaltyMs: 12_000 })?.penaltyMs, 12_000);
+    assert.equal(deserializeGame({ ...saved(), penaltyMs: -1 })?.penaltyMs, 0);
+  });
 
   it("reads a record with no source as generated", () => {
     const raw = saved();
