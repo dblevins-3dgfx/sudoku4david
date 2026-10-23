@@ -133,10 +133,11 @@ describe("Undo, redo, and clearing: Clear entries", () => {
 });
 
 describe("Explaining the next step: when it counts", () => {
-  const steps: Advice = { kind: "steps", steps: [] };
-  it("counts a step or a wrong digit, once per board", () => {
+  const steps: Advice = { kind: "steps", steps: [], fromNotes: false };
+  it("counts a step, a wrong digit, or wrong notes, once per board", () => {
     assert.equal(explanationCounts(steps, false), true);
     assert.equal(explanationCounts({ kind: "mistake", cell: { r: 0, c: 0 }, digit: 1, text: "" }, false), true);
+    assert.equal(explanationCounts({ kind: "wrong-notes", box: 0, digit: 1, text: "" }, false), true);
     assert.equal(explanationCounts(steps, true), false);
   });
 
