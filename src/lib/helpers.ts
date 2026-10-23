@@ -9,10 +9,11 @@ import type { Preferences } from "./prefs";
 export type HelperGroup = "solving" | "checking" | "notes" | "highlighting" | "guessing";
 
 /**
- * A switch in Preferences: one per group, plus the dead-end warning, which
- * sits inside Guessing tools and works only while that is on.
+ * A switch in Preferences: one per group, plus two that sit inside a group
+ * and work only while it is on: the dead-end warning inside Guessing tools,
+ * and Explain uses my notes inside Solving help.
  */
-export type HelperSwitch = HelperGroup | "deadEnds";
+export type HelperSwitch = HelperGroup | "deadEnds" | "explainNotes";
 
 // Which Preferences field holds each switch. `satisfies` checks the table
 // against the type without widening it, a little like a static_assert.
@@ -23,6 +24,7 @@ const FIELD = {
   highlighting: "highlighting",
   guessing: "guessingTools",
   deadEnds: "deadEndWarning",
+  explainNotes: "explainNotes",
 } as const satisfies Record<HelperSwitch, keyof Preferences>;
 
 export type SwitchSpec = {
@@ -36,6 +38,12 @@ export type SwitchSpec = {
 /** The switches in Preferences, in the order shown, with the words on each. */
 export const HELPER_SWITCHES: readonly SwitchSpec[] = [
   { key: "solving", label: "Solving help", detail: "Hint and Explain." },
+  {
+    key: "explainNotes",
+    label: "Explain uses my notes",
+    detail: "Explain trusts where you have marked a digit in a box, once it checks those marks.",
+    parent: "solving",
+  },
   { key: "checking", label: "Error checking", detail: "Conflicts, the error count, and Check." },
   { key: "notes", label: "Note helpers", detail: "Fill all notes, and clearing a placed digit from nearby notes." },
   { key: "highlighting", label: "Board highlighting", detail: "Row, column, box, and same-digit tints, and the keypad counts." },
@@ -50,7 +58,8 @@ export const HELPER_SWITCHES: readonly SwitchSpec[] = [
 
 /** True when the player's preferences have this switch on, and its parent too. */
 export function helperOn(prefs: Preferences, key: HelperSwitch): boolean {
-  if (key === "deadEnds" && !prefs[FIELD.guessing]) return false;
+  const parent = HELPER_SWITCHES.find((entry) => entry.key === key)?.parent;
+  if (parent && !prefs[FIELD[parent]]) return false;
   return prefs[FIELD[key]];
 }
 
