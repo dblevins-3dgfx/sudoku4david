@@ -5,6 +5,7 @@ import { Lightbulb } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { recordPenalty } from "@/lib/labels";
 import { loadRecords, topRecords, type Period, type ScoreRecord } from "@/lib/records";
 import { DIFFICULTIES, formatTime, type Difficulty } from "@/lib/sudoku";
 import { DeskDialog } from "./dialogs";
@@ -114,6 +115,9 @@ export function HighScoresDialog({
             >
               <span className="w-6 text-right text-muted-foreground tabular-nums">{i + 1}</span>
               <span className="font-medium tabular-nums">{formatTime(record.elapsedMs)}</span>
+              {recordPenalty(record.penaltyMs) ? (
+                <span className="text-xs text-muted-foreground tabular-nums">{recordPenalty(record.penaltyMs)}</span>
+              ) : null}
               {record.hintsUsed > 0 ? (
                 <span
                   className="inline-flex items-center gap-0.5 text-xs text-muted-foreground tabular-nums"
