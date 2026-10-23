@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Grid } from "./sudoku";
-import { cellTone, noteHighlighted, type CellMark } from "./tint";
+import { cellInk, cellTone, noteHighlighted, type CellMark } from "./tint";
 
 function emptyGrid(): Grid {
   return Array.from({ length: 9 }, () => Array(9).fill(0)) as Grid;
@@ -104,5 +104,17 @@ describe("highlighted notes", () => {
 
   it("highlights no marks when the selected cell is empty", () => {
     assert.equal(noteHighlighted(grid, notes, { r: 4, c: 4 }, 1, 1, 5), false);
+  });
+});
+
+describe("digit ink", () => {
+  it("draws a shown conflict in the conflict color, given or not", () => {
+    assert.equal(cellInk(true, true), "conflict");
+    assert.equal(cellInk(true, false), "conflict");
+  });
+
+  it("draws givens and the player's own digits differently", () => {
+    assert.equal(cellInk(false, true), "given");
+    assert.equal(cellInk(false, false), "entered");
   });
 });

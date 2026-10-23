@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import type { GameState } from "@/lib/game";
-import { cellTone, noteHighlighted, type CellMark, type CellTone } from "@/lib/tint";
+import { cellInk, cellTone, noteHighlighted, type CellInk, type CellMark, type CellTone } from "@/lib/tint";
 
 type BoardProps = {
   game: GameState;
@@ -33,6 +33,13 @@ const TONE_CLASS: Record<CellTone, string> = {
   same: "bg-cell-same",
   peer: "bg-cell-peer",
   plain: "bg-board",
+};
+
+// The Tailwind class for each digit color that cellInk in src/lib/tint.ts can pick.
+const INK_CLASS: Record<CellInk, string> = {
+  conflict: "text-cell-bad",
+  given: "text-cell-given",
+  entered: "text-cell-user",
 };
 
 function noteDigits(mask: number): number[] {
@@ -75,91 +82,121 @@ function lineClass(r: number, c: number): string {
 }
 
 export function Board({ game, conflicts, marks, flash, onFlashEnd, highlighting, deadEnds, onSelect }: BoardProps) {
-  const selectedValue = game.grid[game.selected.r][game.selected.c];
-
   return (
     <div
       role="grid"
       aria-label="Sudoku grid"
       className="grid h-full w-full grid-cols-9 grid-rows-9 border-4 border-board-line bg-board shadow-[0_18px_40px_-24px_oklch(0.28_0.04_55/0.55)]"
     >
-      {/* eslint-disable-next-line complexity -- tracked in #81 */}
       {Array.from({ length: 81 }, (_, index) => {
         const r = (index / 9) | 0;
         const c = index % 9;
-        const value = game.grid[r][c];
-        const selected = game.selected.r === r && game.selected.c === c;
-        const conflict = game.showMistakes && conflicts[r][c];
-        const mark = marks?.[r][c] ?? null;
-        const flashing = flash?.r === r && flash?.c === c;
-        const deadEnd = deadEnds?.[r][c] ?? false;
-        const tint = { grid: game.grid, selected: game.selected, conflict, deadEnd, marks: marks ?? null, highlighting };
-        const toneName = cellTone(tint, r, c);
-        const tone = TONE_CLASS[toneName];
-        const ink = conflict
-          ? "text-cell-bad"
-          : game.locked[r][c]
-            ? "text-cell-given"
-            : "text-cell-user";
-
         return (
-          <button
+          <Cell
             key={index}
-            type="button"
-            role="gridcell"
-            data-coord={`${r}-${c}`}
-            aria-selected={selected}
-            aria-rowindex={r + 1}
-            aria-colindex={c + 1}
-            aria-label={
-              cellLabel(r, c, value, game.locked[r][c], game.notes[r][c], conflict, highlighting ? selectedValue : 0) +
-              (toneName === "deadend" ? ", dead end" : "")
-            }
-            tabIndex={selected ? 0 : -1}
-            onClick={() => onSelect(r, c)}
-            // The browser fires animationend when a CSS animation finishes.
-            // Removing the class then lets a later hint on the same cell pulse again.
-            onAnimationEnd={flashing ? onFlashEnd : undefined}
-            className={cn(
-              "cell-face relative flex min-h-0 min-w-0 cursor-pointer items-center justify-center tabular-nums transition-colors outline-none",
-              "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
-              lineClass(r, c),
-              tone,
-              value !== 0 && ink,
-              game.locked[r][c] ? "font-semibold" : "font-medium",
-              selected && "ring-2 ring-primary ring-inset",
-              // A dashed outline drawn just inside the cell marks a candidate being removed.
-              mark === "removal" && "outline-2 outline-dashed outline-destructive -outline-offset-4",
-              toneName === "deadend" && "outline-2 outline-dotted outline-destructive -outline-offset-4",
-              flashing && "hint-flash",
-            )}
-          >
-            {value !== 0 ? (
-              <span className="cell-digit">{value}</span>
-            ) : game.notes[r][c] !== 0 ? (
-              <span className="cell-notes grid h-full w-full grid-cols-3 grid-rows-3 text-cell-note">
-                {Array.from({ length: 9 }, (_, digit) => {
-                  const n = digit + 1;
-                  const on = (game.notes[r][c] & (1 << n)) !== 0;
-                  const marked = noteHighlighted(game.grid, game.notes, game.selected, r, c, n, highlighting);
-                  return (
-                    <span
-                      key={n}
-                      className={cn(
-                        "flex items-center justify-center rounded-[2px]",
-                        marked && "bg-cell-note-hit font-semibold text-cell-note-hit-ink",
-                      )}
-                    >
-                      {on ? n : ""}
-                    </span>
-                  );
-                })}
-              </span>
-            ) : null}
-          </button>
+            game={game}
+            r={r}
+            c={c}
+            conflict={game.showMistakes && conflicts[r][c]}
+            deadEnd={deadEnds?.[r][c] ?? false}
+            marks={marks ?? null}
+            flashing={flash?.r === r && flash?.c === c}
+            highlighting={highlighting}
+            onSelect={onSelect}
+            onFlashEnd={onFlashEnd}
+          />
         );
       })}
     </div>
+  );
+}
+
+type CellProps = {
+  game: GameState;
+  r: number;
+  c: number;
+  /** Conflicts are shown and this cell repeats a digit. */
+  conflict: boolean;
+  deadEnd: boolean;
+  marks: (CellMark | null)[][] | null;
+  /** Hint just filled this cell, so it pulses. */
+  flashing: boolean;
+  highlighting: boolean;
+  onSelect: (r: number, c: number) => void;
+  onFlashEnd?: () => void;
+};
+
+/** One square of the grid: a button holding its digit, its pencil marks, or nothing. */
+function Cell({ game, r, c, conflict, deadEnd, marks, flashing, highlighting, onSelect, onFlashEnd }: CellProps) {
+  const value = game.grid[r][c];
+  const locked = game.locked[r][c];
+  const selected = game.selected.r === r && game.selected.c === c;
+  const selectedValue = highlighting ? game.grid[game.selected.r][game.selected.c] : 0;
+  const tint = { grid: game.grid, selected: game.selected, conflict, deadEnd, marks, highlighting };
+  const toneName = cellTone(tint, r, c);
+  const mark = marks?.[r][c] ?? null;
+
+  return (
+    <button
+      type="button"
+      role="gridcell"
+      data-coord={`${r}-${c}`}
+      aria-selected={selected}
+      aria-rowindex={r + 1}
+      aria-colindex={c + 1}
+      aria-label={
+        cellLabel(r, c, value, locked, game.notes[r][c], conflict, selectedValue) +
+        (toneName === "deadend" ? ", dead end" : "")
+      }
+      tabIndex={selected ? 0 : -1}
+      onClick={() => onSelect(r, c)}
+      // The browser fires animationend when a CSS animation finishes.
+      // Removing the class then lets a later hint on the same cell pulse again.
+      onAnimationEnd={flashing ? onFlashEnd : undefined}
+      className={cn(
+        "cell-face relative flex min-h-0 min-w-0 cursor-pointer items-center justify-center tabular-nums transition-colors outline-none",
+        "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+        lineClass(r, c),
+        TONE_CLASS[toneName],
+        value !== 0 && INK_CLASS[cellInk(conflict, locked)],
+        locked ? "font-semibold" : "font-medium",
+        selected && "ring-2 ring-primary ring-inset",
+        // A dashed outline drawn just inside the cell marks a candidate being removed.
+        mark === "removal" && "outline-2 outline-dashed outline-destructive -outline-offset-4",
+        toneName === "deadend" && "outline-2 outline-dotted outline-destructive -outline-offset-4",
+        flashing && "hint-flash",
+      )}
+    >
+      {value !== 0 ? (
+        <span className="cell-digit">{value}</span>
+      ) : game.notes[r][c] !== 0 ? (
+        <CellNotes game={game} r={r} c={c} highlighting={highlighting} />
+      ) : null}
+    </button>
+  );
+}
+
+/** An empty cell's pencil marks in a 3×3 grid, with the selected digit's mark highlighted. */
+function CellNotes({ game, r, c, highlighting }: { game: GameState; r: number; c: number; highlighting: boolean }) {
+  return (
+    <span className="cell-notes grid h-full w-full grid-cols-3 grid-rows-3 text-cell-note">
+      {Array.from({ length: 9 }, (_, digit) => {
+        const n = digit + 1;
+        const on = (game.notes[r][c] & (1 << n)) !== 0;
+        const marked = noteHighlighted(game.grid, game.notes, game.selected, r, c, n, highlighting);
+        return (
+          <span
+            key={n}
+            className={cn(
+              "flex items-center justify-center rounded-[2px]",
+              marked && "bg-cell-note-hit font-semibold text-cell-note-hit-ink",
+            )}
+          >
+            {on ? n : ""}
+          </span>
+        );
+      })}
+    </span>
   );
 }
 
