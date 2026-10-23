@@ -63,6 +63,7 @@ export function Game() {
               onStep={desk.showAdviceStep}
               onFill={desk.fillCell}
               onSelect={desk.select}
+              onExplainWithoutNotes={desk.explainWithoutNotes}
               onClose={desk.closeAdvice}
             />
           ) : (

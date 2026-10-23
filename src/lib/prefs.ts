@@ -27,6 +27,8 @@ export type Preferences = {
   guessingTools: boolean;
   /** The dead-end warning; it works only while guessingTools is on. */
   deadEndWarning: boolean;
+  /** Explain reads the player's notes; it works only while solvingHelp is on. */
+  explainNotes: boolean;
   /** How Fill all notes fills; it is offered only while noteHelpers is on. */
   fillStyle: FillStyle;
 };
@@ -39,6 +41,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   highlighting: true,
   guessingTools: true,
   deadEndWarning: false,
+  explainNotes: false,
   fillStyle: "plain",
 };
 
@@ -64,6 +67,7 @@ export function parsePreferences(raw: unknown, fallback: Preferences = DEFAULT_P
     highlighting: flag(data.highlighting, fallback.highlighting),
     guessingTools: flag(data.guessingTools, fallback.guessingTools),
     deadEndWarning: flag(data.deadEndWarning, fallback.deadEndWarning),
+    explainNotes: flag(data.explainNotes, fallback.explainNotes),
     fillStyle: data.fillStyle === "plain" || data.fillStyle === "pointing" ? data.fillStyle : fallback.fillStyle,
   };
 }

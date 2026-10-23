@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Advice, Step } from "@/lib/steps";
+import { BOXES, type Advice, type Step } from "@/lib/steps";
 import type { CellMark } from "@/lib/tint";
 
 type Shown = { advice: Advice; index: number };
@@ -37,6 +37,11 @@ export function adviceMarks({ advice, index }: Shown): (CellMark | null)[][] | n
     marks[advice.cell.r][advice.cell.c] = "target";
     return marks;
   }
+  // Wrong notes point at the whole box, never at the cell the digit belongs in.
+  if (advice.kind === "wrong-notes") {
+    for (const { r, c } of BOXES[advice.box].cells) marks[r][c] = "unit";
+    return marks;
+  }
   if (advice.kind !== "steps") return null;
   const step = advice.steps[index];
   // Later assignments win, so the most specific mark is written last.
@@ -52,33 +57,31 @@ type StepPanelProps = {
   onStep: (index: number) => void;
   onFill: (r: number, c: number) => void;
   onSelect: (r: number, c: number) => void;
+  onExplainWithoutNotes: () => void;
   onClose: () => void;
 };
+
+const HEADINGS = { mistake: "A wrong digit", "wrong-notes": "Notes to check", stuck: "No step found", solved: "Solved" };
+
+/** The line under the text: what the advice was worked out from. */
+function sourceLine(advice: Advice): string | null {
+  if (advice.kind === "steps" && advice.fromNotes) return "Worked out from the digits on the board and your notes.";
+  if (advice.kind === "steps" || advice.kind === "mistake") return "Worked out from the digits on the board, not your notes.";
+  return null;
+}
 
 /**
  * The explanation card that stands in for the status card while a step is
  * shown. The board highlights the cells it talks about.
  */
-export function StepPanel({ shown, onStep, onFill, onSelect, onClose }: StepPanelProps) {
+export function StepPanel({ shown, onStep, onFill, onSelect, onExplainWithoutNotes, onClose }: StepPanelProps) {
   const { advice, index } = shown;
   const step = advice.kind === "steps" ? advice.steps[index] : null;
   const count = advice.kind === "steps" ? advice.steps.length : 0;
-  const heading =
-    advice.kind === "mistake"
-      ? "A wrong digit"
-      : advice.kind === "stuck"
-        ? "No step found"
-        : advice.kind === "solved"
-          ? "Solved"
-          : step
-            ? TECHNIQUE_NAMES[step.technique]
-            : "";
+  const heading = advice.kind === "steps" ? (step ? TECHNIQUE_NAMES[step.technique] : "") : HEADINGS[advice.kind];
   const text =
-    advice.kind === "mistake" || advice.kind === "stuck"
-      ? advice.text
-      : advice.kind === "solved"
-        ? "Every cell is filled."
-        : (step?.text ?? "");
+    advice.kind === "steps" ? (step?.text ?? "") : advice.kind === "solved" ? "Every cell is filled." : advice.text;
+  const source = sourceLine(advice);
 
   return (
     // aria-live asks screen readers to read the new text out when it changes.
@@ -101,9 +104,7 @@ export function StepPanel({ shown, onStep, onFill, onSelect, onClose }: StepPane
         </Button>
       </div>
       <p className="mt-1 min-h-0 overflow-y-auto text-sm leading-snug">{text}</p>
-      {advice.kind === "steps" || advice.kind === "mistake" ? (
-        <p className="mt-1 text-xs text-muted-foreground">Worked out from the digits on the board, not your notes.</p>
-      ) : null}
+      {source ? <p className="mt-1 text-xs text-muted-foreground">{source}</p> : null}
       <div className="mt-1.5 flex flex-wrap items-center justify-end gap-1.5">
         {count > 1 ? (
           <>
@@ -130,6 +131,11 @@ export function StepPanel({ shown, onStep, onFill, onSelect, onClose }: StepPane
               <ChevronRight />
             </Button>
           </>
+        ) : null}
+        {advice.kind === "wrong-notes" ? (
+          <Button type="button" size="sm" className="h-7" onClick={onExplainWithoutNotes}>
+            Explain without my notes
+          </Button>
         ) : null}
         {advice.kind === "mistake" ? (
           <Button type="button" size="sm" className="h-7" onClick={() => onSelect(advice.cell.r, advice.cell.c)}>

@@ -83,11 +83,12 @@ Check is part of Error checking too, so it is offered only while conflicts are s
 
 ## Available helpers
 
-Preferences has an Available helpers section with one on/off switch for each group of helpers. Every group is on by default; the dead-end warning, a switch inside Guessing tools, is off by default. Switching one applies at once, does not reset the puzzle, and is not an undo step. It does not change the hint total, the error count already kept, or high scores.
+Preferences has an Available helpers section with one on/off switch for each group of helpers. Every group is on by default. Two switches sit inside a group and are off by default: Explain uses my notes inside Solving help, and the dead-end warning inside Guessing tools. Switching one applies at once, does not reset the puzzle, and is not an undo step. It does not change the hint total, the error count already kept, or high scores.
 
 | Switch | What it covers | When it is off |
 | --- | --- | --- |
 | Solving help | Hint and Explain | Their icons are hidden, H does nothing, and an open explanation closes |
+| Explain uses my notes (inside Solving help, off by default) | Explain reading the pencil marks (see Explaining the next step) | Explain works from the board alone. While Solving help is off, this switch is grayed out and keeps its setting |
 | Error checking | Conflicts, the error count, and Check | Conflicts are hidden, the error count is neither shown nor increased, and the Check icon is hidden |
 | Note helpers | Clearing a placed digit from other cells' notes, by digit entry or Hint, Fill all notes, and its Fill style | Placing a digit clears only that cell's own notes, the Fill all notes icon is hidden, F does nothing, and the Fill style select is grayed out but keeps its choice |
 | Board highlighting | Peer and same-digit tints, highlighted pencil marks, and the keypad's counts | Only the selected cell, conflicts, and an explanation's cells are tinted; the keypad shows no counts, but a digit with nine copies still grays out and is ignored |
@@ -116,7 +117,7 @@ After Hint fills a cell, the status line says which: “Hint: 7 in row 3, column
 
 ## Explaining the next step
 
-Explain works out the next logical step from the digits on the board and says why in plain words. Like Hint, it is offered while Solving help is on. It ignores pencil marks, which may be incomplete. It does not change the board. An explanation counts as a hint and starts the clock, unless Explain finds nothing it can explain. Asking again about the same board does not count again, and undo does not take the hint back.
+Explain works out the next logical step from the digits on the board and says why in plain words. Like Hint, it is offered while Solving help is on. Unless Explain uses my notes is on (below), it ignores pencil marks, which may be incomplete. It does not change the board. An explanation counts as a hint and starts the clock, unless Explain finds nothing it can explain. Asking again about the same board does not count again, and undo does not take the hint back.
 
 If an unlocked digit on the board is wrong, Explain names that cell first and offers to select it. Otherwise it works down the table below and uses the first technique that finds something. The two singles place a digit. The others take candidates out, and after each one Explain starts again from the singles. A candidate is a digit that can still go in a cell, worked out from the digits on the board.
 
@@ -143,6 +144,14 @@ Chains are built from pairs where at least one must be true, joined by links whe
 - **Which chain.** Explain uses the shortest chain that takes a candidate out, tries AICs only after X-chains, and words a chain link by link.
 
 The explanation lists only the steps the placement depends on, in order, with Back and Next between them, and ends with the digit to place. Fill it in places that digit the same way Hint does, without counting a second hint. If none of these techniques finds a placement, Explain says so.
+
+### Explain uses my notes
+
+Explain uses my notes is a switch inside Solving help, off by default. While it is on, Explain also reads the pencil marks, the same way the With pointing fill does: one box and one digit at a time. If the player has marked a digit anywhere in a box, Explain treats that digit as possible only in the cells of the box where it is marked. A box with no mark of a digit keeps all its candidates for it. A single cell's marks are never read as its full list. A mark where the digit can't go (it is already in the cell's row, column, or box) is ignored, and a box whose marks of a digit are all like that is treated as having none.
+
+Before trusting them, Explain checks those marks against the solution, after the check for a wrong digit on the board. A box and digit whose marks leave out the cell where the digit really goes are wrong notes. Explain reports the first in box order, then digit order, under the heading “Notes to check”: “Your 5s in the top-left box leave out the cell where 5 goes. Fix those notes, or explain without them.” It names the box and the digit, never the cell, and the board tints the whole box. It offers **Explain without my notes**, which explains from the board alone, as if the switch were off. Wrong notes count as a hint, like a wrong digit; asking again without the notes on the same board does not count again.
+
+When the notes are right, the candidates Explain starts from are the board's candidates narrowed by the notes. A deduction the notes already hold is not repeated as a step, and the notes can take Explain further than its techniques alone. A step that relies on a candidate the notes took out says so at the end, naming each box and digit it used: “This relies on your 5s in the top-left box.” The line under the explanation then reads “Worked out from the digits on the board and your notes.” With the switch off, it reads “Worked out from the digits on the board, not your notes.”, as it does for a wrong digit. An explanation worked out from the notes also closes when the notes change.
 
 While an explanation is shown, it replaces the status card and the board tints only the cells it talks about: the cell to fill, the cells that make the pattern, the cells losing a candidate (outlined), and the rest of the row, column, or box. X-Wing, Swordfish, XY-Wing, and the chains span several rows and columns, so they tint only their own cells and the cells losing a candidate. Any change to the board, pausing, or a win closes it. Pressing Explain again also closes it.
 
@@ -188,7 +197,7 @@ High scores are stored under `sudoku.scores.v1`, and a random id for this browse
 
 The color theme is stored separately under `sudoku.theme`, as the theme's id. With nothing stored, the page uses Paper or Lamplight to follow the device's light or dark setting. The older values `light` and `dark` map to those two.
 
-How digits are entered, the Available helpers switches, and the Fill style are stored under `sudoku.prefs.v1`. Error checking is stored as `showConflicts`, the name it had before Available helpers, so an older record keeps its choice; the other switches are `solvingHelp`, `noteHelpers`, `highlighting`, `guessingTools`, and `deadEndWarning`. The Fill style is stored as `fillStyle`, either `plain` or `pointing`. The default entry method is the notes button, every helper is on except the dead-end warning, and the Fill style is Plain. Each stored field is read on its own: a missing or invalid one takes its default and the others are kept. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing any preference applies immediately and does not reset the puzzle. Preferences stay in this browser; sync does not carry them. Changing a preference is not an undo step.
+How digits are entered, the Available helpers switches, and the Fill style are stored under `sudoku.prefs.v1`. Error checking is stored as `showConflicts`, the name it had before Available helpers, so an older record keeps its choice; the other switches are `solvingHelp`, `explainNotes`, `noteHelpers`, `highlighting`, `guessingTools`, and `deadEndWarning`. The Fill style is stored as `fillStyle`, either `plain` or `pointing`. The default entry method is the notes button, every helper is on except the dead-end warning and Explain uses my notes, and the Fill style is Plain. Each stored field is read on its own: a missing or invalid one takes its default and the others are kept. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing any preference applies immediately and does not reset the puzzle. Preferences stay in this browser; sync does not carry them. Changing a preference is not an undo step.
 
 ## Screen
 

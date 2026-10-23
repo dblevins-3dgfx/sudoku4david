@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_PREFERENCES, loadPreferences, parsePreferences, PREFS_STORAGE_KEY } from "./prefs";
 
-const ON = { solvingHelp: true, noteHelpers: true, highlighting: true, guessingTools: true, deadEndWarning: false, fillStyle: "plain" as const };
+const ON = { solvingHelp: true, noteHelpers: true, highlighting: true, guessingTools: true, deadEndWarning: false, explainNotes: false, fillStyle: "plain" as const };
 
 describe("preferences", () => {
   it("reads a complete record", () => {
@@ -37,6 +37,12 @@ describe("preferences", () => {
       parsePreferences({ entry: "button", showConflicts: true, solvingHelp: false, noteHelpers: false, highlighting: "no" }),
       { ...ON, entry: "button", showConflicts: true, solvingHelp: false, noteHelpers: false, highlighting: true },
     );
+  });
+
+  it("reads Explain uses my notes, off when missing or invalid", () => {
+    assert.equal(parsePreferences({ explainNotes: true })?.explainNotes, true);
+    assert.equal(parsePreferences({ entry: "tap" })?.explainNotes, false);
+    assert.equal(parsePreferences({ explainNotes: "yes" })?.explainNotes, false);
   });
 
   it("reads the fill style, and reads a missing or unknown one as Plain", () => {

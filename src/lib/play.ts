@@ -54,10 +54,11 @@ export function clearEntriesAction(game: GameState): "none" | "now" | "ask" {
 
 /**
  * Whether an explanation counts as a hint: only when it found something to
- * say (a step or a wrong digit), and not again for a board already counted.
+ * say (a step, a wrong digit, or wrong notes), and not again for a board
+ * already counted.
  */
 export function explanationCounts(advice: Advice, alreadyCounted: boolean): boolean {
-  return (advice.kind === "steps" || advice.kind === "mistake") && !alreadyCounted;
+  return (advice.kind === "steps" || advice.kind === "mistake" || advice.kind === "wrong-notes") && !alreadyCounted;
 }
 
 /**

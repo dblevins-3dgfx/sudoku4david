@@ -62,7 +62,8 @@ export type Step = {
 export type Advice =
   | { kind: "solved" }
   | { kind: "mistake"; cell: Coord; digit: Digit; text: string }
-  | { kind: "steps"; steps: Step[] }
+  | { kind: "wrong-notes"; box: number; digit: Digit; text: string }
+  | { kind: "steps"; steps: Step[]; fromNotes: boolean }
   | { kind: "stuck"; text: string };
 
 /**

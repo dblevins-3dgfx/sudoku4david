@@ -45,6 +45,7 @@ import {
   pressDigit,
 } from "@/lib/play";
 import { loadGame, saveGame } from "@/lib/storage";
+import type { Notes } from "@/lib/notes";
 import { nextStep, type Advice } from "@/lib/steps";
 import { useSync } from "./use-sync";
 import {
@@ -64,7 +65,9 @@ export type { Pending } from "@/lib/pending";
  * for. Every move builds a new grid array, so comparing references (like
  * comparing two pointers in C++) tells whether the board has changed since.
  */
-type Explained = { grid: Grid; advice: Advice; index: number };
+// `notes` is the notes array the advice was worked out from, or null when it
+// came from the board alone.
+type Explained = { grid: Grid; notes: Notes | null; advice: Advice; index: number };
 
 /**
  * What the Solved screen says about records for the game just won: where it
@@ -528,25 +531,38 @@ export function useGame() {
   // An explanation counts as a hint unless the finder found nothing it could
   // explain. Asking again about the same board does not count again.
   const countedGridRef = useRef<Grid | null>(null);
-  const explain = useCallback(() => {
-    const current = gameRef.current;
-    if (!current || current.paused || current.won || !prefsRef.current.solvingHelp) return;
-    const advice = nextStep(current.grid, current.solution, current.locked);
-    setExplained({ grid: current.grid, advice, index: 0 });
-    if (explanationCounts(advice, countedGridRef.current === current.grid)) {
-      countedGridRef.current = current.grid;
-      apply(countExplanation);
-    } else {
-      setNotice(null);
-    }
-  }, [apply]);
+  // With Explain uses my notes on, the finder also reads the notes, unless the
+  // player chose "Explain without my notes".
+  const runExplain = useCallback(
+    (useNotes: boolean) => {
+      const current = gameRef.current;
+      if (!current || current.paused || current.won || !prefsRef.current.solvingHelp) return;
+      const notes = useNotes && helperOn(prefsRef.current, "explainNotes") ? current.notes : null;
+      const advice = nextStep(current.grid, current.solution, current.locked, notes ?? undefined);
+      setExplained({ grid: current.grid, notes, advice, index: 0 });
+      if (explanationCounts(advice, countedGridRef.current === current.grid)) {
+        countedGridRef.current = current.grid;
+        apply(countExplanation);
+      } else {
+        setNotice(null);
+      }
+    },
+    [apply],
+  );
+  const explain = useCallback(() => runExplain(true), [runExplain]);
+  const explainWithoutNotes = useCallback(() => runExplain(false), [runExplain]);
 
   // The explanation shows only while the board is the one it was made for.
   // Any move, undo, or new game makes a new grid, and the panel goes away by
-  // itself, with no clean-up code needed.
+  // itself, with no clean-up code needed. Advice worked out from the notes
+  // also goes when the notes change, since every note edit makes a new array.
   // Switching Solving help off hides it too (see setHelper).
   const advice =
-    explained && game && explained.grid === game.grid && !game.paused && !game.won && prefs.solvingHelp
+    explained &&
+    game &&
+    explained.grid === game.grid &&
+    (explained.notes === null || explained.notes === game.notes) &&
+    !game.paused && !game.won && prefs.solvingHelp
       ? explained
       : null;
 
@@ -605,6 +621,7 @@ export function useGame() {
     clearHintFlash: () => setHintFlash(null),
     advice,
     explain,
+    explainWithoutNotes,
     closeAdvice: () => setExplained(null),
     showAdviceStep: (index: number) => setExplained((current) => (current ? { ...current, index } : current)),
     // hint() fills the selected cell when it qualifies, so selecting the

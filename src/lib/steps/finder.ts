@@ -4,8 +4,9 @@
 // catch a wrong digit the player entered, since every deduction made on top of
 // a wrong digit is unreliable.
 //
-// Candidates come from the digits on the board, not from the player's pencil
-// marks, which may be incomplete.
+// Candidates come from the digits on the board. The player's pencil marks,
+// which may be incomplete, are read only when Explain uses my notes is on, and
+// then only as per-box claims checked against the solution (note-claims.ts).
 //
 // The finder looks for a placement first (a single). When none is visible it
 // applies eliminations (pointing, claiming, pairs, triples, X-Wing, Swordfish,
@@ -17,11 +18,13 @@
 // one: write the file, add it to `Technique` in types.ts, to ELIMINATIONS
 // below (in the order a person would try it), and to PHRASES.
 
+import type { NoteClaim, Notes } from "../notes";
 import { isDigit, type Grid } from "../sudoku";
 import { aic, aicPhrase } from "./aic";
 import { boardCandidates, key } from "./board";
 import { fish, fishPhrases } from "./fish";
 import { claiming, intersectionPhrases, pointing } from "./intersections";
+import { notesPhrase, readNotes, startFromClaims, wrongNotesText } from "./note-claims";
 import { hiddenSingle, nakedSingle, singlePhrases } from "./singles";
 import { hiddenSubset, nakedSubset, subsetPhrases } from "./subsets";
 import type { Advice, Finder, Found, Phrase, Step, Technique } from "./types";
@@ -75,21 +78,26 @@ function trim(found: readonly Found[], last: Found): Found[] {
   return [...kept, last];
 }
 
-function words(chain: readonly Found[]): Step[] {
+/**
+ * Puts the chain into words. `fromNotes` maps each candidate the player's
+ * notes took out to the claim that did it, so a step relying on one says so.
+ */
+function words(chain: readonly Found[], fromNotes: ReadonlyMap<number, NoteClaim>): Step[] {
   const removed = new Set<number>();
   return chain.map(({ relies, ...step }) => {
     const usesEarlier = relies.some((k) => removed.has(k));
+    const used = new Set<NoteClaim>();
+    for (const k of relies) {
+      const claim = fromNotes.get(k);
+      if (claim) used.add(claim);
+    }
     for (const { r, c, digit } of step.removals) removed.add(key(r, c, digit));
-    return { ...step, text: describe({ ...step, relies }, usesEarlier) };
+    return { ...step, text: describe({ ...step, relies }, usesEarlier) + notesPhrase([...used]) };
   });
 }
 
-/**
- * The next logical step for `grid`. `locked` marks givens and hint-filled
- * cells, which are always right; any other filled cell is checked against
- * `solution` first.
- */
-export function nextStep(grid: Grid, solution: Grid, locked: boolean[][]): Advice {
+/** A filled cell that is not locked and does not match the solution, as advice. */
+function findMistake(grid: Grid, solution: Grid, locked: boolean[][]): Advice | null {
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
       const value = grid[r][c];
@@ -103,15 +111,33 @@ export function nextStep(grid: Grid, solution: Grid, locked: boolean[][]): Advic
       }
     }
   }
+  return null;
+}
+
+/**
+ * The next logical step for `grid`. `locked` marks givens and hint-filled
+ * cells, which are always right; any other filled cell is checked against
+ * `solution` first. With `notes` (Explain uses my notes), the player's marks
+ * are read as per-box claims: a wrong one is reported before any step, and
+ * the rest narrow the candidates the search starts from.
+ */
+export function nextStep(grid: Grid, solution: Grid, locked: boolean[][], notes?: Notes): Advice {
+  const mistake = findMistake(grid, solution, locked);
+  if (mistake) return mistake;
   if (grid.every((row) => row.every((value) => value !== 0))) return { kind: "solved" };
 
-  const cand = boardCandidates(grid);
+  const reading = notes ? readNotes(grid, solution, notes) : { claims: [], wrong: null };
+  if (reading.wrong) {
+    const { box, digit } = reading.wrong;
+    return { kind: "wrong-notes", box, digit, text: wrongNotesText(reading.wrong) };
+  }
+  const { cand, source } = startFromClaims(boardCandidates(grid), reading.claims);
   const found: Found[] = [];
   // Each elimination removes at least one of at most 729 candidates, so this
   // loop always ends; the bound is only a guard.
   for (let guard = 0; guard < 729; guard++) {
     const single = hiddenSingle(grid, cand) ?? nakedSingle(grid, cand);
-    if (single) return { kind: "steps", steps: words(trim(found, single)) };
+    if (single) return { kind: "steps", steps: words(trim(found, single), source), fromNotes: notes !== undefined };
     let next: Found | null = null;
     for (const find of ELIMINATIONS) {
       next = find(grid, cand);
