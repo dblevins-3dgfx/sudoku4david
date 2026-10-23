@@ -1,8 +1,8 @@
 // XY-Wing: three two-candidate cells that force a digit out of a fourth.
 
 import type { Coord } from "../game";
-import { sameGroup, type Grid } from "../sudoku";
-import { ALL, bitCount, key, maskDigits } from "./board";
+import type { Digit, Grid } from "../sudoku";
+import { ALL, bitCount, key, maskDigits, sees } from "./board";
 import type { Found, Phrase, Removal } from "./types";
 import { capitalize, cellName, removalText } from "./wording";
 
@@ -12,13 +12,11 @@ import { capitalize, cellName, removalText } from "./wording";
  * pivot takes, one pincer must be z, so a cell that sees both pincers can't be
  * z. `digits` is [x, y, z].
  */
-/* eslint-disable max-depth -- deep nesting tracked in #80 */
 export function xyWing(grid: Grid, cand: number[][]): Found | null {
   const pairs: Coord[] = [];
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) if (grid[r][c] === 0 && bitCount(cand[r][c]) === 2) pairs.push({ r, c });
   }
-  const sees = (a: Coord, b: Coord) => (a.r !== b.r || a.c !== b.c) && sameGroup(a.r, a.c, b.r, b.c);
   for (const pivot of pairs) {
     const pivotMask = cand[pivot.r][pivot.c];
     const [x, y] = maskDigits(pivotMask);
@@ -32,14 +30,7 @@ export function xyWing(grid: Grid, cand: number[][]): Found | null {
       for (const b of wings) {
         if (cand[b.r][b.c] !== yzMask) continue;
         const z = maskDigits(zBit)[0];
-        const removals: Removal[] = [];
-        for (let r = 0; r < 9; r++) {
-          for (let c = 0; c < 9; c++) {
-            const cell = { r, c };
-            if (grid[r][c] !== 0 || !(cand[r][c] & zBit)) continue;
-            if (sees(cell, a) && sees(cell, b) && (r !== pivot.r || c !== pivot.c)) removals.push({ ...cell, digit: z });
-          }
-        }
+        const removals = pincerRemovals(grid, cand, z, pivot, a, b);
         if (removals.length === 0) continue;
         const allBut = (cell: Coord, mask: number) => maskDigits(ALL & ~mask).map((d) => key(cell.r, cell.c, d));
         return {
@@ -56,7 +47,19 @@ export function xyWing(grid: Grid, cand: number[][]): Found | null {
   }
   return null;
 }
-/* eslint-enable max-depth */
+
+/** Every open cell other than the pivot that still has z and sees both pincers. */
+function pincerRemovals(grid: Grid, cand: number[][], z: Digit, pivot: Coord, a: Coord, b: Coord): Removal[] {
+  const removals: Removal[] = [];
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      const cell = { r, c };
+      if (grid[r][c] !== 0 || !(cand[r][c] & (1 << z))) continue;
+      if (sees(cell, a) && sees(cell, b) && (r !== pivot.r || c !== pivot.c)) removals.push({ ...cell, digit: z });
+    }
+  }
+  return removals;
+}
 
 export const xyWingPhrase: Phrase = (step) => {
   const [pivot, a, b] = step.cells.map(cellName);

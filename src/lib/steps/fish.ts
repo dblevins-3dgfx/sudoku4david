@@ -7,6 +7,9 @@ import { bitCount, combinations, key } from "./board";
 import type { Found, Phrase, Removal } from "./types";
 import { andList, linesName, removalText } from "./wording";
 
+/** at(b, k) is the cell in base line b, cover line k. */
+type At = (b: number, k: number) => Coord;
+
 /**
  * X-Wing (size 2) and Swordfish (size 3). Take `size` rows in which a digit
  * fits only within the same `size` columns. Each of those rows needs the
@@ -14,7 +17,6 @@ import { andList, linesName, removalText } from "./wording";
  * the digit in every one of those columns. No other cell in those columns can
  * hold it. The same works with rows and columns swapped.
  */
-/* eslint-disable max-depth -- deep nesting tracked in #80 */
 export function fish(grid: Grid, cand: number[][], size: 2 | 3): Found | null {
   for (let d = 1; d <= 9; d++) {
     const bit = 1 << d;
@@ -23,26 +25,13 @@ export function fish(grid: Grid, cand: number[][], size: 2 | 3): Found | null {
       const at = baseKind === "row" ? (b: number, k: number) => ({ r: b, c: k }) : (b: number, k: number) => ({ r: k, c: b });
       const isOpen = ({ r, c }: Coord) => grid[r][c] === 0;
       const has = ({ r, c }: Coord) => grid[r][c] === 0 && (cand[r][c] & bit) !== 0;
-      // For each base line with 2..size places for d, those places as a mask of cover indices.
-      const bases: { line: number; spots: number }[] = [];
-      for (let b = 0; b < 9; b++) {
-        let spots = 0;
-        for (let k = 0; k < 9; k++) if (has(at(b, k))) spots |= 1 << k;
-        const count = bitCount(spots);
-        if (count >= 2 && count <= size) bases.push({ line: b, spots });
-      }
+      const bases = baseLines(at, has, size);
       for (const group of combinations(bases, size)) {
         const cover = group.reduce((mask, base) => mask | base.spots, 0);
         if (bitCount(cover) !== size) continue;
         const baseLines = group.map((base) => base.line);
         const coverLines = [0, 1, 2, 3, 4, 5, 6, 7, 8].filter((k) => cover & (1 << k));
-        const removals: Removal[] = [];
-        for (const k of coverLines) {
-          for (let b = 0; b < 9; b++) {
-            const cell = at(b, k);
-            if (!baseLines.includes(b) && has(cell)) removals.push({ ...cell, digit: d as Digit });
-          }
-        }
+        const removals = coverRemovals(at, has, baseLines, coverLines, d as Digit);
         if (removals.length === 0) continue;
         const cells = baseLines.flatMap((b) => coverLines.map((k) => at(b, k)).filter(has));
         // The pattern needs d to be out of every other open cell of the base lines.
@@ -69,7 +58,30 @@ export function fish(grid: Grid, cand: number[][], size: 2 | 3): Found | null {
   }
   return null;
 }
-/* eslint-enable max-depth */
+
+/** For each base line with 2..size places for the digit, those places as a mask of cover indices. */
+function baseLines(at: At, has: (cell: Coord) => boolean, size: number): { line: number; spots: number }[] {
+  const bases: { line: number; spots: number }[] = [];
+  for (let b = 0; b < 9; b++) {
+    let spots = 0;
+    for (let k = 0; k < 9; k++) if (has(at(b, k))) spots |= 1 << k;
+    const count = bitCount(spots);
+    if (count >= 2 && count <= size) bases.push({ line: b, spots });
+  }
+  return bases;
+}
+
+/** The digit's places in the cover lines outside the base lines. */
+function coverRemovals(at: At, has: (cell: Coord) => boolean, bases: number[], covers: number[], d: Digit): Removal[] {
+  const removals: Removal[] = [];
+  for (const k of covers) {
+    for (let b = 0; b < 9; b++) {
+      const cell = at(b, k);
+      if (!bases.includes(b) && has(cell)) removals.push({ ...cell, digit: d });
+    }
+  }
+  return removals;
+}
 
 const phrase: Phrase = (step) => {
   // The pattern's cells all sit in the base lines; the removals sit in the
