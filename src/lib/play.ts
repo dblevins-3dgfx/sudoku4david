@@ -121,6 +121,7 @@ const ARROW_STEPS: Record<string, [number, number]> = {
  * in this context. The undo chord (Command or Ctrl with Z) works even with a
  * dialog open; undo() itself refuses while paused.
  */
+// eslint-disable-next-line complexity -- a flat key table, one guard per key
 export function keyCommand(event: KeyInput, ctx: KeyContext): KeyCommand | null {
   const key = event.key.toLowerCase();
   const chord = event.metaKey || event.ctrlKey;

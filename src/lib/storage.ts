@@ -94,6 +94,7 @@ function copySnapshot(snap: Snapshot, solution: Grid): Snapshot {
   return isCheckpoint(snap.popped, solution) ? { ...copy, popped: copyCheckpoint(snap.popped) } : copy;
 }
 
+// eslint-disable-next-line complexity -- a flat list of independent validity checks, each a one-line guard
 export function deserializeGame(raw: unknown): GameState | null {
   if (!raw || typeof raw !== "object") return null;
   const data = raw as Partial<GameState>;

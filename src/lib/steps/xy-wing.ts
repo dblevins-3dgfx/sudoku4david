@@ -12,6 +12,7 @@ import { capitalize, cellName, removalText } from "./wording";
  * pivot takes, one pincer must be z, so a cell that sees both pincers can't be
  * z. `digits` is [x, y, z].
  */
+/* eslint-disable max-depth -- deep nesting tracked in #80 */
 export function xyWing(grid: Grid, cand: number[][]): Found | null {
   const pairs: Coord[] = [];
   for (let r = 0; r < 9; r++) {
@@ -55,6 +56,7 @@ export function xyWing(grid: Grid, cand: number[][]): Found | null {
   }
   return null;
 }
+/* eslint-enable max-depth */
 
 export const xyWingPhrase: Phrase = (step) => {
   const [pivot, a, b] = step.cells.map(cellName);

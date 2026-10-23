@@ -79,6 +79,7 @@ type ControlState = {
   badge?: number;
 };
 
+// eslint-disable-next-line complexity, max-lines-per-function -- tracked in #81
 export function Game() {
   const desk = useGame();
   const {
