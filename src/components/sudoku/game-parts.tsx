@@ -44,6 +44,7 @@ import { formatTime, type Digit } from "@/lib/sudoku";
 import { Board, BoardSkeleton } from "./board";
 import { PendingDialog, PrefsDialog } from "./dialogs";
 import { HighScoresDialog } from "./high-scores";
+import { PhotoDialog } from "./photo-import";
 import { adviceMarks } from "./step-panel";
 import type { useGame } from "./use-game";
 
@@ -433,7 +434,16 @@ export function GameDialogs({ desk }: { desk: Desk }) {
         started={Boolean(game?.started && !game.won)}
         difficulty={game?.difficulty}
         onDeal={desk.deal}
+        onPhoto={desk.choosePhoto}
         onConfirm={desk.confirmPending}
+        onCancel={desk.cancelPending}
+      />
+      <PhotoDialog
+        open={desk.pending?.kind === "photo"}
+        file={desk.photoFile}
+        difficulty={desk.chosen}
+        onPhoto={desk.choosePhoto}
+        onPlay={desk.playOwnPuzzle}
         onCancel={desk.cancelPending}
       />
     </>

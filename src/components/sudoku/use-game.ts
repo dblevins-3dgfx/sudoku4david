@@ -83,6 +83,10 @@ export function useGame() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
+  // The photo being checked in the photo dialog. A File is the browser's
+  // handle to a file the player picked; the page can read it but never sees
+  // its path on disk.
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [chosen, setChosen] = useState<Difficulty>("medium");
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES);
   const [prefsOpen, setPrefsOpen] = useState(false);
@@ -335,6 +339,30 @@ export function useGame() {
     };
   }, [deal]);
 
+  // A photo picked from the new-puzzle dialog, or "Another photo" in the
+  // photo dialog: show the photo dialog for it.
+  const choosePhoto = useCallback((file: File) => {
+    setPhotoFile(file);
+    setPending({ kind: "photo" });
+  }, []);
+
+  // Starts the puzzle checked in the photo dialog. checkGivens has already
+  // found its one solution.
+  const playOwnPuzzle = useCallback((puzzle: Grid, solution: Grid, difficulty: Difficulty) => {
+    if (dealingRef.current) return;
+    let next = createGameFromPuzzle(difficulty, puzzle, solution, "photo");
+    if (next.showMistakes !== prefsRef.current.showConflicts) {
+      next = { ...next, showMistakes: prefsRef.current.showConflicts };
+    }
+    setPending(null);
+    setPhotoFile(null);
+    setGame(next);
+    setChosen(difficulty);
+    saveGame(next);
+    setNotice(null);
+    setError(null);
+  }, []);
+
   const requestNew = useCallback(() => {
     setPrefsOpen(false);
     setScoresOpen(false);
@@ -580,6 +608,7 @@ export function useGame() {
     error,
     notice,
     pending,
+    photoFile,
     chosen,
     prefs,
     prefsOpen,
@@ -593,6 +622,8 @@ export function useGame() {
     setChosen,
     deal,
     requestNew,
+    choosePhoto,
+    playOwnPuzzle,
     requestRestart,
     confirmPending,
     cancelPending,
