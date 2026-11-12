@@ -73,9 +73,10 @@ export function fillNotice(before: GameState, after: GameState): string | null {
   return `Fill all notes: +${Math.round((after.penaltyMs - before.penaltyMs) / 1000)} s.`;
 }
 
-/** What the new-puzzle or Clear entries dialog asks. */
+/** What the new-puzzle, Clear entries, or photo dialog asks. */
 export function pendingCopy(pending: Pending, started: boolean): string {
   if (pending.kind === "restart") return "Clear every number you wrote? The given digits stay.";
+  if (pending.kind === "photo") return "Check the digits read from the photo.";
   return started ? "Deal a new puzzle? This grid will be replaced." : "Choose a difficulty.";
 }
 

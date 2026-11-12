@@ -273,6 +273,9 @@ describe("play", () => {
     const remote = createGameFromPuzzle("expert", game.puzzle, game.solution, "mtsudoku");
     const remoteRestored = deserializeGame(JSON.parse(JSON.stringify(remote)) as unknown);
     assert.equal(remoteRestored?.source, "mtsudoku");
+
+    const photo = createGameFromPuzzle("hard", game.puzzle, game.solution, "photo");
+    assert.equal(deserializeGame(JSON.parse(JSON.stringify(photo)) as unknown)?.source, "photo");
   });
 
   it("keeps the full undo history through a save and load", () => {

@@ -89,6 +89,11 @@ describe("records store", () => {
 
   it("parses stored data and skips invalid records", () => {
     assert.equal(parseRecordStore(null), null);
+    assert.equal(parseRecordStore({ version: 1, records: [rec({ id: "p", source: "photo" })] })?.records.length, 1);
+    assert.equal(
+      parseRecordStore({ version: 1, records: [{ ...rec({ id: "x" }), source: "camera" }] })?.records.length,
+      0,
+    );
     assert.equal(parseRecordStore({ version: 2, records: [] }), null);
     assert.equal(parseRecordStore({ version: 1 }), null);
     const parsed = parseRecordStore({
