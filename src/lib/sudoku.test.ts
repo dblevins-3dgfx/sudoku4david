@@ -10,6 +10,7 @@ import {
   formatTime,
   isValidComplete,
   mulberry32,
+  solveUnique,
 } from "./sudoku";
 
 describe("sudoku generator", () => {
@@ -52,5 +53,19 @@ describe("conflicts and time", () => {
     assert.equal(formatTime(0), "0:00");
     assert.equal(formatTime(61_000), "1:01");
     assert.equal(formatTime(3_661_000), "1:01:01");
+  });
+});
+
+describe("solveUnique", () => {
+  it("solves a unique puzzle and refuses one with several solutions or none", () => {
+    const { puzzle, solution } = createPuzzle("hard", mulberry32(41));
+    assert.deepEqual(solveUnique(puzzle), solution);
+    assert.equal(solveUnique(emptyGrid()), null);
+    const broken = puzzle.map((row) => row.slice());
+    const first = broken[0]!.findIndex((v) => v !== 0);
+    const twin = broken[0]![first]!;
+    const other = broken[0]!.findIndex((v, c) => v === 0 && c !== first);
+    broken[0]![other] = twin; // the same digit twice in a row
+    assert.equal(solveUnique(broken), null);
   });
 });

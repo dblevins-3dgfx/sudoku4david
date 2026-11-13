@@ -57,6 +57,7 @@ describe("A new puzzle and Clear entries: what the dialog asks", () => {
     assert.equal(pendingCopy({ kind: "new" }, true), "Deal a new puzzle? This grid will be replaced.");
     assert.equal(pendingCopy({ kind: "new" }, false), "Choose a difficulty.");
     assert.equal(pendingCopy({ kind: "restart" }, true), "Clear every number you wrote? The given digits stay.");
+    assert.equal(pendingCopy({ kind: "photo" }, true), "Check the digits read from the photo.");
   });
 });
 

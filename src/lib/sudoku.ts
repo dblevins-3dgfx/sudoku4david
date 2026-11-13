@@ -248,6 +248,26 @@ export function countSolutions(grid: Grid, limit = 2): number {
   return count;
 }
 
+/**
+ * The one solution of `grid`, or null when it has none or more than one.
+ * Fills the empty cells in reading order with the first digit that still
+ * leaves a solution; with a unique puzzle that digit is the right one.
+ */
+export function solveUnique(grid: Grid): Grid | null {
+  if (countSolutions(grid, 2) !== 1) return null;
+  const work = cloneGrid(grid);
+  for (let r = 0; r < 9; r++) {
+    for (let c = 0; c < 9; c++) {
+      if (work[r]![c] !== 0) continue;
+      for (let d = 1; d <= 9; d++) {
+        work[r]![c] = d as Digit;
+        if (countSolutions(work, 1) === 1) break;
+      }
+    }
+  }
+  return work;
+}
+
 function generateSolution(rng: () => number): Grid {
   const grid = emptyGrid();
   const rows = new Uint16Array(9);

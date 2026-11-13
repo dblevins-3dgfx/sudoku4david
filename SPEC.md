@@ -2,7 +2,7 @@
 
 This document describes the game as it is implemented. It is the baseline for later changes. Any change the player can see or that changes what is stored (play, generation, the screen, high scores, backup, or sync) must update this specification in the same pull request.
 
-The product is a browser Sudoku. A new puzzle comes from Mt. Sudoku at the difficulty the player chooses. Each puzzle has one solution. Progress is kept in that browser. A player who signs in can keep the current game and high scores the same on all their devices.
+The product is a browser Sudoku. A new puzzle comes from Mt. Sudoku at the difficulty the player chooses, or from a photo of a printed puzzle. Each puzzle has one solution. Progress is kept in that browser. A player who signs in can keep the current game and high scores the same on all their devices.
 
 ## Board
 
@@ -169,9 +169,31 @@ Clear entries restores the original givens, clears notes, hints, the error count
 
 ## A new puzzle
 
-New puzzle opens a dialog in the center of the screen, including on a phone. The dialog offers Easy, Medium, Hard, Expert, Master, and Extreme. Choosing one deals that difficulty. The current puzzle’s difficulty is shown pressed.
+New puzzle opens a dialog in the center of the screen, including on a phone. The dialog offers Easy, Medium, Hard, Expert, Master, and Extreme. Choosing one deals that difficulty. The current puzzle’s difficulty is shown pressed. Under them, “From a photo” opens the device's photo picker, which on a phone also offers the camera (see A puzzle from a photo).
 
 If play has started and the puzzle is not solved, the dialog says “Deal a new puzzle? This grid will be replaced.” Otherwise it says “Choose a difficulty.” “Keep playing” dismisses it, and so does Escape.
+
+## A puzzle from a photo
+
+The player can set up a game from a photo of a printed puzzle. The photo is read on the device; it is never uploaded or stored.
+
+Reading the photo:
+
+- The photo is scaled down so its longer side is at most 1000 pixels, and turned upright as the camera recorded it.
+- Ink is found by comparing each pixel with its neighbourhood, so uneven light and tinted cells do not count as ink.
+- The grid is the large blob of ink whose inner lines fall where a 9 by 9 grid's lines should: at least 80% of the places checked along the eight inner lines in each direction. It may be tilted or seen in perspective. With no such blob, the player sees “Couldn't find a Sudoku grid in that photo. Try again with the whole grid in view, as straight on as you can.” A file that is not a picture gives “Couldn't open that file as a picture.”
+- A cell holds a digit when, away from its edges, there is a blob of ink near its middle at least a third of the cell tall. Specks and stray bits of grid line are ignored.
+- Each digit is compared with the digits 1 to 9 in common printed fonts, and the closest is taken. When a different digit fits nearly as well (the runner-up's distance is within 25% of the best), the cell is marked as hard to read.
+
+The photo dialog then says “Check the digits read from the photo.” and shows the digits on a small grid. Cells that were hard to read have a dotted outline, and repeated digits are shown in red. The player selects a cell by tapping it, or with the arrow keys, and changes it with the dialog's keypad or the keys 1–9, or clears it with its erase key, 0, Backspace, or Delete. Under the grid, one line reports the check:
+
+- No digits: “No digits yet. Enter the givens, or try another photo.”
+- A digit repeated in a row, column, or box: “A digit repeats in a row, column, or box. Check the cells shown in red.”
+- No solution: “These digits have no solution. A given may be misread.”
+- More than one solution: “These digits allow more than one solution. A given may be missing.” Such a puzzle cannot be played, because Hint, Check, Explain, and the win all need its one solution.
+- Exactly one solution: “N givens and one solution. Ready to play.”
+
+“Counts as” chooses the difficulty the game is played and recorded under, starting from the last difficulty chosen. “Play this puzzle” is available only when the givens have one solution; it starts the game with those givens locked, as a new deal would, with the source “Photo”. “Another photo” opens the picker again, and “Keep playing” (or Escape) closes the dialog and leaves the current game as it was.
 
 ## Timer and pause
 
@@ -187,7 +209,7 @@ When the grid matches the solution, the clock stops and a solved panel covers th
 
 ## What is remembered
 
-The game is stored in the browser under `sudoku.desk.v1`. A saved game is restored on the next visit, including whether it came from Mt. Sudoku or was generated here. A saved record with no source is treated as generated. A saved record that is not a valid puzzle is ignored, and the next visit asks Mt. Sudoku for a medium puzzle.
+The game is stored in the browser under `sudoku.desk.v1`. A saved game is restored on the next visit, including whether it came from Mt. Sudoku, was generated here, or was read from a photo. A saved record with no source, or an unknown one, is treated as generated. A saved record that is not a valid puzzle is ignored, and the next visit asks Mt. Sudoku for a medium puzzle.
 
 The record must have a completed, conflict-free solution. Every given must match the solution and be locked. Every locked cell in the working grid must match the solution. The saved game includes its checkpoints, so backup files and sync carry them too. A stored checkpoint is used only when it is a well-formed board whose locked cells match the solution; a damaged one is dropped on its own, and a game saved before checkpoints existed has none. A restore step in the history keeps the checkpoint it took, so undo still puts it back after a refresh. The error count and the penalty time are part of the saved game. A saved game with no penalty time, or an invalid one, reads as no penalty. A saved game with no error count is treated as 0. History and redo kept in storage are capped at 100 steps each, the same as in play, so undo works the same after a refresh. An error count stored on an older history step is ignored.
 
@@ -215,7 +237,7 @@ Box borders are heavier than the lines between cells inside a box. Both stay vis
 
 With Board highlighting on, when the selected cell holds a digit, every pencil mark of that same digit is highlighted inside its cell. That mark is added on top of the cell tint. Selecting an empty cell does not highlight notes. With Board highlighting off, only the selected cell, conflicts, and an explanation's cells are tinted, and no marks are highlighted.
 
-The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81. Under that, the phase line names the phase, the difficulty, and the source: “Mt. Sudoku” or “Generated”. When conflicts are shown, that line also names the error count.
+The status line reports the phase and the open-cell or conflict count, with a progress reading of filled cells out of 81. Under that, the phase line names the phase, the difficulty, and the source: “Mt. Sudoku”, “Generated”, or “Photo”. When conflicts are shown, that line also names the error count.
 
 ## Keyboard
 
@@ -240,7 +262,7 @@ After a win, only P is handled among the single-key shortcuts. P does not pause 
 
 ## High scores
 
-Each solved puzzle is recorded once, the first time it is solved. A record keeps the puzzle's givens, when it was finished, the difficulty, the time (play time plus penalty), the penalty part of that time, the hint count, the source, and the browser it was solved in. Replaying the same givens, or reloading a game that is already solved, does not add a record. Records are never edited after they are written. A record saved before penalties were kept apart reads as having none; any penalty it had is already in its time.
+Each solved puzzle is recorded once, the first time it is solved. A record keeps the puzzle's givens, when it was finished, the difficulty, the time (play time plus penalty), the penalty part of that time, the hint count, the source (Mt. Sudoku, generated, or photo), and the browser it was solved in. A record with any other source is skipped as damaged. Replaying the same givens, or reloading a game that is already solved, does not add a record. Records are never edited after they are written. A record saved before penalties were kept apart reads as having none; any penalty it had is already in its time.
 
 The High scores dialog shows the ten fastest records for one difficulty, with Weekly, Monthly, and All time tabs. It opens on the current puzzle's difficulty. Weeks start on Monday, and weeks and months follow the device's local time. Games solved with hints are ranked with the rest, marked with a lightbulb and their hint count. Records rank on the full time. Each row shows the rank, the time, any penalty in smaller type (“incl. 2:02 penalty”), and the finish date, with the year on the All time tab. The game just won is highlighted.
 
@@ -267,4 +289,4 @@ Sync runs on sign-in, when the page is shown or hidden, when the network comes b
 
 ## What this version does not do
 
-There is no shared puzzle, no public scoreboard, and no printed copy. High scores are the player's own, and sign-in exists only for sync. Mt. Sudoku deals the difficulty the player chose. The built-in generator’s difficulty is the clue count above. Pencil marks are not checked for correctness on their own.
+There is no shared puzzle, no public scoreboard, and no printed copy. High scores are the player's own, and sign-in exists only for sync. Mt. Sudoku deals the difficulty the player chose. The built-in generator’s difficulty is the clue count above. Pencil marks are not checked for correctness on their own. Reading a photo is meant for printed digits; it does not read handwriting or pencil marks, and a misread digit is for the player to correct.

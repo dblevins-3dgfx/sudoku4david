@@ -40,10 +40,16 @@ export type Snapshot = {
   popped?: Checkpoint;
 };
 
-export type GameSource = "mtsudoku" | "generated";
+/** Where the puzzle came from: Mt. Sudoku, the built-in generator, or a photo the player read in. */
+export type GameSource = "mtsudoku" | "generated" | "photo";
+
+export function isGameSource(value: unknown): value is GameSource {
+  return value === "mtsudoku" || value === "generated" || value === "photo";
+}
 
 export function sourceLabel(source: GameSource): string {
-  return source === "mtsudoku" ? "Mt. Sudoku" : "Generated";
+  if (source === "mtsudoku") return "Mt. Sudoku";
+  return source === "photo" ? "Photo" : "Generated";
 }
 
 export type GameState = {

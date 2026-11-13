@@ -13,7 +13,7 @@
  * - Everything is a pure function of its inputs except the few functions at
  *   the bottom that read and write localStorage.
  */
-import { totalMs, type GameSource, type GameState } from "./game";
+import { isGameSource, totalMs, type GameSource, type GameState } from "./game";
 import { isDifficulty } from "./storage";
 import type { Difficulty, Grid } from "./sudoku";
 
@@ -97,7 +97,7 @@ function isRecord(value: unknown): value is StoredRecord {
     Number.isInteger(data.hintsUsed) &&
     data.hintsUsed >= 0 &&
     data.hintsUsed <= 81 &&
-    (data.source === "mtsudoku" || data.source === "generated") &&
+    isGameSource(data.source) &&
     typeof data.deviceId === "string"
   );
 }

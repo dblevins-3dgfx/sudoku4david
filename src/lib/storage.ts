@@ -5,7 +5,7 @@ import {
   type Grid,
 } from "./sudoku";
 import { CHECKPOINT_LIMIT, copyCheckpoint, type Checkpoint } from "./checkpoints";
-import { HISTORY_LIMIT, type GameState, type Snapshot } from "./game";
+import { HISTORY_LIMIT, isGameSource, type GameState, type Snapshot } from "./game";
 import { cloneNotes, emptyNotes, type Notes } from "./notes";
 
 export const GAME_STORAGE_KEY = "sudoku.desk.v1";
@@ -156,7 +156,7 @@ export function deserializeGame(raw: unknown): GameState | null {
 
   return {
     difficulty: data.difficulty,
-    source: data.source === "mtsudoku" ? "mtsudoku" : "generated",
+    source: isGameSource(data.source) ? data.source : "generated",
     puzzle: data.puzzle.map((row) => row.slice()) as Grid,
     solution: data.solution.map((row) => row.slice()) as Grid,
     grid: data.grid.map((row) => row.slice()) as Grid,

@@ -2,6 +2,7 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { Switch } from "@base-ui/react/switch";
+import { Camera } from "lucide-react";
 import { Fragment, useRef, useState, type ReactNode } from "react";
 import { backupFileName, exportBackup } from "@/lib/backup";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import type { Preferences } from "@/lib/prefs";
 import { parseSignInProof } from "@/lib/remote";
 import { DIFFICULTIES, type Difficulty } from "@/lib/sudoku";
 import { PrefSelect, type PrefOption } from "./pref-select";
+import { PhotoInput } from "./photo-import";
 import { ThemePicker } from "./theme-picker";
 import type { useSync } from "./use-sync";
 
@@ -518,6 +520,7 @@ export function PendingDialog({
   started,
   difficulty,
   onDeal,
+  onPhoto,
   onConfirm,
   onCancel,
 }: {
@@ -525,11 +528,15 @@ export function PendingDialog({
   started: boolean;
   difficulty: Difficulty | undefined;
   onDeal: (difficulty: Difficulty) => void;
+  onPhoto: (file: File) => void;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const photoRef = useRef<HTMLInputElement>(null);
+  // The photo dialog is its own dialog (PhotoDialog in photo-import.tsx).
+  const open = pending !== null && pending.kind !== "photo";
   return (
-    <DeskDialog open={pending !== null} onClose={onCancel}>
+    <DeskDialog open={open} onClose={onCancel}>
       {pending ? (
         <>
           <Dialog.Title render={<p />} className="text-base leading-6">
@@ -549,6 +556,16 @@ export function PendingDialog({
                   {level.label}
                 </Button>
               ))}
+              <Button
+                type="button"
+                variant="outline"
+                className="col-span-2 h-11"
+                onClick={() => photoRef.current?.click()}
+              >
+                <Camera className="size-4" aria-hidden="true" />
+                From a photo
+              </Button>
+              <PhotoInput inputRef={photoRef} onPhoto={onPhoto} />
             </div>
           ) : null}
           <div className={pending.kind === "new" ? "mt-3" : "mt-4 flex gap-2"}>
