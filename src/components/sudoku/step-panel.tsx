@@ -2,33 +2,10 @@
 
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BOXES, type Advice, type Step } from "@/lib/steps";
+import { BOXES, TECHNIQUE_NAMES, type Advice } from "@/lib/steps";
 import type { CellMark } from "@/lib/tint";
 
 type Shown = { advice: Advice; index: number };
-
-// The keys are the technique strings. A key needs quotes only when it isn't a
-// valid identifier: "x-wing" has a hyphen, so it is quoted; swordfish is not.
-// Both spellings make the same string key; this file leaves out quotes it
-// doesn't need. Record<K, V> requires an entry for every technique, so a new
-// one that is missing here fails to compile.
-const TECHNIQUE_NAMES: Record<Step["technique"], string> = {
-  "hidden-single": "Hidden single",
-  "naked-single": "Naked single",
-  pointing: "Pointing",
-  claiming: "Claiming",
-  "naked-pair": "Naked pair",
-  "hidden-pair": "Hidden pair",
-  "naked-triple": "Naked triple",
-  "hidden-triple": "Hidden triple",
-  "x-wing": "X-Wing",
-  swordfish: "Swordfish",
-  "xy-wing": "XY-Wing",
-  "x-chain": "X-chain",
-  "xy-chain": "XY-chain",
-  "w-wing": "W-Wing",
-  aic: "Chain (AIC)",
-};
 
 /** The board marks for the step on show, or null when there is nothing to point at. */
 export function adviceMarks({ advice, index }: Shown): (CellMark | null)[][] | null {

@@ -51,7 +51,8 @@ function describe(step: Found, usesEarlier: boolean): string {
   return PHRASES[step.technique](step) + earlier;
 }
 
-const ELIMINATIONS: Finder[] = [
+/** The elimination finders, in the order a person would try them. */
+export const ELIMINATIONS: Finder[] = [
   pointing,
   claiming,
   (grid, cand) => nakedSubset(grid, cand, 2),
@@ -66,7 +67,7 @@ const ELIMINATIONS: Finder[] = [
 ];
 
 /** Keeps only the eliminations the placement depends on, oldest first. */
-function trim(found: readonly Found[], last: Found): Found[] {
+export function trim(found: readonly Found[], last: Found): Found[] {
   const needed = new Set(last.relies);
   const kept: Found[] = [];
   for (let i = found.length - 1; i >= 0; i--) {

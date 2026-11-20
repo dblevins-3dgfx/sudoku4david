@@ -31,6 +31,8 @@ export type Preferences = {
   explainNotes: boolean;
   /** How Fill all notes fills; it is offered only while noteHelpers is on. */
   fillStyle: FillStyle;
+  /** A short remark on the status line after each move (commentary.ts). */
+  commentary: boolean;
 };
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -43,6 +45,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   deadEndWarning: false,
   explainNotes: false,
   fillStyle: "plain",
+  commentary: false,
 };
 
 function flag(value: unknown, fallback: boolean): boolean {
@@ -69,6 +72,7 @@ export function parsePreferences(raw: unknown, fallback: Preferences = DEFAULT_P
     deadEndWarning: flag(data.deadEndWarning, fallback.deadEndWarning),
     explainNotes: flag(data.explainNotes, fallback.explainNotes),
     fillStyle: data.fillStyle === "plain" || data.fillStyle === "pointing" ? data.fillStyle : fallback.fillStyle,
+    commentary: flag(data.commentary, fallback.commentary),
   };
 }
 

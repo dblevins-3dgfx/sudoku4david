@@ -3,7 +3,7 @@
 
 import type { Coord } from "../game";
 import type { Digit } from "../sudoku";
-import type { Removal, Unit } from "./types";
+import type { Removal, Technique, Unit } from "./types";
 
 export const BOX_NAMES = [
   "top-left",
@@ -68,3 +68,27 @@ export function placeIn(unit: Unit | null, cells: readonly Coord[]): string {
 export function linesName(kind: "row" | "column", indices: readonly number[]): string {
   return `${kind}s ${andList([...indices].sort((a, b) => a - b).map((i) => i + 1))}`;
 }
+
+// The keys are the technique strings. A key needs quotes only when it isn't a
+// valid identifier: "x-wing" has a hyphen, so it is quoted; swordfish is not.
+// Both spellings make the same string key; this file leaves out quotes it
+// doesn't need. Record<K, V> requires an entry for every technique, so a new
+// one that is missing here fails to compile.
+/** The heading for each technique, as Explain and the commentary show it. */
+export const TECHNIQUE_NAMES: Record<Technique, string> = {
+  "hidden-single": "Hidden single",
+  "naked-single": "Naked single",
+  pointing: "Pointing",
+  claiming: "Claiming",
+  "naked-pair": "Naked pair",
+  "hidden-pair": "Hidden pair",
+  "naked-triple": "Naked triple",
+  "hidden-triple": "Hidden triple",
+  "x-wing": "X-Wing",
+  swordfish: "Swordfish",
+  "xy-wing": "XY-Wing",
+  "x-chain": "X-chain",
+  "xy-chain": "XY-chain",
+  "w-wing": "W-Wing",
+  aic: "Chain (AIC)",
+};
