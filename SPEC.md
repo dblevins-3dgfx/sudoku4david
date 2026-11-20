@@ -83,7 +83,7 @@ Check is part of Error checking too, so it is offered only while conflicts are s
 
 ## Available helpers
 
-Preferences has an Available helpers section with one on/off switch for each group of helpers. Every group is on by default. Two switches sit inside a group and are off by default: Explain uses my notes inside Solving help, and the dead-end warning inside Guessing tools. Switching one applies at once, does not reset the puzzle, and is not an undo step. It does not change the hint total, the error count already kept, or high scores.
+Preferences has an Available helpers section with one on/off switch for each group of helpers. Every group is on by default. Two switches sit inside a group and are off by default: Explain uses my notes inside Solving help, and the dead-end warning inside Guessing tools. The last switch, Commentary, belongs to no group and is off by default. Switching one applies at once, does not reset the puzzle, and is not an undo step. It does not change the hint total, the error count already kept, or high scores.
 
 | Switch | What it covers | When it is off |
 | --- | --- | --- |
@@ -94,6 +94,7 @@ Preferences has an Available helpers section with one on/off switch for each gro
 | Board highlighting | Peer and same-digit tints, highlighted pencil marks, and the keypad's counts | Only the selected cell, conflicts, and an explanation's cells are tinted; the keypad shows no counts, but a digit with nine copies still grays out and is ignored |
 | Guessing tools | Save and Restore checkpoint, and the dead-end warning switch | Their icons are hidden, S and R do nothing, and the dead-end warning is off; saved checkpoints are kept for when it is switched back on |
 | Dead-end warning (inside Guessing tools, off by default) | Flagging a board that can no longer be finished | No dead ends are flagged. While Guessing tools is off, this switch is grayed out and keeps its setting |
+| Commentary (off by default) | A remark on the status line after a move (see Commentary) | No remarks |
 
 Undo and redo restore the board as it was saved, whichever switches were on when each step was recorded.
 
@@ -154,6 +155,32 @@ Before trusting them, Explain checks those marks against the solution, after the
 When the notes are right, the candidates Explain starts from are the board's candidates narrowed by the notes. A deduction the notes already hold is not repeated as a step, and the notes can take Explain further than its techniques alone. A step that relies on a candidate the notes took out says so at the end, naming each box and digit it used: “This relies on your 5s in the top-left box.” The line under the explanation then reads “Worked out from the digits on the board and your notes.” With the switch off, it reads “Worked out from the digits on the board, not your notes.”, as it does for a wrong digit. An explanation worked out from the notes also closes when the notes change.
 
 While an explanation is shown, it replaces the status card and the board tints only the cells it talks about: the cell to fill, the cells that make the pattern, the cells losing a candidate (outlined), and the rest of the row, column, or box. X-Wing, Swordfish, XY-Wing, and the chains span several rows and columns, so they tint only their own cells and the cells losing a candidate. Any change to the board, pausing, or a win closes it. Pressing Explain again also closes it.
+
+## Commentary
+
+While the Commentary switch is on, a short remark appears on the status line after a move, in place of the usual status, the same way the notice after Hint does. Screen readers announce it. It stays until the next key, tap, or selection on the board, and a move with nothing worth saying shows the usual status. Remarks come only after digit presses, pencil marks, and selecting a cell; undo, redo, erase, Hint, Fill all notes, and checkpoints have none, and a winning move has none (the solved panel shows instead). Commentary is not a hint: it does not count toward the hint total and does not change the clock, the error count, or high scores.
+
+Most remarks are worked out from the digits on the board alone, never the solution, using the step finder's techniques (see Explaining the next step). The two that report mistakes, a clash and notes that leave out where a digit goes, appear only while Error checking is on. A digit that is wrong but clashes with nothing is never called wrong.
+
+**Placing a digit.** The remark says what the placement took, judged on the board as it was just before, with that cell empty:
+
+- A single: “Hidden single: 8 had only one place left in the top-middle box.” or “Naked single: 5 was the only digit left for row 5, column 5.”
+- A single after at most two eliminations, named in order and each technique once: “Hidden single, after claiming: 8 had only one place left in column 9.” Eliminations are tried in Explain's order, and only the ones the single depends on are named. A placement that needs more than two is not described this way.
+- “You're ahead of the board: that becomes a single once other singles are filled in.” when filling in other singles one at a time, and nothing else, leads to it.
+- “Nothing on the board forces that yet. It may follow from other moves first, or it's a guess.” otherwise.
+- With Error checking on, a digit that repeats one already in its row, column, or box gets “That 5 clashes with the 5 in row 1, column 1.”, naming the first such digit, looking in the row, then the column, then the box. With Error checking off it gets no remark.
+
+When the placement is not a clash, the progress it made follows: the units it finished (“Row 1, column 1, and the top-left box are done.”, or “Row 1 is done.”), the ninth copy of its digit (“That's all nine 5s.”), and the halfway mark, when the board goes from fewer than 41 filled cells to 41 (“Halfway: 41 of 81 filled.”).
+
+**Adding a pencil mark.** A mark where the digit can't go says why, naming the row, then the column, then the box that already holds it: “Row 1 already has a 5, so 5 can't go in row 1, column 3.” A mark that can go there gets no remark.
+
+**Removing a pencil mark.** If a technique rules that digit out of that cell, the remark names it, with at most two eliminations before it, as for a placement: “Pointing in the middle-right box rules out 2 here.”, “Pointing in the middle-left box, after a naked triple, rules out 2 here.”, or, when a single puts the same digit in a cell this one sees, “Naked single: 4 must go in row 7, column 9, so not here.” An earlier step of the same technique as the last reads “claiming elsewhere”. Removing a mark the board already rules out, or one no technique rules out, gets no remark.
+
+**Leaving a box.** When the selection moves into another box, by a tap or an arrow key, the commentary looks at the box just left. It reads the marks there the way Explain uses my notes does: one digit at a time, as a claim that the digit can only go where it is marked (marks where the digit can't go are ignored). Only digits whose marks in that box changed since the selection came into it are read, and only changes the player typed: a placement tidying notes, Fill all notes, undo, a hint, or a new puzzle starts the comparison again. The first of these that applies, in digit order within each, is said:
+
+1. With Error checking on, marks that leave out the cell where the digit goes: “Your 2s in the top-left box leave out the cell where 2 goes.” It names the box and digit, never the cell.
+2. Marks that leave a digit one place in the box: “Your notes leave 2 only one place in the top-left box: row 2, column 3.”
+3. Marks that all sit on one row or column, when another open cell of that line outside the box could still hold the digit: “Pointing: your 4s in the top-left box all sit in column 3, so no other cell in column 3 can be a 4.”
 
 ## Undo, redo, and clearing
 
@@ -221,7 +248,7 @@ High scores are stored under `sudoku.scores.v1`, and a random id for this browse
 
 The color theme is stored separately under `sudoku.theme`, as the theme's id. With nothing stored, the page uses Paper or Lamplight to follow the device's light or dark setting. The older values `light` and `dark` map to those two.
 
-How digits are entered, the Available helpers switches, and the Fill style are stored under `sudoku.prefs.v1`. Error checking is stored as `showConflicts`, the name it had before Available helpers, so an older record keeps its choice; the other switches are `solvingHelp`, `explainNotes`, `noteHelpers`, `highlighting`, `guessingTools`, and `deadEndWarning`. The Fill style is stored as `fillStyle`, either `plain` or `pointing`. The default entry method is the notes button, every helper is on except the dead-end warning and Explain uses my notes, and the Fill style is Plain. Each stored field is read on its own: a missing or invalid one takes its default and the others are kept. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing any preference applies immediately and does not reset the puzzle. Preferences stay in this browser; sync does not carry them. Changing a preference is not an undo step.
+How digits are entered, the Available helpers switches, and the Fill style are stored under `sudoku.prefs.v1`. Error checking is stored as `showConflicts`, the name it had before Available helpers, so an older record keeps its choice; the other switches are `solvingHelp`, `explainNotes`, `noteHelpers`, `highlighting`, `guessingTools`, `deadEndWarning`, and `commentary`. The Fill style is stored as `fillStyle`, either `plain` or `pointing`. The default entry method is the notes button, every helper is on except the dead-end warning, Explain uses my notes, and Commentary, and the Fill style is Plain. Each stored field is read on its own: a missing or invalid one takes its default and the others are kept. On a first visit that has a saved game and no preferences yet, the saved game’s conflict setting is kept. Changing any preference applies immediately and does not reset the puzzle. Preferences stay in this browser; sync does not carry them. Changing a preference is not an undo step.
 
 ## Screen
 
@@ -289,4 +316,4 @@ Sync runs on sign-in, when the page is shown or hidden, when the network comes b
 
 ## What this version does not do
 
-There is no shared puzzle, no public scoreboard, and no printed copy. High scores are the player's own, and sign-in exists only for sync. Mt. Sudoku deals the difficulty the player chose. The built-in generator’s difficulty is the clue count above. Pencil marks are not checked for correctness on their own. Reading a photo is meant for printed digits; it does not read handwriting or pencil marks, and a misread digit is for the player to correct.
+There is no shared puzzle, no public scoreboard, and no printed copy. High scores are the player's own, and sign-in exists only for sync. Mt. Sudoku deals the difficulty the player chose. The built-in generator’s difficulty is the clue count above. Pencil marks are not checked for correctness on their own; only Explain uses my notes and Commentary look at them, and they name a box and digit, never a cell. Reading a photo is meant for printed digits; it does not read handwriting or pencil marks, and a misread digit is for the player to correct.
