@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { DEFAULT_PREFERENCES, loadPreferences, parsePreferences, PREFS_STORAGE_KEY } from "./prefs";
 
-const ON = { solvingHelp: true, noteHelpers: true, highlighting: true, guessingTools: true, deadEndWarning: false, explainNotes: false, fillStyle: "plain" as const };
+const ON = { solvingHelp: true, noteHelpers: true, highlighting: true, guessingTools: true, deadEndWarning: false, explainNotes: false, fillStyle: "plain" as const, commentary: false };
 
 describe("preferences", () => {
   it("reads a complete record", () => {
@@ -50,6 +50,13 @@ describe("preferences", () => {
     assert.equal(parsePreferences({ fillStyle: "plain" })?.fillStyle, "plain");
     assert.equal(parsePreferences({ entry: "tap" })?.fillStyle, "plain");
     assert.equal(parsePreferences({ fillStyle: "clever" })?.fillStyle, "plain");
+  });
+
+  it("reads the Commentary switch, off when missing or invalid", () => {
+    assert.equal(DEFAULT_PREFERENCES.commentary, false);
+    assert.equal(parsePreferences({ commentary: true })?.commentary, true);
+    assert.equal(parsePreferences({ entry: "tap" })?.commentary, false);
+    assert.equal(parsePreferences({ commentary: "yes" })?.commentary, false);
   });
 
   it("ignores fields it does not know", () => {

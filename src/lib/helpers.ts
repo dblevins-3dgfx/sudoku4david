@@ -11,9 +11,10 @@ export type HelperGroup = "solving" | "checking" | "notes" | "highlighting" | "g
 /**
  * A switch in Preferences: one per group, plus two that sit inside a group
  * and work only while it is on: the dead-end warning inside Guessing tools,
- * and Explain uses my notes inside Solving help.
+ * and Explain uses my notes inside Solving help. Commentary is a switch of its
+ * own with no controls, so it is not a group.
  */
-export type HelperSwitch = HelperGroup | "deadEnds" | "explainNotes";
+export type HelperSwitch = HelperGroup | "deadEnds" | "explainNotes" | "commentary";
 
 // Which Preferences field holds each switch. `satisfies` checks the table
 // against the type without widening it, a little like a static_assert.
@@ -25,6 +26,7 @@ const FIELD = {
   guessing: "guessingTools",
   deadEnds: "deadEndWarning",
   explainNotes: "explainNotes",
+  commentary: "commentary",
 } as const satisfies Record<HelperSwitch, keyof Preferences>;
 
 export type SwitchSpec = {
@@ -53,6 +55,11 @@ export const HELPER_SWITCHES: readonly SwitchSpec[] = [
     label: "Dead-end warning",
     detail: "Flags a cell with no candidates, or a digit with no place left.",
     parent: "guessing",
+  },
+  {
+    key: "commentary",
+    label: "Commentary",
+    detail: "A short remark after each move: the technique it used, progress, and your notes.",
   },
 ];
 

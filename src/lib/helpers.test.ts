@@ -4,17 +4,25 @@ import { HELPER_SWITCHES, helperOn, switchValue, withHelper } from "./helpers";
 import { DEFAULT_PREFERENCES } from "./prefs";
 
 describe("Available helpers", () => {
-  it("has every group on by default, and the dead-end warning and Explain uses my notes off", () => {
+  it("has every group on by default, and the dead-end warning, Explain uses my notes, and Commentary off", () => {
+    const offByDefault = ["deadEnds", "explainNotes", "commentary"];
     for (const { key } of HELPER_SWITCHES) {
-      assert.equal(helperOn(DEFAULT_PREFERENCES, key), key !== "deadEnds" && key !== "explainNotes", key);
+      assert.equal(helperOn(DEFAULT_PREFERENCES, key), !offByDefault.includes(key), key);
     }
   });
 
   it("lists the switches in order", () => {
     assert.deepEqual(
       HELPER_SWITCHES.map((entry) => entry.label),
-      ["Solving help", "Explain uses my notes", "Error checking", "Note helpers", "Board highlighting", "Guessing tools", "Dead-end warning"],
+      ["Solving help", "Explain uses my notes", "Error checking", "Note helpers", "Board highlighting", "Guessing tools", "Dead-end warning", "Commentary"],
     );
+  });
+
+  it("keeps Commentary a switch of its own, inside no group", () => {
+    const on = withHelper(DEFAULT_PREFERENCES, "commentary", true);
+    assert.equal(on.commentary, true);
+    assert.equal(helperOn(on, "commentary"), true);
+    assert.equal(HELPER_SWITCHES.find((entry) => entry.key === "commentary")?.parent, undefined);
   });
 
   it("keeps the dead-end warning inside Guessing tools", () => {

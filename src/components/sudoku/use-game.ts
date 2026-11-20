@@ -31,6 +31,7 @@ import {
 } from "@/lib/prefs";
 import { loadRecords, placementText, puzzleKey, recordWin, resetStoredRecords } from "@/lib/records";
 import { importBackup } from "@/lib/backup";
+import { leaveBoxRemark, moveRemark } from "@/lib/commentary";
 import { findDeadEnds } from "@/lib/deadends";
 import { helperOn, withHelper, type HelperSwitch } from "@/lib/helpers";
 import { fillNotice, hintNotice } from "@/lib/labels";
@@ -45,8 +46,8 @@ import {
   pressDigit,
 } from "@/lib/play";
 import { loadGame, saveGame } from "@/lib/storage";
-import type { Notes } from "@/lib/notes";
-import { nextStep, type Advice } from "@/lib/steps";
+import { notesEqual, type Notes } from "@/lib/notes";
+import { boxOf, nextStep, type Advice } from "@/lib/steps";
 import { useSync } from "./use-sync";
 import {
   conflictCount,
@@ -109,6 +110,12 @@ export function useGame() {
   const dealSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
+  // For the commentary on notes: the box the selection is in, with the notes
+  // as they were when the player came into it (see leaveBoxRemark), and the
+  // notes as the player's last typed mark left them. A ref is a mutable box
+  // that survives re-renders without causing one, like a member variable.
+  const boxEntryRef = useRef<{ box: number; notes: Notes } | null>(null);
+  const typedNotesRef = useRef<Notes | null>(null);
 
   useEffect(() => {
     gameRef.current = game;
@@ -121,6 +128,22 @@ export function useGame() {
   useEffect(() => {
     prefsRef.current = prefs;
   }, [prefs]);
+
+  // Keeps boxEntryRef current. When the selection lands in another box by any
+  // route other than selecting (a hint, an undo), or the notes change by
+  // anything other than a typed mark (a placement tidying them, Fill all
+  // notes, undo, a new game), the comparison starts again from here, so the
+  // commentary on leaving a box talks only about marks the player typed.
+  useEffect(() => {
+    if (!game) return;
+    const box = boxOf(game.selected.r, game.selected.c);
+    const entry = boxEntryRef.current;
+    const typed = typedNotesRef.current !== null && notesEqual(game.notes, typedNotesRef.current);
+    if (!entry || entry.box !== box || (!typed && !notesEqual(entry.notes, game.notes))) {
+      boxEntryRef.current = { box, notes: game.notes };
+      typedNotesRef.current = null;
+    }
+  }, [game]);
 
   useEffect(() => {
     prefsOpenRef.current = prefsOpen;
@@ -396,7 +419,33 @@ export function useGame() {
 
     // The guard runs again inside apply: React may run this update later,
     // against a newer state than `current`.
-    apply((state) => pressDigit(state, digit, asNote, prefsRef.current.noteHelpers));
+    const tidy = prefsRef.current.noteHelpers;
+    apply((state) => pressDigit(state, digit, asNote, tidy));
+
+    // Commentary, worked out from a dry run of the same move, the way
+    // giveHint words its notice. apply() cleared the notice; this sets it.
+    const next = pressDigit(current, digit, asNote, tidy);
+    if (asNote && next.notes !== current.notes) typedNotesRef.current = next.notes;
+    if (!prefsRef.current.commentary) return;
+    const text = moveRemark(current, next, helperOn(prefsRef.current, "checking"));
+    if (text) setNotice(text);
+  }, [apply]);
+
+  // Moves the selection (a tap or an arrow key). With Commentary on, leaving
+  // a box comments on the marks the player typed there.
+  const selectWith = useCallback((fn: (state: GameState) => GameState) => {
+    const current = gameRef.current;
+    if (!current) return;
+    apply(fn);
+    const next = fn(current);
+    const box = boxOf(next.selected.r, next.selected.c);
+    const entry = boxEntryRef.current;
+    if (!entry || entry.box === box) return;
+    boxEntryRef.current = { box, notes: next.notes };
+    typedNotesRef.current = null;
+    if (!prefsRef.current.commentary) return;
+    const text = leaveBoxRemark(next.grid, next.solution, entry.notes, next.notes, entry.box, helperOn(prefsRef.current, "checking"));
+    if (text) setNotice(text);
   }, [apply]);
 
   // Hint, plus the notice and pulse that show which cell it filled. hint() is
@@ -504,7 +553,7 @@ export function useGame() {
           break;
         case "move": {
           const { r, c } = moveSelection(current, command.dr, command.dc).selected;
-          apply((state) => moveSelection(state, command.dr, command.dc));
+          selectWith((state) => moveSelection(state, command.dr, command.dc));
           focusCell(r, c);
           break;
         }
@@ -543,7 +592,7 @@ export function useGame() {
 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [apply, enterDigit, fillAllNotes, giveHint]);
+  }, [apply, enterDigit, fillAllNotes, giveHint, selectWith]);
 
   const check = useCallback(() => {
     const current = gameRef.current;
@@ -637,7 +686,7 @@ export function useGame() {
     setEntry,
     setFillStyle,
     setHelper,
-    select: (r: number, c: number) => apply((state) => selectCell(state, r, c)),
+    select: (r: number, c: number) => selectWith((state) => selectCell(state, r, c)),
     input: enterDigit,
     eraseCell: () => apply(erase),
     fillAllNotes,
